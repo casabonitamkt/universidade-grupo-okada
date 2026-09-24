@@ -1,4 +1,14 @@
 {
   "cleanUrls": true,
-  "trailingSlash": false
+  "trailingSlash": false,
+  "rewrites": [
+    {
+      "source": "/homologacao",
+      "destination": "/novo-layout.html"
+    },
+    {
+      "source": "/homologacao/essenciais",
+      "destination": "/novo-layout.html"
+    }
+  ]
 }
