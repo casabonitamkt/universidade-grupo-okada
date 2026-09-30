@@ -79,3 +79,34 @@ Aprovação: >= 8,0 e nenhuma falha crítica.
 - Falha 5 → revisar “fechamento por ligação/vídeo”.
 
 A nova tentativa deve usar cenário diferente, mantendo as mesmas competências e sem repetir literalmente as questões anteriores.
+
+
+## Reteste adaptativo — versão 1
+
+A reprovação não libera a próxima etapa. O sistema deve classificar as falhas e montar uma nova tentativa com cenário diferente, preservando as competências medidas.
+
+### Mapa falha → revisão → novo cenário
+- Desconto precoce → revisar **investigar antes de negociar** → novo cenário: cliente diz “na outra loja ficou mais barato” sem informar equivalência.
+- Troca sem autorização → revisar **arquiteto e preservação da especificação** → novo cenário: cliente pede alternativa para item escolhido pela arquiteta.
+- Sem próximo passo → revisar **próximo passo + data/hora** → novo cenário: cliente diz “vou ver e te aviso”.
+- Prazo ignorado → revisar **prazo como critério de decisão** → novo cenário: mudança em 30 dias com decisões ainda pendentes.
+- Só mensagens em negociação relevante → revisar **fechamento por ligação/vídeo** → novo cenário: proposta de R$ 74 mil com cliente respondendo de forma curta no WhatsApp.
+
+### Feedback obrigatório ao reprovar
+Mostrar, nesta ordem:
+1. **O que você fez bem.**
+2. **Onde perdeu domínio**, citando a competência.
+3. **Por que isso prejudica a venda.**
+4. **Trecho exato para revisar.**
+5. **O que precisa demonstrar na próxima tentativa.**
+
+### Trava
+Só considerar o treinamento dominado com nota >= 8,0 e nenhuma falha crítica. Uma nova tentativa deve usar cenário diferente do anterior e nunca apagar o histórico.
+
+### Critérios de teste
+- nota 7,9 mantém bloqueio;
+- nota >= 8 com falha crítica mantém bloqueio;
+- feedback aponta revisão específica;
+- reteste troca o cenário;
+- histórico anterior permanece preservado;
+- aprovação sem falha crítica libera a próxima etapa.
