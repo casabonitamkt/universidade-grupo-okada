@@ -170,3 +170,57 @@ O cliente informou: casa nova em Cascavel; mudança em 50 dias; living integrado
 
 ### Saída pedagógica para Meu Dia
 Quando esta competência falhar, a revisão prioritária deve ser registrada conceitualmente como **Fechamento do diagnóstico antes da solução**, com a ação: “Revise a síntese em 3 movimentos, refaça o exercício e só depois realize um novo cenário.” Não substituir a tentativa anterior nem apagar histórico.
+
+
+## Microtreinamento — Diagnóstico fluido: uma pergunta abre a próxima
+
+### O que fazer
+Conduzir o diagnóstico como conversa, não como formulário. Cada pergunta deve nascer de algo que o cliente acabou de dizer e buscar somente a informação que muda a próxima decisão. Ao final, o consultor precisa ter contexto suficiente sobre projeto x peça, material visual, ambiente/medidas, cidade, prazo, arquiteto, investimento e potencial de outros ambientes.
+
+### Como fazer — técnica Gancho → Pergunta → Motivo
+1. **Gancho:** reconheça uma informação real do cliente: “Como você comentou que é casa nova...”
+2. **Pergunta:** faça uma única pergunta relevante: “...vocês já têm o projeto ou algumas fotos do ambiente?”
+3. **Motivo:** quando útil, explique por que pergunta: “Assim eu não te mostro algo bonito que depois não conversa com medidas e restante da casa.”
+4. **Conecte a resposta:** use a resposta seguinte como gancho para avançar, em vez de disparar a próxima pergunta do checklist.
+
+### Exemplo certo
+Cliente: “Quero um sofá grande para a casa nova.”
+Consultor: “Que legal. Como é casa nova, prefiro entender o ambiente antes de te indicar tamanho. Você já tem o projeto ou alguma foto da sala?”
+Cliente: “Tenho o projeto da arquiteta.”
+Consultor: “Perfeito. Me envie que eu olho as medidas e a integração. A arquiteta está acompanhando também a escolha dos móveis?”
+Cliente: “Sim. Vamos mudar em dezembro.”
+Consultor: “Ótimo, então preciso considerar o prazo junto com a especificação. A entrega será em qual cidade?”
+
+### Exemplo errado
+“Tem projeto? Manda foto. Qual medida? Cidade? Prazo? Tem arquiteto? Qual orçamento? Precisa de mais algum ambiente?”
+
+**Por que prejudica:** o cliente sente que está preenchendo cadastro, responde de forma curta, omite contexto e tende a abandonar a conversa. A consultora coleta dados, mas não demonstra escuta nem cria confiança para descobrir o potencial total.
+
+### Erros comuns
+- fazer duas ou mais perguntas sem reagir à resposta anterior;
+- perguntar investimento cedo demais, sem explicar o que será calibrado;
+- pedir projeto/fotos como burocracia, sem mostrar benefício;
+- descobrir “casa nova” e continuar tratando a peça isoladamente;
+- perguntar outros ambientes com linguagem de venda adicional (“quer aproveitar e comprar mais alguma coisa?”);
+- repetir uma informação que o cliente já forneceu;
+- avançar para produto para “não perder tempo” antes do contexto mínimo.
+
+### Exercício de aplicação
+Cliente: “Vi uma mesa no Instagram. É para a casa que estamos terminando em Maringá.” Escreva as próximas cinco intervenções. Cada fala deve conter no máximo uma pergunta principal e reagir à resposta anterior. O cenário deve descobrir naturalmente projeto/fotos, arquiteto, prazo e se jantar se conecta a outros ambientes. Não apresente produto.
+
+### Avaliação forte de domínio
+1. **Aberta:** transforme este checklist — “medida, cidade, prazo, arquiteto, orçamento” — em uma conversa de cinco falas usando Gancho → Pergunta → Motivo.
+2. **Detecção de erro:** o cliente já disse “mudo em 30 dias para Londrina”, e o consultor pergunta “qual cidade e para quando precisa?”. Explique o erro e continue corretamente.
+3. **Decisão:** cliente diz “tenho projeto, mas queria ver opções antes de mandar”. Escreva uma resposta que preserve velocidade e consiga o contexto visual sem confronto.
+4. **Potencial total:** cliente pede duas cadeiras e comenta que “a casa toda ainda está sem móveis”. Investigue o projeto maior sem perguntar “quer mais alguma coisa?”.
+5. **Investimento:** depois de entender projeto, ambientes e prazo, introduza expectativa de investimento sem usar a frase seca “qual seu orçamento?”.
+6. **Correção de atendimento:** receba esta sequência ruim — “manda projeto / medidas / orçamento / prazo” — e reescreva demonstrando escuta e explicando pelo menos um motivo.
+7. **Síntese:** diga quais informações o consultor descobriu e quais ainda faltam antes de apresentar produto em um cenário onde já sabe: casa nova, sala integrada, projeto pronto, arquiteta ativa e cidade; não sabe prazo, investimento nem medidas finais.
+
+### Rubrica e bloqueio
+**Aprovação:** nota mínima 8,0, nenhuma falha crítica e competência **Fluidez** obrigatoriamente em “Dominou”. São falhas críticas: recomendar antes do contexto mínimo; repetir informação já dada como se não tivesse ouvido; transformar o diagnóstico em interrogatório; ignorar sinal explícito de projeto maior.
+
+Se reprovar, o feedback deve apontar exatamente uma ou mais causas: **perguntas em bloco**, **não reagiu à resposta**, **não explicou o motivo**, **repetiu informação**, **apresentou cedo** ou **perdeu potencial total**. Bloquear avanço quando a regra de nota mínima estiver ativa e gerar novo cenário com produto, cidade, prazo e configuração de ambientes diferentes.
+
+### Saída pedagógica para Meu Dia
+Registrar a competência fraca como **Fluidez do diagnóstico** e priorizar: “Revise Gancho → Pergunta → Motivo; refaça o exercício com uma pergunta principal por vez; depois realize um novo cenário.” Preservar tentativa e feedback anteriores.
