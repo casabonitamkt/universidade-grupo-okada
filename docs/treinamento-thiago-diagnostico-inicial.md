@@ -144,3 +144,46 @@ Aprovado somente se demonstrar que sabe **quando perguntar**, **como contextuali
 - Troca/desconto precoce → revisar **Erros comuns** e refazer o cenário 4 com outra situação.
 
 No reteste, usar cliente, ambientes e contexto diferentes. Não repetir as mesmas frases nem apagar o histórico da tentativa anterior.
+
+
+## Microtreino — descobrir outros ambientes com naturalidade
+**O que fazer:** identificar se a peça faz parte de uma etapa maior da casa, preservando a prioridade declarada pelo cliente.
+
+**Como fazer:** use uma pista real da conversa — casa nova, mudança, obra, arquiteto, projeto ou prazo comum — e explique por que a pergunta ajuda.
+
+**Fala correta:** “Como você comentou que está finalizando a casa e essa sala faz parte do projeto, além desse ambiente tem mais algum espaço entrando nessa mesma etapa? Mesmo começando pela sala, isso me ajuda a manter o conjunto coerente.”
+
+**Fala correta quando a prioridade é uma peça:** “Perfeito, começamos pelo sofá. Ele precisa conversar com algum outro ambiente que vocês vão montar agora ou, por enquanto, a decisão é realmente só da sala?”
+
+**Fala errada:** “E o que mais você vai comprar para a casa?”
+
+**Por que prejudica:** pode soar como tentativa de aumentar a venda e fazer o cliente esconder contexto importante.
+
+### Erros comuns
+- perguntar por outros ambientes sem conexão com a conversa;
+- ignorar a prioridade declarada;
+- descobrir outros ambientes e já apresentar produtos para todos;
+- não separar o que é prioridade agora do que fica para depois;
+- confundir potencial total com obrigação de fechar tudo de uma vez.
+
+### Exercício
+Cliente pede uma mesa e comenta que muda para a casa nova em dois meses. Em até 4 falas, descubra se há outros ambientes na mesma etapa, respeitando a prioridade da mesa.
+
+### Avaliação de domínio
+1. Escreva uma transição natural de “preciso de uma mesa” para investigar a etapa completa da casa.
+2. Explique dois problemas de “Já que é casa nova, vamos fazer orçamento da casa inteira”.
+3. Cliente revela sala, jantar e varanda, mas quer resolver primeiro o jantar. Explique a próxima ação.
+4. Cliente tem arquiteta e projeto completo, mas procurou a loja por uma poltrona. Descreva como entender o potencial preservando a especificação.
+5. Reescreva “O que mais você vai comprar?” usando uma pista real do cliente.
+
+### Critério de domínio
+Nota mínima 8,0, nenhuma falha crítica e demonstração de: usar pista real, explicar a razão da pergunta, respeitar prioridade e mapear outros ambientes sem empurrar produto.
+
+### Revisão direcionada
+- Ampliação sem contexto → revisar **Como fazer**.
+- Soou como venda forçada → revisar **Fala correta x Fala errada**.
+- Ignorou prioridade → revisar **Fala correta quando a prioridade é uma peça**.
+- Apresentou produtos cedo → revisar **Erros comuns** e **Exemplo errado** do Diagnóstico Inicial.
+- Atropelou arquiteto/especificação → revisar o passo **Arquiteto**.
+
+No reteste, trocar produto, ambientes e pista de ampliação. Não repetir o cenário anterior.
