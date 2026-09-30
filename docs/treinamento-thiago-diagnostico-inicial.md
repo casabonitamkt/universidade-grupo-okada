@@ -99,3 +99,48 @@ Reprovado deve revisar somente os trechos associados às competências fracas e 
 O consultor só domina este ponto quando consegue, em cenário novo, acolher a pergunta de preço, não inventar informação, explicar brevemente a razão da pergunta e descobrir ao menos projeto x peça + uma evidência de contexto sem soar evasivo.
 
 Na falha, direcionar revisão para este microtreino e gerar novo cenário; não repetir a mesma fala do cliente.
+
+
+## Microtreino — descobrir investimento sem constranger
+**O que fazer:** descobrir a expectativa de investimento como critério de curadoria, depois de criar contexto suficiente. O objetivo não é medir poder de compra; é evitar propostas desalinhadas e preservar tempo do cliente, do arquiteto e da consultora.
+
+**Como fazer:** conecte a pergunta ao que o cliente já contou. Em vez de “qual seu orçamento?”, explique por que a faixa ajuda a selecionar melhor.
+
+**Fala correta:** “Pelo que você me contou, estamos pensando sala e jantar para a casa nova e a arquiteta já definiu boa parte do conceito. Para eu estudar marcas e peças coerentes com o projeto, vocês imaginaram alguma faixa de investimento para esses ambientes ou preferem que eu monte uma primeira referência e a gente calibra juntos?”
+
+**Fala correta quando o cliente não sabe:** “Sem problema. Eu monto uma referência coerente com o projeto e te explico onde estão as diferenças de investimento. A partir disso a gente ajusta sem perder o conceito.”
+
+**Fala errada:** “Quanto você pode gastar?”
+
+**Por que o erro prejudica:** soa como triagem financeira, pode deixar o cliente defensivo e induz a consultora a selecionar produto apenas por preço antes de compreender prioridades.
+
+### Erros comuns
+- perguntar investimento na abertura, sem contexto;
+- insistir em um número quando o cliente ainda não tem referência;
+- confundir expectativa de investimento com autorização para reduzir especificação;
+- usar a faixa para limitar o atendimento e deixar de investigar outros ambientes;
+- prometer desconto ou condição antes de entender a objeção real.
+
+### Exercício de aplicação
+Cliente está construindo, enviou projeto da sala e jantar e diz: “Ainda não faço ideia de quanto vou gastar com os móveis.” Em até 3 falas, acolha a incerteza, crie uma referência de processo e avance o diagnóstico sem pressionar por um número.
+
+### Avaliação de domínio — investimento
+1. **Aberta:** escreva a pergunta que faria depois de descobrir que sala e jantar fazem parte do mesmo projeto e explique por que escolheu esse momento.
+2. **Correção de erro:** reescreva “Quanto você pode gastar?” para uma fala consultiva e natural.
+3. **Decisão:** cliente não sabe a faixa de investimento. Qual a melhor próxima ação?
+   - A) insistir em um teto antes de continuar;
+   - B) apresentar o produto mais barato para testar reação;
+   - C) montar uma primeira referência coerente, explicar diferenças e calibrar com o cliente;
+   - D) oferecer desconto para facilitar a decisão.
+4. **Cenário:** o cliente informa uma faixa abaixo da solução inicialmente imaginada. Explique a sequência antes de trocar qualquer peça especificada pela arquiteta.
+
+### Critério de domínio
+Aprovado somente se demonstrar que sabe **quando perguntar**, **como contextualizar**, **como agir quando o cliente não sabe a faixa** e **como evitar troca/desconto precoce**. Nota mínima 8,0 e nenhuma falha crítica.
+
+### Revisão direcionada
+- Perguntou cedo demais → revisar **Como fazer** e o momento da pergunta.
+- Soou como triagem financeira → revisar **Fala correta** x **Fala errada**.
+- Cliente não sabe e consultor trava → revisar **Fala correta quando o cliente não sabe**.
+- Troca/desconto precoce → revisar **Erros comuns** e refazer o cenário 4 com outra situação.
+
+No reteste, usar cliente, ambientes e contexto diferentes. Não repetir as mesmas frases nem apagar o histórico da tentativa anterior.
