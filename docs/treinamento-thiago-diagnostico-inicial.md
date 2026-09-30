@@ -123,3 +123,50 @@ O resultado deve mostrar quatro blocos:
 4. **No reteste demonstre:** comportamento observável que comprovará domínio.
 
 O reteste deve usar cenário diferente e preservar o histórico da tentativa anterior.
+
+
+## Microtreinamento — Fechar o diagnóstico antes de apresentar produto
+
+### O que fazer
+Antes de abrir catálogo, mandar foto, falar preço ou sugerir uma peça, fazer uma síntese curta do que foi entendido e confirmar a única lacuna realmente necessária. O objetivo é provar escuta, evitar recomendação prematura e transformar o diagnóstico em direção de atendimento.
+
+### Como fazer
+Use três movimentos, sem repetir um checklist:
+1. **Resuma o contexto:** “Entendi: vocês estão finalizando a casa, a sala é integrada ao jantar e a mudança é em cerca de 45 dias.”
+2. **Confirme o que orienta a escolha:** “Você comentou que a arquiteta já tem o projeto; se me enviar, eu consigo respeitar medidas e linguagem do ambiente.”
+3. **Feche a lacuna antes da solução:** “Antes de eu separar opções, só quero alinhar uma coisa: vocês imaginaram alguma faixa para essa etapa toda ou prefere que eu monte uma primeira referência coerente com o projeto?”
+
+Se ainda faltarem cidade, prazo, projeto/fotos, arquiteto, medidas essenciais ou expectativa de investimento, não esconda a lacuna. Pergunte somente o que muda a próxima decisão.
+
+### Exemplo certo
+Cliente: “É casa nova. A sala e o jantar são integrados, tenho projeto e quero mudar em novembro. A arquiteta está acompanhando.”
+Consultor: “Perfeito. Então não vou olhar essa mesa isolada. Me envie o projeto e eu estudo sala e jantar juntos, respeitando o que sua arquiteta definiu. A entrega será em qual cidade? Depois disso eu te mostro uma primeira direção já coerente com o conjunto.”
+
+### Exemplo errado
+Consultor: “Ótimo, vou te mandar nossas mesas mais vendidas e depois você vê com a arquiteta.”
+
+**Por que prejudica:** ignora o projeto disponível, apresenta antes de validar contexto e devolve ao cliente o trabalho de compatibilizar a escolha. A loja perde autoridade consultiva e aumenta a chance de comparação por foto/preço.
+
+### Erros comuns
+- resumir de forma genérica (“entendi, casa nova”) e perder informações decisivas;
+- apresentar produto porque já descobriu 4 ou 5 itens, mesmo com uma lacuna crítica;
+- repetir todas as perguntas como formulário na síntese;
+- prometer solução antes de receber projeto/fotos que o cliente já disse possuir;
+- esquecer outros ambientes depois de o cliente revelar integração ou projeto maior;
+- tratar investimento como condição para atender, em vez de calibração da proposta.
+
+### Exercício de aplicação
+O cliente informou: casa nova em Cascavel; mudança em 50 dias; living integrado ao jantar; arquiteta acompanhando; projeto pronto; começou perguntando por um sofá; ainda não informou faixa de investimento. Escreva a síntese e as duas próximas falas. Não apresente marca, modelo, preço ou desconto.
+
+### Avaliação de domínio — fechamento do diagnóstico
+1. **Aberta:** faça a síntese do cenário do exercício em até 3 frases e explique qual lacuna precisa ser fechada antes da primeira seleção.
+2. **Identificação de erro:** um consultor sabe que existe projeto e arquiteta, mas envia três sofás “para adiantar”. Aponte dois riscos e reescreva a próxima fala.
+3. **Decisão:** o cliente enviou fotos, mas as medidas não aparecem e diz que precisa receber em 20 dias. Qual deve ser a próxima ação? Justifique considerando medida e prazo.
+4. **Potencial total:** o cliente começou por uma mesa, mas revelou living, jantar e varanda em obra. Mostre como resumir e ampliar o atendimento sem parecer venda forçada.
+5. **Correção:** transforme “Falta orçamento, cidade e medida” em uma conversa natural de no máximo três intervenções.
+6. **Aplicação:** o cliente diz “manda alguma coisa primeiro que depois vejo o projeto”. Responda sem confronto, sem perder velocidade e sem recomendar cedo demais.
+
+**Aprovação:** mínimo 8,0; nenhuma falha crítica; síntese deve conter contexto real e o aluno deve identificar a lacuna que muda a próxima decisão. Se reprovar, direcionar a revisão para um dos quatro trechos: **Como fazer**, **Exemplo errado**, **Erros comuns** ou **Exercício de aplicação**. O novo teste deve mudar produto, cidade, prazo e configuração de ambientes.
+
+### Saída pedagógica para Meu Dia
+Quando esta competência falhar, a revisão prioritária deve ser registrada conceitualmente como **Fechamento do diagnóstico antes da solução**, com a ação: “Revise a síntese em 3 movimentos, refaça o exercício e só depois realize um novo cenário.” Não substituir a tentativa anterior nem apagar histórico.
