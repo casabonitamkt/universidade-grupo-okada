@@ -83,3 +83,19 @@ Competências obrigatórias: projeto x peça; contexto visual; ambiente/medidas;
 - Potencial total perdido → revisar passo 7.
 
 Reprovado deve revisar somente os trechos associados às competências fracas e receber tentativa B com cenário diferente. Histórico não deve ser apagado.
+
+## Microtreino — quando o cliente pede preço antes do diagnóstico
+**O que fazer:** responder à intenção sem inventar preço e recuperar o diagnóstico com uma pergunta útil.
+
+**Fala correta:** “Consigo te orientar em investimento, sim. Para não te passar uma referência que não faça sentido, esse sofá entra em um ambiente já pronto ou faz parte de um projeto novo? Se tiver foto ou projeto, consigo ser bem mais preciso.”
+
+**Fala errada:** “Antes do preço preciso que responda algumas perguntas.”
+
+**Por que o erro prejudica:** cria atrito e faz o diagnóstico parecer barreira para comprar.
+
+**Exercício:** cliente diz “Só quero saber quanto custa”. Escreva duas respostas naturais: uma quando há indício de projeto novo e outra quando é reposição de peça.
+
+### Checagem de domínio
+O consultor só domina este ponto quando consegue, em cenário novo, acolher a pergunta de preço, não inventar informação, explicar brevemente a razão da pergunta e descobrir ao menos projeto x peça + uma evidência de contexto sem soar evasivo.
+
+Na falha, direcionar revisão para este microtreino e gerar novo cenário; não repetir a mesma fala do cliente.
