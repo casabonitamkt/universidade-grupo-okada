@@ -52,3 +52,29 @@ A integração oficial deve usar credenciais somente no backend/Edge Function, v
 
 ## Próxima implementação segura
 Antes de ativar canais reais: definir tabelas/colunas de homologação, função de ingestão, máquina de estados, handoff e testes automatizados/simulados. A integração externa real fica bloqueada até existirem credenciais e permissões oficiais adequadas.
+
+## Modo Treinamento — Diagnóstico Inicial
+O Cliente IA de treinamento deve começar com uma necessidade curta e manter contexto relevante não revelado até que o consultor faça perguntas pertinentes. Exemplo inicial: “Estou procurando um sofá para minha sala.” O cenário pode conter projeto novo, fotos/planta, arquiteto, prazo, outros ambientes e expectativa de investimento, mas esses dados não devem ser entregues espontaneamente.
+
+### Competências avaliadas
+Projeto novo x peça; projeto/fotos; ambiente e medidas; cidade; prazo; arquiteto; expectativa de investimento; outros ambientes/potencial total; fluidez da conversa.
+
+### Falhas de domínio
+- Se o consultor apresentar produto, preço, desconto ou solução antes de contexto suficiente, registrar **PULOU_DIAGNOSTICO** e direcionar revisão para **O que fazer + Exemplo errado** do treinamento Diagnóstico Inicial.
+- Se fizer sequência mecânica de perguntas sem conexão com as respostas, registrar **DIAGNOSTICO_MECANICO** e direcionar revisão para **Como fazer — conversa em camadas**.
+
+### Feedback após a simulação
+Mostrar separadamente: **o que descobriu**, **o que deixou de descobrir**, **o que deveria ter feito**, **trecho exato para revisar** e **o que precisa demonstrar na próxima tentativa**. Durante a conversa, não mostrar a lista de informações ainda ocultas.
+
+### Repetição até consolidar
+Nova tentativa deve usar cenário diferente. Exemplos: mesa vista no Instagram com reforma completa; cadeira com casa de campo e arquiteto; cliente “só olhando” com mudança e vários ambientes. O histórico anterior deve permanecer preservado.
+
+Critério v1 de consolidação: três simulações aprovadas com cenários diferentes, sem apresentação precoce de produto e sem diagnóstico mecânico. Prova escrita aprovada não substitui a demonstração prática.
+
+### Testes de aceitação do modo treinamento
+1. Contexto oculto não é revelado sem pergunta pertinente.
+2. Apresentação precoce de produto gera PULOU_DIAGNOSTICO.
+3. Interrogatório mecânico gera DIAGNOSTICO_MECANICO.
+4. Feedback separa descoberto x não descoberto e aponta revisão específica.
+5. Reteste muda o cenário e preserva histórico.
+6. A competência só consolida após três simulações práticas aprovadas.
