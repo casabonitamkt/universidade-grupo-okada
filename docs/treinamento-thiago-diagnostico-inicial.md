@@ -83,3 +83,43 @@ Competências obrigatórias: projeto x peça; contexto visual; ambiente/medidas;
 - Potencial total perdido → revisar passo 7.
 
 Reprovado deve revisar somente os trechos associados às competências fracas e receber tentativa B com cenário diferente. Histórico não deve ser apagado.
+
+
+## Avaliação forte — tentativa B (reteste, cenário diferente)
+Usar somente após revisão direcionada. Não repetir enunciados da tentativa A.
+
+**Cenário-base:** cliente escreve: “Oi, vi uma mesa de vocês e queria saber o valor. Estou mudando em breve.”
+
+1. **Condução aberta:** escreva as cinco primeiras intervenções do consultor. Cada uma deve reagir à resposta anterior; não faça checklist.
+2. **Decisão:** o cliente informa que a mesa faz parte de uma casa nova e que existe projeto, mas ainda não enviou. Qual é o próximo passo e por quê?
+3. **Detecção de lacunas:** depois de oito mensagens, o consultor sabe cidade, prazo e medida da mesa, mas não sabe se há arquiteto, expectativa de investimento nem outros ambientes. Identifique as lacunas e escreva como retomaria sem parecer interrogatório.
+4. **Correção de atendimento:** reescreva “Me manda medida, orçamento, cidade, prazo e nome do arquiteto” em duas ou três falas naturais.
+5. **Projeto completo:** o cliente diz “a sala de jantar é integrada ao living e ainda não compramos quase nada”. Escreva a resposta que amplia o diagnóstico sem soar como venda adicional.
+6. **Investimento:** o cliente responde “não faço ideia de quanto quero gastar”. Mostre como calibrar expectativa sem pressionar por um número.
+7. **Arquiteto:** o projeto especifica uma peça, mas o cliente pede uma alternativa. Explique a sequência correta antes de substituir.
+8. **Síntese:** escreva o resumo que faria ao cliente antes de apresentar qualquer produto, deixando explícito o que já entendeu e o que ainda precisa confirmar.
+
+## Rubrica de domínio por competência
+A nota final não é uma média cega. O avaliador deve marcar cada competência como **Dominou / Parcial / Não demonstrou**.
+
+| Competência | Dominou quando | Falha crítica |
+|---|---|---|
+| Projeto x peça | identifica se a demanda isolada faz parte de projeto maior | apresenta produto antes de esclarecer contexto mínimo |
+| Projeto/fotos | solicita material visual e explica por que precisa dele | ignora projeto disponível |
+| Ambiente/medidas | entende uso, ambiente e dimensões sem assumir | recomenda dimensão sem base |
+| Cidade/prazo | descobre local e data de uso e usa isso na condução | ignora urgência já revelada |
+| Arquiteto | identifica participação e preserva especificação/alinhamento | troca peça relevante sem validação |
+| Investimento | pergunta com contexto, faixa ou calibração progressiva | classifica/pressiona cliente pelo orçamento |
+| Potencial total | descobre outros ambientes e explica benefício do conjunto | ignora sinal explícito de projeto maior |
+| Fluidez | pergunta em camadas, reage às respostas e resume entendimento | sequência mecânica de perguntas |
+
+**Regra de aprovação:** nota geral mínima 8,0, nenhuma falha crítica e nenhuma competência obrigatória em “Não demonstrou”.
+
+## Feedback obrigatório ao reprovar
+O resultado deve mostrar quatro blocos:
+1. **Você descobriu:** fatos que o consultor realmente levantou.
+2. **Você deixou de descobrir:** competências e informações ausentes.
+3. **Revise exatamente:** título/seção do treinamento correspondente.
+4. **No reteste demonstre:** comportamento observável que comprovará domínio.
+
+O reteste deve usar cenário diferente e preservar o histórico da tentativa anterior.
