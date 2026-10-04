@@ -1,0 +1,1 @@
+-- Migração preparada para enriquecer o treino S1-D2-A02.\n-- Aplicar somente após validação em homologação.\n
