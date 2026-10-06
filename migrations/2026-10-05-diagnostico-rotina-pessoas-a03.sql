@@ -1,0 +1,6 @@
+-- Registro da evolução de conteúdo aplicada em produção para S1-D2-A03.
+-- A aula preserva o mesmo ID/código e progresso existente.
+-- Novo padrão: 12 min; APRENDER -> DEMONSTRAR -> PRATICAR -> PROVAR;
+-- 7 falas sugeridas; 7 erros comuns; exercício prático; nota mínima 8/10;
+-- falhas críticas e reteste com cenário diferente.
+-- Aplicação de dados realizada de forma não destrutiva em 2026-10-05.
