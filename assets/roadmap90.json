@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "phases": [
+    {
+      "days": "1-30",
+      "name": "Fundamentos"
+    },
+    {
+      "days": "31-60",
+      "name": "Projetos e negociação"
+    },
+    {
+      "days": "61-90",
+      "name": "Sierra"
+    }
+  ],
+  "passingScore": 8,
+  "managerApprovalRequired": true
+}
