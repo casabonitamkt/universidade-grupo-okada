@@ -25,7 +25,7 @@
 - **Dia 13:** Prazo, orçamento e uso no diagnóstico
 - **Dia 14:** Primeira opção coerente com o projeto
 - **Dia 15:** Follow-up com contexto e próximo compromisso
-- **Dia 16:** Leitura de planta e validação de medidas
+- **Dia 16:** [Leitura de planta e validação de medidas — aula completa, prova A e reteste B](./aula-16-validacao-medidas-v59.md)
 - **Dia 17:** Materiais: perguntas sem promessas técnicas
 - **Dia 18:** Erros comuns em WhatsApp de alto padrão
 - **Dia 19:** Comunicação objetiva e tom profissional
