@@ -31,7 +31,7 @@
 - **Dia 19:** Comunicação objetiva e tom profissional
 - **Dia 20:** [Organização do atendimento no CRM — aula completa V64](./aula-20-organizacao-crm-v64.md)
 - **Dia 21:** Orçamento por ambiente e escopo
-- **Dia 22:** Critérios de comparação de propostas
+- **Dia 22:** [Critérios de comparação de propostas — aula completa, prova A e reteste B V66](./aula-22-comparacao-propostas-v66.md)
 - **Dia 23:** Confirmação do briefing antes de orçar
 - **Dia 24:** Apresentação de valor sem pressão
 - **Dia 25:** Tratamento de dúvidas sem desconto precoce
