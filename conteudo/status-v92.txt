@@ -1,0 +1,1 @@
+Homologação V92: preservar produção e dados. Material curricular em validação. Sem deploy oficial.
