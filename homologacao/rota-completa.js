@@ -1,1 +1,2 @@
-const app=document.getElementById('app');app.innerHTML='<h2>Teste de IA</h2><button id="send">Testar</button><p id="status"></p>';document.getElementById('send').onclick=async()=>{const result=await sb.functions.invoke('pre-atendimento-homologacao',{body:{messages:[{role:'user',content:'Olá'}]}});document.getElementById('status').textContent=String(result.error||result.data?.reply||'Sem resposta')};
+// CRM em homologação. Sem escrita em produção.
+const app=document.getElementById('app');app.textContent='Teste em preparação';
