@@ -18,3 +18,12 @@ form.oninput=advise;advise();
 copy.onclick=async()=>{try{await navigator.clipboard.writeText(reply.value);notice.textContent='Texto copiado; revise antes de enviar manualmente.'}catch{notice.textContent='Copie o texto manualmente.'}};
 
 const aiTitle=document.createElement('h2');aiTitle.textContent='Pré-atendimento: integração em validação';app.insertBefore(aiTitle,form);
+
+const aiStatus=document.createElement('p');aiStatus.textContent='Conecte sua sessão da Universidade para usar a IA';app.insertBefore(aiStatus,form);
+const chatBox=document.createElement('div');chatBox.style.cssText='max-height:260px;overflow:auto;border:1px solid #777;padding:10px;white-space:pre-wrap';app.insertBefore(chatBox,form);
+const chatInput=document.createElement('textarea');chatInput.placeholder='Mensagem fictícia do cliente';chatInput.rows=2;app.insertBefore(chatInput,form);
+const sendAI=document.createElement('button');sendAI.type='button';sendAI.textContent='Enviar para IA';sendAI.disabled=true;app.insertBefore(sendAI,form);
+const handoff=document.createElement('button');handoff.type='button';handoff.textContent='Transferir briefing ao CRM';app.insertBefore(handoff,form);
+const conversation=[];
+function showChat(){chatBox.replaceChildren();conversation.forEach(m=>{const p=document.createElement('p');p.textContent=(m.role==='user'?'Cliente: ':'IA: ')+m.content;chatBox.append(p)})}
+handoff.onclick=()=>{elements.briefing.value=conversation.map(m=>(m.role==='user'?'CLIENTE: ':'IA: ')+m.content).join('\n');advise();notice.textContent='Briefing transferido localmente; revise antes de salvar.'};
