@@ -4,7 +4,7 @@ import {ETAPAS,validarOportunidade,podeConcluirPerda,diagnosticarBriefing,sugest
 const base={responsavel:'Consultora A',loja:'Casa Bonita Móveis',etapa:'Lead',tipo:'projeto',valorProposto:120000};
 test('funil comercial tem oito etapas e termina em venda/perda',()=>{assert.equal(ETAPAS.length,8);assert.deepEqual(ETAPAS.slice(-2),['Venda','Perda'])});
 test('atendimento completo é aceito',()=>assert.deepEqual(validarOportunidade(base),[]));
-test('responsável, loja e etapa são obrigatórios',()=>assert.equal(validarOportunidade({}),3));
+test('responsável, loja e etapa são obrigatórios',()=>assert.equal(validarOportunidade({}).length,3));
 test('não aceitar valores negativos ou inválidos',()=>{assert.ok(validarOportunidade({...base,valorProposto:-1}).length);assert.ok(validarOportunidade({...base,valorProposto:'não informado'}).length)});
 test('venda exige valor fechado positivo',()=>{assert.ok(validarOportunidade({...base,etapa:'Venda',valorFechado:0}).length);assert.deepEqual(validarOportunidade({...base,etapa:'Venda',valorFechado:100000}),[])});
 test('perda exige motivo e validação explícita',()=>{let o={...base,etapa:'Perda',motivoPerda:'Cliente optou por adiar'};assert.deepEqual(validarOportunidade(o),[]);assert.equal(podeConcluirPerda(o,false),false);assert.equal(podeConcluirPerda(o,true),true);assert.equal(podeConcluirPerda({...o,motivoPerda:''},true),false)});
