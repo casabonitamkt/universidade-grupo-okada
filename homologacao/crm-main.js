@@ -1,0 +1,1 @@
+import{montar}from"./crm-view.js";import{camposUI}from"./crm-fields.js";montar();camposUI();document.querySelector("#app").hidden=false;
