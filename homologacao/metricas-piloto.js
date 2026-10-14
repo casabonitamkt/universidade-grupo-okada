@@ -1,0 +1,1 @@
+// Métricas de homologação: dados fictícios, sem persistência.\nexport function taxaConversao(vendas,leads){return leads>0?100*vendas/leads:0;}\n
