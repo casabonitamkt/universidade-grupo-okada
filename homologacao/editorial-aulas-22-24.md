@@ -21,3 +21,9 @@ Material editorial em homologação. Sem alterações em usuários ou dados ofic
 **PRATICAR (4 min).** Redija contato para cliente sem resposta há sete dias e outro que pediu retorno no próximo mês. Diferencie tom e prazo. Registre data, resposta, objeção e próxima ação consentida.
 
 **PROVAR (3 min).** Testar contexto, respeito ao prazo, validação técnica, registro CRM e revisão humana antes do WhatsApp. Nota mínima 8,0, sem erro crítico; reteste B distinto e revisão prática.
+
+## Dia 24 — Interesse versus intenção de compra
+
+**APRENDER (4 min).** Interesse não equivale a venda. Sinais verificáveis incluem projeto recebido, reunião aceita, decisores identificados e escopo definido. A consultora deve qualificar com perguntas respeitosas, sem suposições. Data de mudança não autoriza prometer entrega. Separe fatos, hipóteses e pendências no CRM.
+
+**DEMONSTRAR (3 min).** Cliente A pergunta preço de uma mesa; cliente B envia planta de três ambientes e pede reunião com arquiteta. Errado: “B já comprou.” Certo: “A precisa de diagnóstico de uso e medidas; B apresenta sinais de avanço, mas requer análise e validação.”
