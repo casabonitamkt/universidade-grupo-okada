@@ -1,1 +1,1 @@
-import{montar}from"./crm-view.js";import{camposUI}from"./crm-fields.js";montar();camposUI();document.querySelector("#app").hidden=false;
+import{montar}from"./crm-view.js";import{camposUI}from"./crm-fields.js";import{iniciarChat}from"./crm-demo.js";import{iniciarCopiloto}from"./crm-copilot.js";import{iniciarRegistro}from"./crm-save.js";montar();camposUI();iniciarChat();iniciarCopiloto();iniciarRegistro();document.querySelector("#app").hidden=false;
