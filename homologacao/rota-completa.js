@@ -1,1 +1,1 @@
-document.getElementById('app').textContent='Homologação em construção';
+const app=document.getElementById('app');app.innerHTML='<h2>Pré-atendimento em homologação</h2><input id="msg"><button id="send">Enviar</button><p id="status"></p>';document.getElementById('send').onclick=()=>document.getElementById('status').textContent='Integração pendente';
