@@ -27,3 +27,9 @@ Material editorial em homologação. Sem alterações em usuários ou dados ofic
 **APRENDER (4 min).** Interesse não equivale a venda. Sinais verificáveis incluem projeto recebido, reunião aceita, decisores identificados e escopo definido. A consultora deve qualificar com perguntas respeitosas, sem suposições. Data de mudança não autoriza prometer entrega. Separe fatos, hipóteses e pendências no CRM.
 
 **DEMONSTRAR (3 min).** Cliente A pergunta preço de uma mesa; cliente B envia planta de três ambientes e pede reunião com arquiteta. Errado: “B já comprou.” Certo: “A precisa de diagnóstico de uso e medidas; B apresenta sinais de avanço, mas requer análise e validação.”
+
+**PRATICAR (4 min).** Crie dois briefings, classifique as etapas e justifique com três evidências ou lacunas. Formule uma pergunta útil para cada cliente, sem julgamento ou promessa.
+
+**PROVAR (3 min).** Avaliar qualificação por fatos, distinção entre intenção e venda, consulta de prazo, respeito aos decisores e registro de valor fechado. Nota mínima 8,0, sem erro crítico; reteste B diferente.
+
+**Governança comum:** a prática exige avaliação humana; o piloto não registra progresso real, não certifica e não libera atendimento Sierra.
