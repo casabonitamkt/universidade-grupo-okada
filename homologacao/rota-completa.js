@@ -27,3 +27,7 @@ const handoff=document.createElement('button');handoff.type='button';handoff.tex
 const conversation=[];
 function showChat(){chatBox.replaceChildren();conversation.forEach(m=>{const p=document.createElement('p');p.textContent=(m.role==='user'?'Cliente: ':'IA: ')+m.content;chatBox.append(p)})}
 handoff.onclick=()=>{elements.briefing.value=conversation.map(m=>(m.role==='user'?'CLIENTE: ':'IA: ')+m.content).join('\n');advise();notice.textContent='Briefing transferido localmente; revise antes de salvar.'};
+
+const kpi=document.createElement('p');kpi.textContent='Oportunidades: 0';app.insertBefore(kpi,records);
+const originalSave=form.onsubmit;
+form.onsubmit=e=>{const stage=elements.etapa.value;const value=Number(elements.valorFechado.value||0);if(stage==='Venda'&&!(value>0)){e.preventDefault();notice.textContent='Para registrar venda, informe valor fechado maior que zero.';return}if(stage==='Perda'){e.preventDefault();notice.textContent='Perda bloqueada: validação do gestor obrigatória.';return}const before=rows.length;originalSave(e);if(rows.length>before){const sold=rows.filter(x=>x.etapa==='Venda');const total=sold.reduce((n,x)=>n+Number(x.valorFechado||0),0);kpi.textContent='Oportunidades: '+rows.length+' · Vendas: '+sold.length+' · Conversão: '+(100*sold.length/rows.length).toFixed(1)+'% · Fechado: R$ '+total.toLocaleString('pt-BR')}};
