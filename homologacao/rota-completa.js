@@ -1,5 +1,10 @@
 const app=document.getElementById('app');
-const title=document.createElement('h2');title.textContent='CRM de teste';app.replaceChildren(title);
-const input=document.createElement('input');input.placeholder='Responsável';app.append(input);
-const button=document.createElement('button');button.textContent='Registrar';app.append(button);
-button.onclick=()=>{const p=document.createElement('p');p.textContent=input.value;app.append(p)};
+app.replaceChildren();
+const title=document.createElement('h2');title.textContent='CRM — teste sem dados reais';app.append(title);
+const fields=['responsavel','loja','cidade','tipo','arquiteto','origem','briefing','valorProposto','proximoContato','ultimaInteracao','valorFechado','motivoPerda','etapa'];
+const stages=['Lead','Diagnóstico/Projeto','Projeto recebido/Orçamento','Proposta','Follow-up','Negociação','Venda','Perda'];
+const form=document.createElement('form'),elements={};
+fields.forEach(k=>{const label=document.createElement('label');label.textContent=k+' ';const inp=k==='briefing'?document.createElement('textarea'):document.createElement('input');inp.name=k;if(k==='etapa'){const s=document.createElement('select');stages.forEach(x=>{const o=document.createElement('option');o.textContent=x;s.append(o)});elements[k]=s;label.append(s)}else{elements[k]=inp;label.append(inp)}form.append(label);form.append(document.createElement('br'))});
+const submit=document.createElement('button');submit.textContent='Salvar somente nesta aba';form.append(submit);app.append(form);
+const notice=document.createElement('p');app.append(notice);const records=document.createElement('div');app.append(records);const rows=[];
+form.onsubmit=e=>{e.preventDefault();const row={};fields.forEach(k=>row[k]=elements[k].value.trim());if(!row.responsavel||!row.loja){notice.textContent='Preencha responsável e loja';return}if(row.etapa==='Perda'){notice.textContent='Perda requer validação do gestor';return}rows.push(row);notice.textContent='Registrado apenas em memória; não salvo na plataforma oficial.';const p=document.createElement('p');p.textContent=row.responsavel+' · '+row.loja+' · '+row.etapa;records.append(p)};
