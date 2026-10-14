@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {ETAPAS,validarOportunidade,podeConcluirPerda,diagnosticarBriefing,sugestaoCopiloto,indicadores} from '../modules/crm-regras.mjs';
+const base={responsavel:'Consultora A',loja:'Casa Bonita Móveis',etapa:'Lead',tipo:'projeto',valorProposto:120000};
+test('funil comercial tem oito etapas e termina em venda/perda',()=>{assert.equal(ETAPAS.length,8);assert.deepEqual(ETAPAS.slice(-2),['Venda','Perda'])});
+test('atendimento completo é aceito',()=>assert.deepEqual(validarOportunidade(base),[]));
+test('responsável, loja e etapa são obrigatórios',()=>assert.equal(validarOportunidade({}),3));
+test('não aceitar valores negativos ou inválidos',()=>{assert.ok(validarOportunidade({...base,valorProposto:-1}).length);assert.ok(validarOportunidade({...base,valorProposto:'não informado'}).length)});
+test('venda exige valor fechado positivo',()=>{assert.ok(validarOportunidade({...base,etapa:'Venda',valorFechado:0}).length);assert.deepEqual(validarOportunidade({...base,etapa:'Venda',valorFechado:100000}),[])});
+test('perda exige motivo e validação explícita',()=>{let o={...base,etapa:'Perda',motivoPerda:'Cliente optou por adiar'};assert.deepEqual(validarOportunidade(o),[]);assert.equal(podeConcluirPerda(o,false),false);assert.equal(podeConcluirPerda(o,true),true);assert.equal(podeConcluirPerda({...o,motivoPerda:''},true),false)});
+test('copiloto nunca envia mensagens nem define preço',()=>{const s=sugestaoCopiloto({});assert.equal(s.envioAutomatico,false);assert.equal(s.definePrecoOuDesconto,false);assert.equal(s.exigeRevisaoHumana,true);assert.ok(s.faltantes.length)});
+test('indicadores calculados por oportunidades reais',()=>{const i=indicadores([{etapa:'Venda',valorFechado:100000},{etapa:'Perda'},{etapa:'Follow-up'}]);assert.equal(i.total,3);assert.equal(i.vendas,1);assert.equal(i.valorFechado,100000);assert.equal(i.taxaConversao,33.3)});
