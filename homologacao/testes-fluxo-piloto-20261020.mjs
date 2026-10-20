@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {etapaAtual,podeAcessarEtapa,podeCorrigirProva,versaoReteste} from './trilha-90-etapas.mjs';
+const novo={etapa:'aprender'};
+assert.equal(etapaAtual(novo),'aprender');
+assert.equal(podeAcessarEtapa(novo,0),true);
+assert.equal(podeAcessarEtapa(novo,3),false);
+const prova={etapa:'provar',pratica_texto:'a'.repeat(60),simulacao_texto:'b'.repeat(60),tentativa:1};
+assert.equal(podeCorrigirProva(prova),true);
+assert.equal(versaoReteste(prova),1);
+assert.equal(podeCorrigirProva({...prova,pratica_texto:'curto'}),false);
+assert.equal(podeCorrigirProva({...prova,aprovado_provisorio:true}),false);
+console.log('OK: bloqueios de etapas, pratica e reteste (teste puro, sem login nem banco).');
