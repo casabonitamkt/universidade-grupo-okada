@@ -7,7 +7,7 @@ let leads=clone(DEMO_LEADS),view="inicio",selected="L101",caseId="mesa",session=
 try{const stored=JSON.parse(localStorage.getItem(STORAGE)||"null");if(Array.isArray(stored)&&stored.length===DEMO_LEADS.length&&stored.every(x=>DEMO_LEADS.some(y=>y.id===x.id)&&ETAPAS.includes(x.etapa)))leads=stored}catch{}
 function persist(){try{localStorage.setItem(STORAGE,JSON.stringify(leads))}catch{}}
 function notify(message){const t=$("toast");t.textContent=message;t.hidden=false;clearTimeout(notify.timeout);notify.timeout=setTimeout(()=>t.hidden=true,3200)}
-const current=()=>leads.filter(l=>$("storeFilter").value==="Todas"||l.loja===$("storeFilter").value);
+const current=()=>leads.filter(l=>($("storeFilter").value==="Todas"||l.loja===$("storeFilter").value)&&($("consultantFilter").value==="Todas"||l.consultora===$("consultantFilter").value));
 function show(v){view=v;document.querySelectorAll(".view").forEach(e=>e.hidden=e.id!==v);document.querySelectorAll(".nav-item").forEach(b=>b.classList.toggle("active",b.dataset.view===v));const titles={inicio:["Visão geral","Prioridades e oportunidades de atendimento."],atendimentos:["Atendimentos","Carteira individual e próximos passos."],funil:["Funil comercial","Acompanhe a evolução das oportunidades."],ia:["Copiloto com IA","Cinco testes de atendimento e análise comercial."],gestao:["Visão gerencial","Distribuição e indicadores simulados da operação."]};$("pageTitle").textContent=titles[v][0];$("pageSubtitle").textContent=titles[v][1];render();window.scrollTo({top:0,behavior:"smooth"})}
 function metric(label,value,sub,tag="DEMONSTRAÇÃO"){return '<div class="metric"><div class="eyebrow">'+escape(label)+'</div><div class="value">'+value+'</div><div class="sub">'+escape(sub)+'</div><div class="tag">'+escape(tag)+'</div></div>'}
 function render(){const a=current(),m=resumo(a);$("metrics").innerHTML=metric("Leads",m.total,"Na carteira fictícia")+metric("Em negociação",m.negociacoes,"Oportunidades ativas")+metric("Propostas",m.propostas,"Aguardando decisão")+metric("Retornos vencidos",m.atrasados,"Requer atenção","SIMULADO");
@@ -28,6 +28,7 @@ document.addEventListener("click",e=>{const go=e.target.closest("[data-go]");if(
 document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.matches(".kanban-card")){selected=e.target.dataset.open;show("atendimentos")}});
 $("nav").addEventListener("click",e=>{const b=e.target.closest("[data-view]");if(b)show(b.dataset.view)});
 $("storeFilter").addEventListener("change",()=>{if(!current().some(x=>x.id===selected))selected=current()[0]?.id||"";render()});
+$("consultantFilter").addEventListener("change",()=>{if(!current().some(x=>x.id===selected))selected=current()[0]?.id||"";render()});
 $("search").addEventListener("input",renderList);
 $("leadDetail").addEventListener("change",e=>{if(e.target.id!=="stage")return;const l=leads.find(x=>x.id===selected);if(!l)return;l.etapa=e.target.value;if(l.etapa==="Fechado")l.prazo="Concluído";persist();render();notify("Etapa alterada somente na demonstração.")});
 $("leadDetail").addEventListener("click",e=>{const l=leads.find(x=>x.id===selected);if(!l)return;if(e.target.id==="markReturn"){l.prazo="Agendado";persist();render();notify("Retorno fictício registrado no navegador.")}if(e.target.id==="openAiLead"){show("ia");setCase(l.caso)}});
