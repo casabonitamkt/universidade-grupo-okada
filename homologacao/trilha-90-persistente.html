@@ -31,7 +31,7 @@ import {planoDia,questoesPara,corrigirProva} from "../modules/trilha-90-dias.mjs
 import {GUIA_ONLINE,LABORATORIO_ONLINE} from "./conteudo-online-thiago.mjs";
 const sb=window.supabase.createClient("https://mjtphztvjnfjlhtxtwjz.supabase.co","sb_publishable_tu2xBCVGLQyPyddMT-poMQ_BFRx2nmx");
 const $=id=>document.getElementById(id), table="homologacao_trilha_90_progresso";
-let user=null, day=1, progress=new Map(), busy=false;
+let user=null, day=1, progress=new Map(), busy=false, preferredStep=null;
 function node(parent,tag,content,cls){const e=document.createElement(tag);if(content!==null)e.textContent=content;if(cls)e.className=cls;parent.append(e);return e}
 function msg(s,err=false){$("authMsg").textContent=s;$("authMsg").className=err?"error":"sub"}
 function safeText(x){return typeof x==="string"?x:""}
@@ -49,7 +49,7 @@ node(c,"h3","PRATICAR · exercício escrito");node(c,"p",l.praticar.cenario);nod
 const saveStatus=node(c,"p",r?.pratica_texto?"Prática recuperada do banco de homologação.":"Preencha os dois campos e salve antes da prova.","sub");
 const practiceBtn=node(c,"button","Salvar prática e liberar prova");practiceBtn.disabled=!!r?.aprovado_provisorio;
 let unlocked=!!r?.pratica_texto&&r.pratica_texto.trim().length>=60&&!!r?.simulacao_texto&&r.simulacao_texto.trim().length>=60;
-practiceBtn.onclick=async()=>{if(busy)return;const a=practice.value.trim(),b=simulation.value.trim();if(a.length<60||b.length<60){saveStatus.textContent="Cada resposta precisa ter pelo menos 60 caracteres.";saveStatus.className="warn";return}busy=true;practiceBtn.disabled=true;saveStatus.textContent="Salvando prática na tabela de homologação...";try{await save(d,{pratica_texto:a,simulacao_texto:b,etapa:"provar"});unlocked=true;saveStatus.textContent="Salvo com sucesso. Prova liberada.";saveStatus.className="ok";render()}catch(e){saveStatus.textContent="Não foi possível salvar: "+e.message;saveStatus.className="error";practiceBtn.disabled=false}finally{busy=false}};
+practiceBtn.onclick=async()=>{if(busy)return;const a=practice.value.trim(),b=simulation.value.trim();if(a.length<60||b.length<60){saveStatus.textContent="Cada resposta precisa ter pelo menos 60 caracteres.";saveStatus.className="warn";return}busy=true;practiceBtn.disabled=true;saveStatus.textContent="Salvando prática na tabela de homologação...";try{await save(d,{pratica_texto:a,simulacao_texto:b,etapa:"provar"});unlocked=true;saveStatus.textContent="Salvo com sucesso. Prova liberada.";saveStatus.className="ok";preferredStep=3;render()}catch(e){saveStatus.textContent="Não foi possível salvar: "+e.message;saveStatus.className="error";practiceBtn.disabled=false}finally{busy=false}};
 node(c,"h3","PROVAR · prova de 8 questões");node(c,"p","Nota mínima: 8/10. Com oito questões, é necessário acertar pelo menos sete. Se não atingir a nota, revise e faça um reteste diferente.","muted");
 const exam=node(c,"div",null);const feedback=node(c,"p",r?.aprovado_provisorio?"Avaliação provisória aprovada.":"",r?.aprovado_provisorio?"ok":"sub");
 const attempt=Number(r?.tentativa)||0;let version=attempt;let selected=[];
@@ -85,7 +85,7 @@ function setupLessonSteps(container,record){
  parts.forEach((part,i)=>{if(i===3)return;const nav=document.createElement("div");nav.className="lesson-actions";
   if(i>0){const prev=document.createElement("button");prev.type="button";prev.className="secondary";prev.textContent="← Voltar";prev.onclick=()=>{activate(i-1);$("lessonTitle").scrollIntoView({behavior:"smooth"})};nav.append(prev)}
   const next=document.createElement("button");next.type="button";next.textContent=i===2?"Ir para a prova →":"Continuar →";next.onclick=()=>{activate(i+1);$("lessonTitle").scrollIntoView({behavior:"smooth"})};nav.append(next);part.append(nav)});
- activate(record?.aprovado_provisorio?3:0);
+ activate(preferredStep!==null?preferredStep:(record?.aprovado_provisorio?3:0));preferredStep=null;
 }
 async function establish(){const {data,error}=await sb.auth.getUser();if(error||!data.user){user=null;$("student").hidden=true;$("loginFields").hidden=false;$("logout").hidden=true;$("identity").textContent="Não autenticado.";return}user=data.user;$("identity").textContent="Conta: "+(user.email||"aluno autenticado");$("student").hidden=false;$("loginFields").hidden=true;$("logout").hidden=false;try{await load();msg("Sessão autenticada; dados isolados carregados.")}catch(e){$("student").hidden=true;msg("Erro ao ler progresso. Confira as permissões: "+e.message,true)}}
 $("login").onclick=async()=>{const email=$("email").value.trim(),password=$("password").value;if(!email||!password){msg("Preencha e-mail e senha.",true);return}$("login").disabled=true;msg("Autenticando...");try{const {error}=await sb.auth.signInWithPassword({email,password});$("password").value="";if(error)throw error;await establish()}catch(e){msg("Não foi possível entrar: "+e.message,true)}finally{$("login").disabled=false}};
