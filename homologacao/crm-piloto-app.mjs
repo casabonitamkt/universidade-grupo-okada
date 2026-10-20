@@ -34,7 +34,7 @@ $("leadDetail").addEventListener("change",e=>{if(e.target.id!=="stage")return;co
 $("leadDetail").addEventListener("click",e=>{const l=leads.find(x=>x.id===selected);if(!l)return;if(e.target.id==="markReturn"){l.prazo="Agendado";persist();render();notify("Retorno fictício registrado no navegador.")}if(e.target.id==="openAiLead"){show("ia");setCase(l.caso)}});
 $("resetDemo").onclick=()=>{if(!confirm("Restaurar os seis clientes fictícios e as etapas iniciais?"))return;leads=clone(DEMO_LEADS);selected="L101";persist();render();notify("Demonstração restaurada.")};
 const sb=window.supabase?.createClient("https://mjtphztvjnfjlhtxtwjz.supabase.co","sb_publishable_tu2xBCVGLQyPyddMT-poMQ_BFRx2nmx");
-function authView(){const on=!!session;$("loginFields").hidden=on;$("logout").hidden=!on;$("identity").textContent=on?"Conectado: "+(session.user?.email||"conta autorizada"):"Não autenticado";$("analyze").disabled=!on||running}
+function authView(){const on=!!session;$("loginFields").hidden=on;$("logout").hidden=!on;$("identity").textContent=on?"Conectado: "+(session.user?.email||"conta autorizada"):"Não autenticado";$("analyze").disabled=!on||running;$("batchAnalyze").disabled=!on||running}
 async function establish(){if(!sb){$("authStatus").textContent="Biblioteca de autenticação indisponível. Tente atualizar a página.";return}try{const {data,error}=await sb.auth.getSession();if(error)throw error;session=data.session;authView()}catch(e){$("authStatus").textContent="Não foi possível validar a sessão: "+e.message}}
 $("login").onclick=async()=>{if(!sb)return;const email=$("email").value.trim(),password=$("password").value;if(!email||!password){$("authStatus").textContent="Informe e-mail e senha.";return}$("login").disabled=true;$("authStatus").textContent="Autenticando...";try{const {error}=await sb.auth.signInWithPassword({email,password});$("password").value="";if(error)throw error;await establish();$("authStatus").textContent="Conta de teste conectada. Selecione um caso e analise."}catch(e){$("authStatus").textContent="Falha de autenticação: "+e.message}finally{$("login").disabled=false}};
 $("logout").onclick=async()=>{if(sb)await sb.auth.signOut();session=null;aiMessage="";$("copy").disabled=true;authView();notify("Sessão encerrada.")};
@@ -44,4 +44,28 @@ try{const {data,error}=await sb.functions.invoke("crm-copiloto-homologacao",{bod
 catch(e){$("aiStatus").textContent="Erro na análise: "+(e.message||String(e));$("aiOutput").textContent="Não foi possível gerar a resposta.";notify("A IA não respondeu. Revise a sessão e tente novamente.")}
 finally{running=false;authView()}};
 $("copy").onclick=async()=>{if(!aiMessage)return;try{await navigator.clipboard.writeText(aiMessage);notify("Somente a mensagem para WhatsApp foi copiada. Revise antes de usar.")}catch{notify("Não foi possível copiar automaticamente. Selecione o texto manualmente.")}};
+
+$("batchAnalyze").onclick=async()=>{
+ if(!sb||!session||running)return;
+ if(!$("consent").checked){$("aiStatus").textContent="Confirme que os cinco casos são fictícios antes de iniciar.";return}
+ running=true;authView();const area=$("batchResults");area.hidden=false;area.replaceChildren();$("aiStatus").textContent="Executando cinco análises autenticadas. Aguarde...";
+ let ok=0,failed=0,errors=0;
+ for(let i=0;i<CASOS.length;i++){
+  const c=CASOS[i],box=document.createElement("details");box.className="batch-item";box.open=false;
+  const heading=document.createElement("summary");heading.textContent=(i+1)+"/5 · "+c.titulo+" · analisando...";box.append(heading);
+  const result=document.createElement("pre");box.append(result);area.append(box);
+  try{
+   const {data,error}=await sb.functions.invoke("crm-copiloto-homologacao",{body:{briefing:c.briefing,store:"Casa Bonita Móveis"}});
+   if(error)throw error;if(data?.error)throw Error(data.error);
+   const analysis=String(data?.analysis||"");if(!analysis)throw Error("Resposta vazia");
+   const audit=avaliarMensagem(analysis,c.id);result.textContent=analysis+"\n\nVERIFICAÇÃO AUTOMÁTICA: "+(audit.aprovado?"Passou nos critérios básicos.":"Revisar: "+audit.problemas.join("; "));
+   heading.textContent=(i+1)+"/5 · "+c.titulo+(audit.aprovado?" · ✓ passou":" · ⚠ revisar");
+   if(audit.aprovado)ok++;else failed++;
+  }catch(e){errors++;heading.textContent=(i+1)+"/5 · "+c.titulo+" · erro";result.textContent="Não foi possível testar: "+(e.message||String(e))}
+  $("aiStatus").textContent="Bateria de testes: "+(i+1)+" de "+CASOS.length+" concluídos...";
+ }
+ const summary=document.createElement("p");summary.className="audit"+(failed||errors?" bad":"");summary.textContent="Bateria concluída: "+ok+" passaram nas regras básicas, "+failed+" precisam revisão e "+errors+" falharam tecnicamente. Avaliação comercial humana continua obrigatória.";area.prepend(summary);
+ $("aiStatus").textContent="Cinco cenários processados. Abra cada resultado para revisar a mensagem.";
+ running=false;authView();
+};
 initCases();render();authView();establish();
