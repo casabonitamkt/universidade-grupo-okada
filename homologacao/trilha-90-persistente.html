@@ -4,6 +4,18 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#101014;color:#f7f4ef;font:15px/1.55 system-ui,-apple-system,Arial}.wrap{max-width:950px;margin:auto;padding:20px 14px 70px}header{display:flex;justify-content:space-between;gap:16px;align-items:center;border-bottom:1px solid #494247;padding-bottom:14px}h1{font-size:clamp(22px,4vw,30px);margin:8px 0}h2{font-size:20px}h3{font-size:17px;margin:24px 0 9px}p{margin:10px 0}.sub{color:#c4c0bf}.card{background:#1c1c22;border:1px solid #45414a;border-radius:16px;padding:20px;margin:16px 0}.muted{color:#bdb8b8}.warn{color:#ffd88d}.ok{color:#a3e4b2}.error{color:#ffadad}button,input,textarea{font:inherit}button{padding:11px 15px;border:0;border-radius:10px;background:#a72e39;color:white;cursor:pointer;font-weight:650}button:disabled{opacity:.45;cursor:default}button.secondary{background:#36343d;border:1px solid #5b5660}input[type=email],input[type=password],textarea{width:100%;background:#292830;border:1px solid #5c5862;color:white;border-radius:10px;padding:12px;margin:5px 0 12px}textarea{min-height:125px;resize:vertical}label{display:block;margin:9px 0}.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.step{background:#29272f;border:1px solid #524d58;border-radius:12px;padding:10px 12px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.question{border-bottom:1px solid #4b4850;padding:15px 0}.question label{padding:8px;border-radius:8px;background:#28272e}.question label:has(input:checked){outline:1px solid #bb7f69}blockquote{margin:12px 0;padding:12px 15px;border-left:3px solid #bb3945;background:#29262c}.notice{background:#2b2825;border-left:3px solid #e4ba70;padding:12px;border-radius:6px}.hidden,[hidden]{display:none!important}a{color:#efb9b0}.progress{height:9px;background:#39353b;border-radius:20px;overflow:hidden}.progress span{display:block;background:#b98d5b;height:100%;transition:width .2s}@media(max-width:680px){header{align-items:start;flex-direction:column}.card{padding:15px}.grid{grid-template-columns:1fr}button{width:100%}.toolbar button{width:auto;flex:1}}
+
+/* UX piloto: uma etapa por vez, sem modificar progresso ou notas */
+.lesson-stepper{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:19px 0 9px}
+.lesson-stepper .step{background:#29272f;border:1px solid #5b545b;color:#d6d0d1;border-radius:11px;min-height:60px;display:flex;gap:9px;align-items:center;justify-content:center}
+.lesson-stepper .step span{font-size:12px;letter-spacing:.35px}.lesson-stepper .step.active{background:#4a3430;border-color:#d3aa77;color:#f7e9d1;box-shadow:inset 0 -3px 0 #d3aa77}
+.lesson-stepper .step:focus-visible{outline:2px solid #e6c58f;outline-offset:2px}
+.step-indicator{font-size:12px;margin:8px 0 18px}.lesson-section{border-top:1px solid #48434a;padding-top:5px}.lesson-section[hidden]{display:none!important}
+.lesson-section>h3:first-child{font-size:20px;margin-top:10px}.lesson-section p{line-height:1.7}
+.lesson-actions{display:flex;gap:10px;justify-content:space-between;align-items:center;margin:20px 0 0;border-top:1px solid #48434a;padding-top:15px}
+.lesson-actions button{background:#aa8b64;color:#181819;flex:1}.lesson-actions button.secondary{background:#36343d;color:#f5f1ee}
+.completed-banner{background:#253c2d;border:1px solid #55775e;border-radius:12px;padding:15px;margin:16px 0;color:#b8ebc6}
+@media(max-width:680px){.lesson-stepper{gap:5px}.lesson-stepper .step{padding:8px 3px;min-height:54px;flex-direction:column;gap:0;font-size:16px}.lesson-stepper .step span{font-size:9px;letter-spacing:0}.lesson-actions button{width:auto}}
 </style></head><body><main class="wrap">
 <header><div><div class="sub">GRUPO CASA BONITA · MÓVEIS MODERNOS</div><h1>Formação prática · 90 dias</h1><div class="sub">Piloto autenticado: somente aulas 1 a 4</div></div><div><strong>HOMOLOGAÇÃO</strong><div class="sub">Não gera certificado oficial</div></div></header>
 <p class="notice">Este ambiente grava somente na tabela isolada de homologação. Não modifica notas, progresso ou certificações oficiais. O conteúdo e o tempo de estudo ainda precisam de validação real com o Thiago.</p>
@@ -11,7 +23,7 @@
 <section id="student" hidden>
 <div class="card"><div class="toolbar"><strong>Meu progresso de homologação</strong><span id="summary" class="sub"></span></div><div class="progress"><span id="bar" style="width:0%"></span></div><p class="sub" id="daysStatus"></p><div class="toolbar" id="days"></div></div>
 <section class="card"><h2 id="lessonTitle"></h2><p id="lessonStatus" class="sub"></p>
-<div class="toolbar" aria-label="Etapas da aula"><span class="step">1 · APRENDER</span><span class="step">2 · DEMONSTRAR</span><span class="step">3 · PRATICAR</span><span class="step">4 · PROVAR</span></div>
+<div class="lesson-stepper" id="lessonStepper" aria-label="Etapas da aula"><button type="button" class="step" data-step="0">1 <span>APRENDER</span></button><button type="button" class="step" data-step="1">2 <span>DEMONSTRAR</span></button><button type="button" class="step" data-step="2">3 <span>PRATICAR</span></button><button type="button" class="step" data-step="3">4 <span>PROVAR</span></button></div><div id="stepIndicator" class="sub step-indicator" aria-live="polite"></div>
 <div id="lesson"></div></section></section>
 </main>
 <script type="module">
@@ -41,11 +53,39 @@ practiceBtn.onclick=async()=>{if(busy)return;const a=practice.value.trim(),b=sim
 node(c,"h3","PROVAR · prova de 8 questões");node(c,"p","Nota mínima: 8/10. Com oito questões, é necessário acertar pelo menos sete. Se não atingir a nota, revise e faça um reteste diferente.","muted");
 const exam=node(c,"div",null);const feedback=node(c,"p",r?.aprovado_provisorio?"Avaliação provisória aprovada.":"",r?.aprovado_provisorio?"ok":"sub");
 const attempt=Number(r?.tentativa)||0;let version=attempt;let selected=[];
-function examRender(){exam.replaceChildren();selected=[];questoesPara(d,version).forEach((q,i)=>{const block=node(exam,"div",null,"question");node(block,"strong",(i+1)+". "+q.enunciado);q.alternativas.forEach((v,j)=>{const lab=node(block,"label",null);const radio=document.createElement("input");radio.type="radio";radio.name="d"+d+"v"+version+"q"+i;radio.value=j;radio.disabled=!unlocked||!!r?.aprovado_provisorio;lab.append(radio,document.createTextNode(" "+String.fromCharCode(65+j)+") "+v));block.append(lab)})})}examRender();
+function examRender(){exam.replaceChildren();selected=[];if(r?.aprovado_provisorio){node(exam,"div","Você já concluiu esta avaliação com nota "+r.nota_provisoria+"/10. Suas respostas e sua nota foram preservadas. Revise o conteúdo nas etapas anteriores quando quiser.","completed-banner");return}questoesPara(d,version).forEach((q,i)=>{const block=node(exam,"div",null,"question");node(block,"strong",(i+1)+". "+q.enunciado);q.alternativas.forEach((v,j)=>{const lab=node(block,"label",null);const radio=document.createElement("input");radio.type="radio";radio.name="d"+d+"v"+version+"q"+i;radio.value=j;radio.disabled=!unlocked||!!r?.aprovado_provisorio;lab.append(radio,document.createTextNode(" "+String.fromCharCode(65+j)+") "+v));block.append(lab)})})}examRender();
 const actions=node(c,"div",null,"toolbar");const submit=node(actions,"button","Corrigir e salvar nota");submit.disabled=!unlocked||!!r?.aprovado_provisorio;const retry=node(actions,"button","Reteste diferente","secondary");retry.hidden=true;
 submit.onclick=async()=>{if(busy)return;const ans=Array.from({length:8},(_,i)=>{const radio=exam.querySelector('input[name="d'+d+'v'+version+'q'+i+'"]:checked');return radio?Number(radio.value):-1});if(ans.includes(-1)){feedback.textContent="Responda às oito questões antes de corrigir.";feedback.className="warn";return}const result=corrigirProva(d,ans,version);busy=true;submit.disabled=true;feedback.textContent="Salvando nota provisória...";try{await save(d,{pratica_texto:practice.value.trim(),simulacao_texto:simulation.value.trim(),respostas:{versao:version,alternativas:ans,revisar:result.revisar},tentativa:version+1,nota_provisoria:result.nota,aprovado_provisorio:result.aprovado,etapa:result.aprovado?"concluido":"provar"});feedback.textContent="Nota "+result.nota+"/10. "+(result.aprovado?"Aprovado nesta homologação.":"Revise: "+result.revisar.join("; "));feedback.className=result.aprovado?"ok":"warn";if(result.aprovado){render();if(d<4){const next=node(c,"button","Continuar para o dia "+(d+1));next.onclick=()=>{day=d+1;render()};setTimeout(()=>{if(day===d){day=d+1;render();$("lessonTitle").scrollIntoView({behavior:"smooth"})}},1600)}else{node(c,"p","Piloto concluído. Os próximos dias aguardam elaboração e validação.","ok")}}else{retry.hidden=false}}catch(e){feedback.textContent="Falha ao salvar nota. Nada foi aprovado: "+e.message;feedback.className="error";submit.disabled=false}finally{busy=false}};
 retry.onclick=()=>{version++;retry.hidden=true;examRender();submit.disabled=false;feedback.textContent="Reteste alternativo preparado. Revise os conceitos antes de responder.";feedback.className="sub"};
 if(r?.aprovado_provisorio){node(c,"p","Resultado preservado. A aprovação final e a certificação exigem validação do gestor.","ok");if(d<4){const next=node(c,"button","Abrir próximo dia");next.onclick=()=>{day=d+1;render()}}}
+setupLessonSteps(c,r);
+}
+
+function setupLessonSteps(container,record){
+ const parts=Array.from({length:4},()=>document.createElement("section"));parts.forEach((el,i)=>{el.className="lesson-section";el.dataset.section=String(i)});
+ let index=0;
+ for(const el of Array.from(container.children)){
+  if(el.tagName==="H3"){
+   const heading=el.textContent||"";
+   if(heading.startsWith("DEMONSTRAR"))index=1;
+   else if(heading.startsWith("PRATICAR"))index=2;
+   else if(heading.startsWith("PROVAR"))index=3;
+  }
+  parts[index].append(el);
+ }
+ parts.forEach(el=>container.append(el));
+ const labels=["Aprender · conteúdo e exemplos","Demonstrar · atendimento certo e errado","Praticar · respostas escritas e simulação","Provar · avaliação e resultado"];
+ const buttons=Array.from(document.querySelectorAll("#lessonStepper .step"));
+ function activate(i){
+  parts.forEach((p,j)=>p.hidden=i!==j);
+  buttons.forEach((b,j)=>{b.classList.toggle("active",j===i);b.setAttribute("aria-pressed",String(j===i))});
+  $("stepIndicator").textContent="Etapa "+(i+1)+" de 4 · "+labels[i];
+ }
+ buttons.forEach((b,i)=>b.onclick=()=>activate(i));
+ parts.forEach((part,i)=>{if(i===3)return;const nav=document.createElement("div");nav.className="lesson-actions";
+  if(i>0){const prev=document.createElement("button");prev.type="button";prev.className="secondary";prev.textContent="← Voltar";prev.onclick=()=>{activate(i-1);$("lessonTitle").scrollIntoView({behavior:"smooth"})};nav.append(prev)}
+  const next=document.createElement("button");next.type="button";next.textContent=i===2?"Ir para a prova →":"Continuar →";next.onclick=()=>{activate(i+1);$("lessonTitle").scrollIntoView({behavior:"smooth"})};nav.append(next);part.append(nav)});
+ activate(record?.aprovado_provisorio?3:0);
 }
 async function establish(){const {data,error}=await sb.auth.getUser();if(error||!data.user){user=null;$("student").hidden=true;$("loginFields").hidden=false;$("logout").hidden=true;$("identity").textContent="Não autenticado.";return}user=data.user;$("identity").textContent="Conta: "+(user.email||"aluno autenticado");$("student").hidden=false;$("loginFields").hidden=true;$("logout").hidden=false;try{await load();msg("Sessão autenticada; dados isolados carregados.")}catch(e){$("student").hidden=true;msg("Erro ao ler progresso. Confira as permissões: "+e.message,true)}}
 $("login").onclick=async()=>{const email=$("email").value.trim(),password=$("password").value;if(!email||!password){msg("Preencha e-mail e senha.",true);return}$("login").disabled=true;msg("Autenticando...");try{const {error}=await sb.auth.signInWithPassword({email,password});$("password").value="";if(error)throw error;await establish()}catch(e){msg("Não foi possível entrar: "+e.message,true)}finally{$("login").disabled=false}};
