@@ -24,12 +24,13 @@ export function avancar(s,destino){
  praticar:s.aprendizado.trim().length>=MIN_CHARS&&s.demonstracao.trim().length>=MIN_CHARS,
  provar:s.aprendizado.trim().length>=MIN_CHARS&&s.demonstracao.trim().length>=MIN_CHARS&&s.pratica.trim().length>=MIN_CHARS&&s.simulacao.trim().length>=MIN_CHARS};
  const etapas=["aprender","demonstrar","praticar","provar"];
- if(!gates[destino]||etapas.indexOf(destino)>etapas.indexOf(s.etapa)+1)throw Error("Conclua a etapa anterior (mínimo 60 caracteres por resposta).");
+ if(!gates[destino]||etapas.indexOf(destino)!==etapas.indexOf(s.etapa)+1)throw Error("Conclua a etapa anterior (mínimo 60 caracteres por resposta).");
  return {...s,etapa:destino};
 }
 export function corrigido(s,resultado){
  s=normalizar(s,s.dia);
  if(s.etapa!=="provar"||s.aprovado)throw Error("Prova bloqueada.");
+ if(s.pratica.trim().length<MIN_CHARS||s.simulacao.trim().length<MIN_CHARS)throw Error("Prática e simulação obrigatórias antes da prova.");
  if(s.tentativa!==s.versao)throw Error("Reteste obrigatório antes de nova tentativa.");
  if(!resultado||resultado.dia!==s.dia||!Number.isFinite(resultado.nota)||resultado.nota<0||resultado.nota>10)throw Error("Nota inválida.");
  const aprovado=resultado.nota>=8,tentativa=s.tentativa+1;
@@ -41,6 +42,6 @@ export function reteste(s){
  return {...s,versao:s.versao+1};
 }
 export function liberado(dia,estados,disponivel){
- if(!disponivel)return false;
+ if(!Number.isInteger(dia)||dia<1||dia>90||!disponivel)return false;
  return dia===1||normalizar(estados?.[dia-1],dia-1).aprovado;
 }
