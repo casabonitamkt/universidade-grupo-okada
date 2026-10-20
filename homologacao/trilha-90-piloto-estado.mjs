@@ -30,13 +30,14 @@ export function avancar(s,destino){
 export function corrigido(s,resultado){
  s=normalizar(s,s.dia);
  if(s.etapa!=="provar"||s.aprovado)throw Error("Prova bloqueada.");
+ if(s.tentativa!==s.versao)throw Error("Reteste obrigatório antes de nova tentativa.");
  if(!resultado||resultado.dia!==s.dia||!Number.isFinite(resultado.nota)||resultado.nota<0||resultado.nota>10)throw Error("Nota inválida.");
  const aprovado=resultado.nota>=8,tentativa=s.tentativa+1;
  return {...s,nota:resultado.nota,aprovado,tentativa,etapa:aprovado?"concluido":"provar",historico:[...s.historico,{tentativa,nota:resultado.nota,aprovado}].slice(-12)};
 }
 export function reteste(s){
  s=normalizar(s,s.dia);
- if(s.aprovado||s.etapa!=="provar"||s.tentativa<1)throw Error("Reteste indisponível.");
+ if(s.aprovado||s.etapa!=="provar"||s.tentativa<1||s.tentativa!==s.versao+1)throw Error("Reteste indisponível.");
  return {...s,versao:s.versao+1};
 }
 export function liberado(dia,estados,disponivel){
