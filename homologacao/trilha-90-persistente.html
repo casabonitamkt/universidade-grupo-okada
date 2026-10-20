@@ -16,8 +16,49 @@
 .lesson-actions button{background:#aa8b64;color:#181819;flex:1}.lesson-actions button.secondary{background:#36343d;color:#f5f1ee}
 .completed-banner{background:#253c2d;border:1px solid #55775e;border-radius:12px;padding:15px;margin:16px 0;color:#b8ebc6}
 @media(max-width:680px){.lesson-stepper{gap:5px}.lesson-stepper .step{padding:8px 3px;min-height:54px;flex-direction:column;gap:0;font-size:16px}.lesson-stepper .step span{font-size:9px;letter-spacing:0}.lesson-actions button{width:auto}}
+
+/* Experiência de aprendizagem v3 · somente homologação */
+:root{--bg:#101310;--panel:#1b201b;--line:#3e493e;--accent:#d1b48a;--ink:#f5f2e9}
+body{background:radial-gradient(circle at 95% 0%,#2b3027,transparent 34%),var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.65}
+.wrap{max-width:1080px;padding:24px 20px 100px}
+header{border-color:#42483d;padding:14px 0 25px}
+header h1{font:normal clamp(30px,4.5vw,42px)/1.16 Georgia,serif;letter-spacing:-.5px}
+header>.sub,header strong{letter-spacing:.7px}
+.card{background:linear-gradient(145deg,#20241e,#1a1d19);border:1px solid #42493e;border-radius:16px;padding:26px;margin:19px 0}
+.card h2{font:normal 25px Georgia,serif}
+.card h3{font-size:18px;letter-spacing:.1px;color:#efe2cc}
+.card h4{font-size:15px}
+.sub,.muted{color:#afb8a9}
+.notice{background:#29291f;border:1px solid #544b37;border-left:3px solid var(--accent);color:#dfd2b6;padding:14px 17px;line-height:1.65;font-size:12px}
+button{background:#b5976e;color:#171b16;border-radius:10px;min-height:43px}
+button:hover:not(:disabled){filter:brightness(1.12)}
+button.secondary{background:#30372f;color:#e8e8dd;border-color:#566153}
+button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid #dfc495;outline-offset:2px}
+.progress{height:10px;background:#333a31}.progress span{background:linear-gradient(90deg,#b9956b,#e2c494)}
+#days{gap:10px;margin:17px 0 3px}#days button{min-width:115px;background:#4b4133;color:#f4e5c7}#days button.secondary{background:#30352e;color:#e5e9e0}#days button:disabled{opacity:.45}
+.lesson-stepper .step{background:#2a3029;border-color:#465244}.lesson-stepper .step.active{background:#4b4233;border-color:#d5b88a;color:#f4e6cf;box-shadow:inset 0 -3px 0 #d5b88a}
+.lesson-section{border-color:#485145}
+.study-card{border:1px solid #61553d;border-radius:14px;padding:19px 20px;margin:21px 0;background:linear-gradient(125deg,#2d3026,#232820)}
+.study-card h4{font:normal 21px Georgia,serif;margin:9px 0 18px}
+.study-point{display:grid;grid-template-columns:35px 1fr;gap:9px;align-items:start;border-top:1px solid #41483c;padding:12px 0}
+.study-point b{color:#e0bf8c;font:normal 18px Georgia,serif}
+.study-point p{margin:0;line-height:1.75}
+.study-challenge{padding:15px 18px;border-radius:10px;background:#37372a;border-left:3px solid #d2b181;margin:16px 0}
+.study-challenge strong,.eyebrow{color:#d9bc8d;font-size:11px;letter-spacing:1.3px;font-weight:750}
+.study-challenge p{margin:6px 0 0}
+.scenario-card{background:#232e25;border:1px solid #47674d;border-radius:13px;padding:17px 20px;margin:16px 0}
+.scenario-card blockquote{background:#31513a;border:0;border-radius:13px 13px 4px 13px;color:#f1f8ef;padding:17px;margin:13px 0 16px;font-size:15px}
+.scenario-card p{line-height:1.65}
+textarea{background:#20281f;border-color:#52624f;line-height:1.65;min-height:155px}
+.question{padding:19px 0;border-color:#475145}.question>strong{display:block;font-size:15px;margin-bottom:10px}.question label{padding:13px;border:1px solid #404a40;background:#252c25;margin:8px 0;border-radius:10px;cursor:pointer}.question label:hover{border-color:#9e906c}.question label:has(input:checked){background:#3e4434;outline:1px solid #d4b785}
+.question input{accent-color:#d3b88d}
+.lesson-actions{border-color:#485145}.lesson-actions button{background:#b5976e}
+.completed-banner{background:#263d2c;border-color:#56765b}
+#authCard:has(#loginFields[hidden]){padding:13px 19px}#authCard:has(#loginFields[hidden]) h2{font-size:15px;margin:0 0 8px;color:#c9c9b9}
+#authCard:has(#loginFields[hidden]) .toolbar{gap:14px}#authCard:has(#loginFields[hidden]) #logout{min-height:35px;padding:7px 12px}
+@media(max-width:680px){.wrap{padding:14px 12px 80px}.card{padding:18px 15px}.card h2{font-size:23px}.notice{font-size:12px}.study-card{padding:16px 13px}.study-point{grid-template-columns:28px 1fr;gap:8px}.study-point p{font-size:14px}.scenario-card{padding:14px}.lesson-stepper .step{min-height:60px}.lesson-stepper .step span{font-size:9px}#days button{min-width:0;flex:1;padding:8px 5px;font-size:13px}#authCard:has(#loginFields[hidden]) .toolbar{align-items:center}#authCard:has(#loginFields[hidden]) #identity{overflow-wrap:anywhere;font-size:12px}}
 </style></head><body><main class="wrap">
-<header><div><div class="sub">GRUPO CASA BONITA · MÓVEIS MODERNOS</div><h1>Formação prática · 90 dias</h1><div class="sub">Piloto autenticado: somente aulas 1 a 4</div></div><div><strong>HOMOLOGAÇÃO</strong><div class="sub">Não gera certificado oficial</div></div></header>
+<header><div><div class="sub">UNIVERSIDADE CASA BONITA · MÓVEIS MODERNOS</div><h1>Formação comercial <span style="color:#d4b88e">90 dias</span></h1><div class="sub">Trilha prática de vendas online · quatro aulas em homologação</div></div><div><strong style="color:#d4b88e">ÁREA DE TESTES</strong><div class="sub">Resultados provisórios</div></div></header>
 <p class="notice">Este ambiente grava somente na tabela isolada de homologação. Não modifica notas, progresso ou certificações oficiais. O conteúdo e o tempo de estudo ainda precisam de validação real com o Thiago.</p>
 <section class="card" id="authCard"><h2>Acesso do aluno</h2><div id="loginFields"><label>E-mail da conta de teste<input type="email" id="email" autocomplete="username"></label><label>Senha<input type="password" id="password" autocomplete="current-password"></label><button id="login">Entrar e carregar progresso</button></div><div class="toolbar"><span id="identity" class="sub">Não autenticado.</span><button id="logout" class="secondary" hidden>Sair</button></div><p id="authMsg" role="status"></p></section>
 <section id="student" hidden>
