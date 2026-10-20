@@ -55,3 +55,27 @@ export const LABORATORIO_ONLINE={
 "FOLLOW-UP DE QUALIDADE — Um cliente pode dizer 'vou comparar com outras lojas'. Não desqualifique concorrentes. Pergunte quais critérios estão sendo comparados: medidas, material, acabamento, conforto, prazo, atendimento ou investimento. Ofereça uma explicação verificável das diferenças, usando ficha técnica e informações aprovadas. Uma boa mensagem de retorno retoma o projeto e oferece ajuda para decidir; não exige uma resposta imediata.",
 "PRÁTICA MENTAL — Redija um resumo para o CRM com cinco campos: ambiente, referência recebida, fatos confirmados, pendências e próximo contato. Depois imagine que o cliente pede um desconto fora da sua alçada. Solicite que ele indique a condição que busca e confirme se, caso seja aprovada ou aproximada, existe intenção de fechar naquele momento. Encaminhe para o gerente sem prometer aprovação."
 ]};
+
+/* Simulações distintas por dia: casos fictícios para avaliação do gestor. */
+export const SIMULACOES_ONLINE={
+1:{
+cenario:"Cliente inicia pelo WhatsApp: 'Vi uma mesa de jantar no Instagram, mas estou sem as medidas agora. Você consegue me ajudar?'. Você ainda não confirmou marca, modelo, estoque ou valor.",
+tarefa:"Escreva a primeira resposta do Thiago. Reconheça a referência, apresente-se, peça uma informação relevante e combine um próximo passo sem inventar disponibilidade.",
+criterios:["Reconheceu a referência recebida","Apresentou-se e identificou a loja","Fez uma pergunta relevante por vez","Não inventou marca, preço ou estoque","Combinou próximo passo sem pressionar"]
+},
+2:{
+cenario:"Cliente escreve: 'Quero um sofá confortável, mas minha sala também recebe visitas. Tenho dois cachorros e não quero ficar preocupado com manutenção'. Nenhum tecido foi validado tecnicamente.",
+tarefa:"Responda de modo consultivo, investigando a rotina e explicando como selecionaria alternativas sem prometer resistência absoluta de materiais.",
+criterios:["Perguntou sobre uso e conforto","Considerou visitas e circulação","Considerou rotina com animais","Não prometeu resistência sem ficha técnica","Conduziu para informações de medidas ou referências"]
+},
+3:{
+cenario:"Cliente começou pedindo um sofá, mas enviou planta de três ambientes e diz: 'A arquiteta já escolheu algumas peças, não sei se vocês conseguem cotar tudo'.",
+tarefa:"Responda confirmando se o pedido envolve projeto completo, proponha organizar a cotação por ambientes e preserve as especificações da arquiteta.",
+criterios:["Investigou peça avulsa versus projeto completo","Reconheceu a planta e os ambientes","Preservou especificações da arquiteta","Propôs proposta organizada por ambientes","Combinou validação e próximo passo"]
+},
+4:{
+cenario:"Cliente escreve: 'Minha obra está na reta final. Quero orçamento dos móveis, mas também estou comparando com outra loja. Se você conseguir uma condição melhor, talvez eu feche'.",
+tarefa:"Responda respeitando a comparação, confirme pendências de projeto e peça a condição desejada. Se ela for fora da alçada, explique que depende de aprovação e confirme intenção de fechamento sem prometer desconto.",
+criterios:["Não desqualificou concorrentes","Confirmou dados essenciais e pendências","Pediu a condição comercial desejada","Não prometeu aprovação de desconto","Investigou possibilidade concreta de fechamento"]
+}
+};
