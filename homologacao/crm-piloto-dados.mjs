@@ -16,3 +16,20 @@ export const DEMO_LEADS=[
 {id:"L105",nome:"Fernanda S.",loja:"Casa Bonita Móveis",consultora:"Consultora A",origem:"WhatsApp",produto:"Sala de estar",etapa:"Negociação",ultimo:"Hoje",prazo:"Hoje",caso:"fechamento"},
 {id:"L106",nome:"André L.",loja:"Móveis Modernos",consultora:"Consultora C",origem:"Arquiteto",produto:"Projeto por ambientes",etapa:"Fechado",ultimo:"Há 2 dias",prazo:"Concluído",caso:"followup"}
 ];
+
+export function extrairMensagem(texto){
+ const m=String(texto||"").match(/(?:Mensagem para WhatsApp|Mensagem sugerida ao cliente):\s*([\s\S]*?)(?=\n\s*(?:Cuidado|Atenção comercial):|$)/i);
+ return m?m[1].trim().replace(/^["“]|["”]$/g,""):"";
+}
+export function avaliarMensagem(texto,casoId){
+ const m=extrairMensagem(texto),problemas=[];
+ if(!m)problemas.push("Mensagem não identificada.");
+ if(m.length>320)problemas.push("Mensagem muito longa.");
+ if((m.match(/\?/g)||[]).length>1)problemas.push("Mais de uma pergunta.");
+ if(/desconto garantido|desconto aprovado|garanto o desconto|pronta entrega/i.test(m))problemas.push("Promessa não verificada.");
+ if(casoId==="fechamento"&&m&&!/se (eu |nós )?(conseguir|conseguirmos|for aprovad|aprovar)|caso (seja|consiga)|concluir.*hoje/i.test(m))problemas.push("Não confirmou fechamento condicionado.");
+ if(casoId==="mesa"&&/foto/i.test(m)&&/medid|formato|estilo/i.test(m))problemas.push("Pediu fotos e outros dados juntos.");
+ if(casoId==="objecao"&&/mais barat|opção mais econômica/i.test(m))problemas.push("Ofereceu alternativa barata.");
+ return {mensagem:m,problemas,aprovado:problemas.length===0};
+}
+export function resumo(leads){return {total:leads.length,abertos:leads.filter(l=>l.etapa!=="Fechado").length,propostas:leads.filter(l=>l.etapa==="Proposta enviada").length,negociacoes:leads.filter(l=>l.etapa==="Negociação").length,fechados:leads.filter(l=>l.etapa==="Fechado").length,atrasados:leads.filter(l=>l.prazo==="Atrasado"&&l.etapa!=="Fechado").length};}
