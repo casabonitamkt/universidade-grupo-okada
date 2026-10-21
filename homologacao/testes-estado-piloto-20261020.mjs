@@ -1,3 +1,12 @@
+/* REGISTRO DE VALIDAÇÃO (2026-10-20)
+ * Commit da correção do reteste editorial: 40da914fa62983bd49a6ce7b9ae4b3d466e02f57.
+ * Verificado: sintaxe dos módulos e script editorial, fluxo JS de dias 1–4,
+ * reprovação, bloqueio de nova tentativa, reteste diferente, aprovação >=8
+ * e serialização JSON local. Deploy Vercel dpl_C6gowH34WM2JZo5JoYHdbzHctu3N READY.
+ * LIMITES: não houve login E2E, gravação/releitura Supabase nem teste HTTP
+ * da página protegida. CRM e canais continuam demonstrativos; nenhuma mensagem.
+ * Este arquivo testa funções puras e NÃO comprova autenticação ou persistência remota.
+ */
 import assert from "node:assert/strict";
 import {novo,normalizar,avancar,corrigido,reteste,liberado} from "./trilha-90-piloto-estado.mjs";
 import {questoesPara,corrigirProva} from "../modules/trilha-90-dias.mjs";
