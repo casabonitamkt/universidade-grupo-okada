@@ -17,7 +17,7 @@ export function normalizar(raw,dia){
  const praticou=s.pratica.trim().length>=MIN_CHARS&&s.simulacao.trim().length>=MIN_CHARS;
  const evidencias=aprendeu&&demonstrou&&praticou;
  s.aprovado=raw.aprovado===true&&s.nota>=8&&s.tentativa>0&&evidencias;
- s.historico=Array.isArray(raw.historico)?raw.historico.slice(-12):[];
+ s.historico=Array.isArray(raw.historico)?raw.historico.filter(x=>x&&Number.isInteger(x.tentativa)&&Number.isFinite(x.nota)&&x.nota>=0&&x.nota<=10&&typeof x.aprovado==="boolean").slice(-12):[];
  let etapa=["aprender","demonstrar","praticar","provar"].includes(raw.etapa)?raw.etapa:"aprender";
  if(!aprendeu)etapa="aprender";
  else if((etapa==="praticar"||etapa==="provar")&&!demonstrou)etapa="demonstrar";
