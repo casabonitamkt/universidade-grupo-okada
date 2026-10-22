@@ -8,9 +8,9 @@ for(let dia=1;dia<=90;dia++){
  const plano=planoDia(dia);
  assert.equal(plano.dia,dia);
  assert.ok(plano.titulo);
- if(dia>4)assert.throws(()=>questoesPara(dia));
+ if(dia>6)assert.throws(()=>questoesPara(dia));
 }
-for(let dia=1;dia<=4;dia++){
+for(let dia=1;dia<=6;dia++){
  assert.equal(liberado(dia,progresso,true),true);
  let s=novo(dia);
  assert.throws(()=>avancar(s,"provar"));
@@ -37,7 +37,7 @@ for(let dia=1;dia<=4;dia++){
  progresso[dia]=normalizar(JSON.parse(JSON.stringify(s)),dia);
  assert.equal(progresso[dia].tentativa,2);
 }
-assert.equal(liberado(5,progresso,false),false);
+assert.equal(liberado(7,progresso,false),false);
 assert.equal(normalizar({...novo(1),nota:10,aprovado:true},2).aprovado,false);
 
 // Regressão: rascunhos do navegador não podem saltar etapas nem aprovar sem evidências.
@@ -47,5 +47,5 @@ assert.equal(normalizar({...base,etapa:"demonstrar",aprendizado:"curto"},1).etap
 assert.equal(normalizar({...base,etapa:"provar",aprendizado:texto,demonstracao:texto},1).etapa,"praticar");
 assert.equal(normalizar({...base,aprovado:true,nota:10,tentativa:1},1).aprovado,false);
 assert.throws(()=>corrigido({...base,etapa:"provar",pratica:texto,simulacao:texto},{dia:1,nota:10}));
-console.log("PASS: 90 temas, 4 provas, bloqueios, reprovação, reteste, nota >=8 e recarga JSON local.");
+console.log("PASS: 90 temas, 6 provas, bloqueios, reprovação, reteste, nota >=8 e recarga JSON local.");
 console.log("LIMITAÇÃO: sem autenticação, banco, leitura remota, WhatsApp ou CRM real.");
