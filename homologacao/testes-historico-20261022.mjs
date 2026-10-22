@@ -1,0 +1,20 @@
+/* Homologação: teste de funções puras. Sem autenticação, banco ou dados reais. */
+import assert from "node:assert/strict";
+import {novo,normalizar,avancar,corrigido,reteste,liberado} from "./trilha-90-piloto-estado.mjs";
+const longo="Diagnóstico consultivo completo: confirmar contexto, medidas, necessidades e próximo passo.";
+let s=novo(1);
+s.aprendizado=longo;s=avancar(s,"demonstrar");
+s.demonstracao=longo;s=avancar(s,"praticar");
+s.pratica=longo;s.simulacao=longo;s=avancar(s,"provar");
+s=corrigido(s,{dia:1,nota:7.5});
+assert.equal(s.aprovado,false);
+s=normalizar({...s,historico:[null,"inválido",{tentativa:1,nota:7.5,aprovado:false},{tentativa:2,nota:200,aprovado:true}]},1);
+assert.deepEqual(s.historico,[{tentativa:1,nota:7.5,aprovado:false}]);
+s=reteste(s);
+s=corrigido(s,{dia:1,nota:8.8});
+assert.equal(s.aprovado,true);
+assert.equal(normalizar(JSON.parse(JSON.stringify(s)),1).aprovado,true);
+assert.equal(liberado(2,{1:s},true),true);
+assert.equal(liberado(2,{1:s},false),false);
+console.log("PASS: histórico inválido, reprovação, reteste, nota >=8, JSON local e bloqueio do próximo dia.");
+console.log("LIMITE: teste de funções puras; não comprova sessão real nem releitura no Supabase.");
