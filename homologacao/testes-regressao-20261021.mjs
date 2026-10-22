@@ -39,5 +39,13 @@ for(let dia=1;dia<=4;dia++){
 }
 assert.equal(liberado(5,progresso,false),false);
 assert.equal(normalizar({...novo(1),nota:10,aprovado:true},2).aprovado,false);
+
+// Regressão: rascunhos do navegador não podem saltar etapas nem aprovar sem evidências.
+const base=novo(1);
+assert.equal(normalizar({...base,etapa:"provar"},1).etapa,"aprender");
+assert.equal(normalizar({...base,etapa:"demonstrar",aprendizado:"curto"},1).etapa,"aprender");
+assert.equal(normalizar({...base,etapa:"provar",aprendizado:texto,demonstracao:texto},1).etapa,"praticar");
+assert.equal(normalizar({...base,aprovado:true,nota:10,tentativa:1},1).aprovado,false);
+assert.throws(()=>corrigido({...base,etapa:"provar",pratica:texto,simulacao:texto},{dia:1,nota:10}));
 console.log("PASS: 90 temas, 4 provas, bloqueios, reprovação, reteste, nota >=8 e recarga JSON local.");
 console.log("LIMITAÇÃO: sem autenticação, banco, leitura remota, WhatsApp ou CRM real.");
