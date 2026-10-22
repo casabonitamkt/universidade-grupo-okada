@@ -20,3 +20,5 @@ export function confirmarRegistroPersistido(esperado,relido){
   return equivalentePersistido(esperado[k],relido[k]);
  });
 }
+
+// A comparação não substitui a autenticação ou as políticas RLS.
