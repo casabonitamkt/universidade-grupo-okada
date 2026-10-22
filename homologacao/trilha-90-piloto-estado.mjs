@@ -11,10 +11,18 @@ export function normalizar(raw,dia){
  s.tentativa=Number.isInteger(raw.tentativa)&&raw.tentativa>=0?Math.min(raw.tentativa,1000):0;
  s.versao=Number.isInteger(raw.versao)&&raw.versao>=0?Math.min(raw.versao,1000):0;
  s.nota=typeof raw.nota==="number"&&raw.nota>=0&&raw.nota<=10?raw.nota:null;
- s.aprovado=raw.aprovado===true&&s.nota>=8;
+ // Dados do navegador são rascunhos: não liberar etapas ou aprovação sem evidências locais.
+ const aprendeu=s.aprendizado.trim().length>=MIN_CHARS;
+ const demonstrou=s.demonstracao.trim().length>=MIN_CHARS;
+ const praticou=s.pratica.trim().length>=MIN_CHARS&&s.simulacao.trim().length>=MIN_CHARS;
+ const evidencias=aprendeu&&demonstrou&&praticou;
+ s.aprovado=raw.aprovado===true&&s.nota>=8&&s.tentativa>0&&evidencias;
  s.historico=Array.isArray(raw.historico)?raw.historico.slice(-12):[];
- s.etapa=["aprender","demonstrar","praticar","provar"].includes(raw.etapa)?raw.etapa:"aprender";
- if(s.aprovado)s.etapa="concluido";
+ let etapa=["aprender","demonstrar","praticar","provar"].includes(raw.etapa)?raw.etapa:"aprender";
+ if(!aprendeu)etapa="aprender";
+ else if((etapa==="praticar"||etapa==="provar")&&!demonstrou)etapa="demonstrar";
+ else if(etapa==="provar"&&!praticou)etapa="praticar";
+ s.etapa=s.aprovado?"concluido":etapa;
  return s;
 }
 export function avancar(s,destino){
