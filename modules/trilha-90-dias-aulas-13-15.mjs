@@ -1,4 +1,7 @@
-/* Aulas 13–15: revisão editorial em homologação, sem persistência nem envio.\n * A primeira alternativa de cada pergunta é correta; o módulo central reordena.\n */\nexport const AULAS_13_15 = {
+/* Aulas 13–15: revisão editorial em homologação, sem persistência nem envio.
+ * A primeira alternativa de cada pergunta é correta; o módulo central reordena.
+ */
+export const AULAS_13_15 = {
   "13": {
     "objetivo": "Investigar o conforto esperado e orientar a avaliação ergonômica de sofás, poltronas e cadeiras com base no uso real, sem prometer desempenho ou medidas não verificadas.",
     "aprender": [
@@ -260,4 +263,4 @@
       ]
     }
   }
-};\n
+};
