@@ -12,11 +12,11 @@ test("plano conserva exatamente 90 dias e 3 fases",()=>{
   const plano=planoDia(dia);
   assert.equal(plano.dia,dia);
   assert.equal(plano.tempoPrevisto,15);
-  assert.equal(plano.conteudo!==null,dia<=15,"Dia "+dia);
+  assert.equal(plano.conteudo!==null,dia<=18,"Dia "+dia);
  }
 });
 
-for(let dia=1;dia<=15;dia++)test("aula "+dia+" completa e prova/reteste consistente",()=>{
+for(let dia=1;dia<=18;dia++)test("aula "+dia+" completa e prova/reteste consistente",()=>{
  const a=planoDia(dia);
  assert.equal(a.estado,"conteudo_para_revisao");
  assert.ok(a.conteudo.objetivo);
@@ -42,9 +42,9 @@ for(let dia=1;dia<=15;dia++)test("aula "+dia+" completa e prova/reteste consiste
  }
 });
 
-test("dias 16–90 continuam planejados, sem aula inventada",()=>{
- for(let dia=16;dia<=90;dia++)assert.equal(planoDia(dia).estado,"planejado");
- assert.throws(()=>questoesPara(16),/não escrita/);
+test("dias 19–90 continuam planejados, sem aula inventada",()=>{
+ for(let dia=19;dia<=90;dia++)assert.equal(planoDia(dia).estado,"planejado");
+ assert.throws(()=>questoesPara(19),/não escrita/);
 });
 
 test("marcos exigem evidências e aprovação explícita do gestor",()=>{
