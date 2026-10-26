@@ -1,0 +1,49 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Homologação • CRM + Z-API | Casa Bonita</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><style>
+:root{color-scheme:dark;--bg:#0b0b0e;--card:#17171b;--line:#34343c;--mut:#a5a5ae;--accent:#ce363e;--green:#56ce92}*{box-sizing:border-box}body{font-family:Inter,system-ui,sans-serif;background:radial-gradient(circle at top left,#251316,#0b0b0e 45%);color:#f5f5f6;margin:0}.wrap{max-width:1140px;margin:auto;padding:24px 16px 70px}.top{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}.eyebrow{font-size:11px;letter-spacing:.17em;color:#f9a6a9;font-weight:800}.title{font-size:clamp(27px,4vw,42px);margin:9px 0}.sub{color:var(--mut);line-height:1.5}.card{background:linear-gradient(180deg,#1b1b20,#111115);border:1px solid var(--line);border-radius:17px;padding:20px;margin:16px 0}.notice{border-left:4px solid #b98d38;background:#272010;padding:13px 16px;border-radius:8px;line-height:1.55}label{display:block;font-size:12px;color:#bfc0c8;margin:10px 0 5px}input,textarea,select{width:100%;padding:13px;background:#0c0c0f;border:1px solid #44444d;border-radius:10px;color:white;font:inherit}textarea{min-height:95px;resize:vertical}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.btn{background:#bb262f;border:0;border-radius:10px;padding:12px 17px;color:white;font-weight:800;cursor:pointer}.btn.alt{background:#282830;border:1px solid #50505a}.btn:disabled{opacity:.5;cursor:wait}.buttons{display:flex;gap:9px;flex-wrap:wrap;margin-top:15px}.mut{color:var(--mut)}.small{font-size:12px}.hidden{display:none}.lead{padding:13px;border:1px solid #33333a;border-radius:12px;margin:8px 0;background:#121216;cursor:pointer}.lead.active{border-color:#d13a42;background:#241719}.pill{display:inline-block;font-size:11px;border:1px solid #427d60;border-radius:100px;color:#8ee8b4;padding:5px 9px}.bubble{max-width:88%;background:#2b2b31;padding:11px 14px;border-radius:12px;margin:8px 0;white-space:pre-wrap;overflow-wrap:anywhere}.bubble.out{margin-left:auto;background:#482226}.line{border-top:1px solid #303037;margin:13px 0}.status{font-size:12px;color:#a5a5ae;margin-top:12px;min-height:22px}.stat{font-size:29px;font-weight:900}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.stats .card{margin:8px 0}@media(max-width:760px){.grid,.stats{grid-template-columns:1fr}.wrap{padding:14px}.card{padding:15px}} </style></head><body><div class="wrap">
+<div class="top"><div><div class="eyebrow">UNIVERSIDADE CASA BONITA • AMBIENTE DE HOMOLOGAÇÃO</div><h1 class="title">CRM + Z-API | Piloto</h1><div class="sub">Simulação isolada de mensagens, leads e histórico. Nenhum WhatsApp é acessado ou recebe mensagens.</div></div><div><span class="pill">MODO SIMULAÇÃO</span> <button class="btn alt hidden" id="logout">Sair</button></div></div>
+<div class="notice"><b>Segurança:</b> este painel não conecta o número do site nem o número do Thiago. Só aceita contatos fictícios identificados por <b>TESTE-</b>. O webhook real permanece bloqueado até validação e autorização.</div>
+<section id="login" class="card"><h2>Acesso de administrador</h2><p class="mut">Entre com a mesma conta de administrador da Universidade Casa Bonita. As credenciais são enviadas diretamente ao Supabase.</p><div class="grid"><div><label>E-mail</label><input id="email" type="email" autocomplete="username" placeholder="Seu e-mail"></div><div><label>Senha</label><input id="password" type="password" autocomplete="current-password" placeholder="Sua senha"></div></div><div class="buttons"><button id="enter" class="btn">Entrar</button></div><p class="status" id="loginStatus"></p></section>
+<section id="app" class="hidden"><div class="stats"><div class="card"><div class="mut small">Leads de teste</div><div class="stat" id="nLeads">0</div></div><div class="card"><div class="mut small">Mensagens de teste</div><div class="stat" id="nMessages">0</div></div><div class="card"><div class="mut small">Envio automático</div><div class="stat" style="color:var(--green)">DESLIGADO</div></div></div>
+<div class="grid"><section class="card"><h2>Simular mensagem</h2><p class="mut small">A mensagem será gravada apenas no banco de homologação, sem envio ao WhatsApp.</p><label>Cliente fictício</label><input id="name" value="Cliente de teste"><label>Identificador fictício</label><input id="phone" value="TESTE-CLIENTE-001"><label>Direção</label><select id="direction"><option value="entrada">Cliente → consultor</option><option value="saida">Consultor → cliente (somente histórico)</option></select><label>Mensagem</label><textarea id="message">Olá! Quero conhecer os sofás da Sierra para minha sala.</textarea><div class="buttons"><button class="btn" id="send">Gravar teste</button><button class="btn alt" id="refresh">Atualizar painel</button></div><p id="simStatus" class="status"></p></section>
+<section class="card"><h2>Leads em homologação</h2><div id="leads"><p class="mut">Nenhum lead de teste ainda.</p></div></section></div>
+<section class="card"><h2>Histórico do atendimento</h2><p class="mut small" id="selected">Selecione um lead para ver as mensagens.</p><div id="history"></div></section>
+</section></div>
+<script>
+const url="https://mjtphztvjnfjlhtxtwjz.supabase.co";
+const anon="sb_publishable_tu2xBCVGLQyPyddMT-poMQ_BFRx2nmx";
+const client=window.supabase.createClient(url,anon,{auth:{persistSession:true}});
+const api=url+"/functions/v1/crm-zapi-homologacao";
+const $=id=>document.getElementById(id);
+let leads=[],messages=[],chosen=null;
+const safe=t=>String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const status=(id,text)=>$(id).textContent=text;
+async function call(method,body){
+ const {data:{session}}=await client.auth.getSession();
+ if(!session)throw Error("Entre novamente na sua conta.");
+ const r=await fetch(api,{method,headers:{"Authorization":"Bearer "+session.access_token,"apikey":anon,"Content-Type":"application/json"},...(body?{body:JSON.stringify(body)}:{})});
+ const d=await r.json();if(!r.ok)throw Error(d.error||"Falha "+r.status);return d;
+}
+async function load(){
+ try{const d=await call("GET");leads=d.leads||[];messages=d.messages||[];
+ $("nLeads").textContent=leads.length;$("nMessages").textContent=messages.length;
+ $("leads").innerHTML=leads.length?leads.map(l=>'<div class="lead '+(chosen===l.id?'active':'')+'" data-id="'+safe(l.id)+'"><b>'+safe(l.display_name)+'</b><div class="mut small">'+safe(l.phone)+' · '+safe(l.source)+'</div><div class="mut small">'+safe(l.stage)+'</div></div>').join(""):'<p class="mut">Nenhum lead de teste ainda.</p>';
+ document.querySelectorAll(".lead").forEach(x=>x.addEventListener("click",()=>{chosen=x.dataset.id;render();}));
+ if(!chosen&&leads.length)chosen=leads[0].id;render();
+ status("simStatus","Dados atualizados.");
+ }catch(e){status("simStatus",e.message)}
+}
+function render(){
+ document.querySelectorAll(".lead").forEach(x=>x.classList.toggle("active",x.dataset.id===chosen));
+ const l=leads.find(x=>x.id===chosen);
+ $("selected").textContent=l?l.display_name+" · "+l.phone:"Selecione um lead.";
+ $("history").innerHTML=messages.filter(x=>x.lead_id===chosen).map(m=>'<div class="bubble '+(m.direction==="saida"?'out':'')+'"><div class="small mut">'+safe(m.direction==="saida"?"Consultor":"Cliente")+' · '+safe(new Date(m.event_at).toLocaleString("pt-BR"))+'</div>'+safe(m.body)+'</div>').join("")||'<p class="mut">Sem mensagens.</p>';
+}
+async function show(){
+ const {data:{session}}=await client.auth.getSession();$("login").classList.toggle("hidden",!!session);$("app").classList.toggle("hidden",!session);$("logout").classList.toggle("hidden",!session);if(session)await load();
+}
+$("enter").onclick=async()=>{status("loginStatus","Autenticando...");$("enter").disabled=true;try{const {error}=await client.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});if(error)throw error;status("loginStatus","");await show()}catch(e){status("loginStatus","Não foi possível entrar: "+e.message)}finally{$("enter").disabled=false}};
+$("logout").onclick=async()=>{await client.auth.signOut();await show()};
+$("refresh").onclick=load;
+$("send").onclick=async()=>{status("simStatus","Gravando mensagem simulada...");$("send").disabled=true;try{const d=await call("POST",{action:"simulate",name:$("name").value,phone:$("phone").value,text:$("message").value,direction:$("direction").value});chosen=d.leadId;await load();status("simStatus","Mensagem simulada gravada. Nenhum WhatsApp recebeu envio.")}catch(e){status("simStatus","Erro: "+e.message)}finally{$("send").disabled=false}};
+show();
+</script></body></html>
