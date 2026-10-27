@@ -1,262 +1,265 @@
-/* Aulas editoriais 55–57. Homologação isolada; sem rede, persistência ou acesso a dados reais. */
+/* Aulas editoriais 55–57 alinhadas ao plano de 90 dias. Homologação isolada; sem rede, persistência ou dados reais. */
 export const AULAS_55_57 = {
   "55": {
-    "objetivo": "Transformar a intenção de compra em pedido conferido, distinguindo aceite formal, escopo, valores, aprovações e condições de pagamento antes de qualquer confirmação ao cliente.",
+    "titulo": "Organização do funil",
+    "objetivo": "Organizar cada oportunidade do CRM por evidência verificável, prioridade e próximo passo, diferenciando lead, proposta, negociação, venda e pós-venda sem inflar indicadores ou expor dados do cliente.",
     "aprender": [
-      "Quando o cliente sinaliza que deseja comprar, confirme primeiro o que exatamente está sendo aceito: versão da proposta, ambientes, produtos, medidas, acabamentos e serviços. Uma mensagem como 'gostei' ou 'pode reservar' pode indicar intenção, mas não substitui a formalização exigida pela loja. Use perguntas simples para evitar que uma decisão entusiasmada se torne um pedido com itens ou características incorretos.",
-      "Antes de encaminhar o pedido, confira a proposta vigente e todas as alterações feitas na negociação. Verifique quantidades, medidas, tecido, couro, cor, base, orientação, composição e endereço de entrega. Diferencie especificação escolhida de item ainda pendente de aprovação do cliente ou do arquiteto. Nunca preencha uma característica por suposição nem reutilize automaticamente um orçamento antigo.",
-      "Apresente valores e condições exatamente como foram autorizados, incluindo entrada, parcelas, vencimentos, frete, montagem e serviços quando aplicáveis. Explique o que depende de conferência financeira ou administrativa. Se surgir uma condição especial, registre a solicitação e encaminhe à gerência antes de prometer. Não trate comprovante enviado, intenção verbal ou print de transferência como liquidação sem validação do financeiro.",
-      "Na formalização, siga o procedimento comercial e contratual da loja, com aceite verificável e registro da versão aceita. Confirme dados mínimos necessários ao faturamento e à entrega por canal apropriado, evitando exposição desnecessária de documentos no CRM ou em grupos. Quando houver arquiteto, esclareça quais aprovações são técnicas e quais decisões cabem ao comprador. Não antecipe produção ou reserva sem liberação do processo.",
-      "Após a confirmação interna, envie ao cliente um resumo claro: itens aprovados, valores e serviços confirmados, próximos passos e canal de acompanhamento. Prazos de fabricação, transporte e instalação devem aparecer como estimativas ou confirmações conforme a informação validada. Registre no CRM a evidência do aceite, pendências, responsáveis e etapa real do pedido. Fechamento seguro reduz retrabalho e protege a experiência de alto padrão."
+      "O funil comercial descreve o estado real de cada atendimento, não a expectativa da consultora. Ao receber um contato, registre origem, cidade, loja, interesse inicial, responsável e próxima ação. Classifique como novo ou em qualificação até confirmar a necessidade. Não marque como orçamento enviado quando apenas prometeu prepará-lo, nem como negociação uma conversa sem proposta apresentada.",
+      "Depois do briefing, identifique o que já está confirmado: projeto completo ou peça, ambientes, medidas disponíveis, arquiteto envolvido, prazo desejado e faixa de investimento informada voluntariamente. Registre somente dados necessários. Quando faltar informação, mantenha a pendência visível com responsável e data de retorno; não invente valores ou detalhes para completar campos do painel.",
+      "Na etapa de orçamento, diferencie proposta em preparação, proposta efetivamente enviada e apresentação realizada. Anote a versão vigente, o valor total conferido e a data do envio; se o orçamento for PDF, a conferência deve considerar o documento correto, não uma estimativa extraída de mensagens. A taxa de conversão usa critérios consistentes e não conta orçamento como venda.",
+      "Priorize a carteira pelo próximo compromisso concreto: orçamento aguardando medidas, cliente esperando retorno, apresentação agendada, negociação com gerência ou pós-venda pendente. A prioridade não é só o maior valor; inclua prazo combinado e risco de deixar o cliente sem resposta. No início do dia, revise atendimentos sem responsável, follow-ups vencidos e propostas ainda não apresentadas.",
+      "Uma venda só muda para fechada após aceite e confirmação pelo processo da loja; pagamento, produção e entrega têm registros próprios. Uma oportunidade só é perdida com motivo verificável, e silêncio não equivale automaticamente a recusa. Atualize o histórico com data, canal, responsável e próximo passo. Indicadores confiáveis ajudam o gestor sem pressionar a equipe a manipular etapas."
     ],
     "demonstrar": {
-      "certo": "Para formalizarmos, vou conferir com você a versão final, os acabamentos, os serviços e a condição aprovada. Depois envio o resumo para seu aceite.",
-      "errado": "Você disse que gostou, então já marquei como vendido, inventei o tecido que faltava e liberei a produção sem conferência.",
-      "porQue": "A abordagem correta valida escopo e autorização; a incorreta confunde intenção com aceite e cria riscos de entrega e cobrança."
+      "certo": "Recebemos o projeto, faltam medidas da sala e o orçamento ainda está em preparação. Registrei a pendência e retorno combinado para amanhã.",
+      "errado": "Vou marcar todos os contatos como orçamento enviado e os clientes silenciosos como vendas perdidas para melhorar os números do painel.",
+      "porQue": "O registro correto diferencia fatos, pendências e próximos passos; a classificação artificial distorce a conversão e prejudica o atendimento."
     },
     "praticar": {
-      "cenario": "Cliente de Umuarama aprovou verbalmente uma sala completa, mas o PDF enviado contém duas opções de tecido e o serviço de montagem ainda não foi confirmado pela logística.",
-      "tarefa": "Elabore um checklist de conferência com dez pontos, uma mensagem de validação do aceite e um registro de CRM que mantenha as pendências abertas até confirmação."
+      "cenario": "Thiago recebeu cinco contatos: dois pediram orçamento, um aguarda videochamada, um enviou PDF para revisão e outro não respondeu desde ontem. Alguns registros não têm próxima ação.",
+      "tarefa": "Monte uma tabela de etapas com evidência para cada contato, identifique prioridades e proponha próximos passos e datas sem presumir vendas, perdas ou valores não confirmados."
     },
     "provar": {
       "criterios": [
-        "Distingue intenção de aceite",
-        "Confere versão e escopo",
-        "Valida acabamentos e medidas",
-        "Respeita aprovação comercial",
+        "Classifica por evidência",
+        "Distingue proposta de venda",
+        "Registra versão do PDF",
+        "Prioriza retorno combinado",
         "Protege dados do cliente",
-        "Registra confirmação e pendências"
+        "Mantém indicadores verificáveis"
       ],
       "perguntas": [
         [
-          "O cliente escreveu 'gostei'. Isso significa...",
-          "Interesse, não aceite formal automático",
-          "Pedido pago e liberado",
-          "Produção autorizada",
-          "Fim das conferências"
+          "Quando um lead pede orçamento, a etapa correta é...",
+          "Orçamento solicitado ou em preparação, conforme o fluxo",
+          "Venda concluída",
+          "Pagamento confirmado",
+          "Entrega agendada"
         ],
         [
-          "Qual documento deve orientar o fechamento?",
-          "A proposta vigente conferida com o cliente",
-          "A primeira cotação sem alterações",
-          "Um anúncio antigo",
-          "A lembrança da consultora"
+          "O que comprova orçamento enviado?",
+          "Registro de envio da versão correta ao cliente",
+          "Promessa de elaborar proposta",
+          "Valor lembrado de cabeça",
+          "Pedido de desconto"
         ],
         [
-          "Se o tecido permanece indefinido, a consultora deve...",
-          "Confirmar a escolha antes de formalizar",
-          "Escolher sozinha",
-          "Omitir do pedido",
-          "Repetir o tecido de outro cliente"
+          "Qual dado evita confusão entre PDFs?",
+          "Versão vigente e valor conferido",
+          "A primeira cotação sempre",
+          "Preço presumido",
+          "Nome do arquivo sem revisão"
         ],
         [
-          "Uma condição comercial especial depende de...",
-          "Aprovação pela alçada responsável",
-          "Promessa no WhatsApp",
-          "Pressão para pagar",
-          "Aceite presumido"
+          "Como priorizar a carteira?",
+          "Considerar compromissos e pendências reais",
+          "Somente o maior ticket",
+          "Ordem alfabética dos clientes",
+          "Apenas clientes que elogiaram"
         ],
         [
-          "Um print de transferência deve ser tratado como...",
-          "Informação a validar com o financeiro",
-          "Liquidação automática",
-          "Autorização para produzir",
-          "Garantia de compensação"
+          "Silêncio depois da proposta significa...",
+          "Aguardando retorno, sem presumir perda",
+          "Venda fechada",
+          "Recusa formal comprovada",
+          "Pagamento pendente"
         ],
         [
-          "Quais dados devem ser coletados?",
-          "Somente os necessários pelo canal apropriado",
-          "Todos os dados possíveis",
-          "Documentos em grupos públicos",
-          "Dados de familiares sem motivo"
+          "Quando registrar venda fechada?",
+          "Após aceite e confirmação do processo comercial",
+          "Após enviar catálogo",
+          "Quando o cliente diz gostei",
+          "Quando a consultora prevê fechar"
         ],
         [
-          "Quem confirma alterações técnicas do projeto?",
-          "Os responsáveis definidos com cliente e profissional",
-          "Qualquer vendedor sem consulta",
-          "Um terceiro não envolvido",
-          "O sistema sem revisão"
+          "Qual indicador exige cuidado?",
+          "Conversão calculada com etapas consistentes",
+          "Número de contatos sem origem",
+          "Orçamentos presumidos como vendas",
+          "Avaliações inventadas"
         ],
         [
-          "Como registrar o fechamento no CRM?",
-          "Aceite verificável, versão, pendências e próximos passos",
-          "Somente entusiasmo do cliente",
-          "Valor presumido como recebido",
-          "Nenhum histórico"
+          "Qual registro ajuda o próximo consultor?",
+          "Contexto, responsável, pendência e próximo passo",
+          "Apenas impressão pessoal",
+          "Dados excessivos de terceiros",
+          "Somente emoji no histórico"
         ]
       ]
     }
   },
   "56": {
-    "objetivo": "Organizar a passagem do pedido confirmado ao acompanhamento pós-venda, comunicando marcos de produção e entrega sem criar promessas ou abandonar o cliente.",
+    "titulo": "Handoff entre consultora e gerente",
+    "objetivo": "Transferir negociações e decisões fora da alçada para o gerente com contexto completo, sem perder continuidade, prometer condições não aprovadas ou fazer o cliente repetir toda a história.",
     "aprender": [
-      "O relacionamento não termina quando o pedido é formalizado. Antes de atualizar o cliente, consulte o status real junto aos setores responsáveis: conferência do pedido, aprovação financeira, produção, expedição, transporte, entrega e montagem. Não invente uma etapa concluída porque já passou determinado número de dias. A experiência premium depende de informações coerentes, inclusive quando ainda não há novidade concreta.",
-      "Combine com o cliente como deseja receber atualizações e com qual frequência, considerando a etapa do pedido. Uma mensagem objetiva pode informar o marco confirmado, o próximo responsável e quando haverá nova checagem. Evite excesso de mensagens sem conteúdo ou silêncio prolongado diante de uma dúvida. Se o prazo for apenas estimado, diga explicitamente que ainda depende de confirmação operacional.",
-      "Quando houver alteração de prazo ou ocorrência, apure fatos antes de comunicar: item afetado, motivo confirmado, impacto provável, alternativas permitidas e responsável pela decisão. Não culpe a fábrica, o transportador ou o cliente sem evidência. Explique o que já foi feito e quando haverá atualização, sem prometer compensação ou nova data não aprovada. Escale o caso conforme a política da loja.",
-      "Antes da entrega, confirme com a operação o endereço, restrições do condomínio, acesso, elevador, escadas, disponibilidade de recebimento, montagem e necessidades especiais do ambiente. Peça ao cliente apenas informações necessárias, respeitando privacidade. Não garanta que uma peça passará por um acesso ainda não medido. Registre divergências e obtenha validação técnica quando houver risco de incompatibilidade.",
-      "Depois da entrega, confirme a conclusão do serviço e pergunte sobre a experiência de uso e ambientação, sem pressionar por avaliação positiva. Se houver avaria, falta de item ou insatisfação, registre descrição objetiva, evidências fornecidas voluntariamente, responsável e prazo de retorno. Acompanhe a resolução até a confirmação do cliente. No CRM, diferencie entrega agendada, realizada e pós-venda pendente."
+      "O handoff acontece quando uma decisão exige gerente, financeiro, logística ou especialista, e não quando a consultora quer abandonar uma conversa difícil. Antes de transferir, identifique o motivo objetivo: condição comercial fora da alçada, concorrência comprovada, risco de prazo, dúvida técnica ou necessidade de aprovação. Avise o cliente de quem participará e qual problema será resolvido.",
+      "Prepare um resumo curto e verificável: nome e canal autorizado, cidade, ambiente, versão do orçamento, valor conferido, itens relevantes, objeção real, comparativo apresentado voluntariamente, condições já aprovadas e próximos passos. Não encaminhe o histórico inteiro sem necessidade nem documentos pessoais em grupos. O gerente deve conseguir entender a negociação sem pedir que o cliente conte tudo novamente.",
+      "Na solicitação de condição especial, separe o pedido do cliente da autorização interna. Registre preço e parcelamento atuais, alternativa solicitada, impacto conhecido e compromisso de fechamento quando o cliente o expressar. Não prometa desconto extra, reserva, brinde ou prazo antes da aprovação. A consultora permanece responsável pelo relacionamento enquanto o gerente avalia a proposta.",
+      "Defina quem responderá, em qual canal e até quando. Se o gerente precisar de informações adicionais, retorne ao cliente com perguntas objetivas e sem transferências repetidas. Em caso de concorrência, não critique a outra empresa nem invente diferenciais. Explique o que está sendo conferido e combine nova atualização. Uma passagem eficaz reduz tempo de espera e mantém a confiança.",
+      "Depois da decisão, documente o que foi aprovado, por quem, em qual versão da proposta e com qual validade. Se houver negativa, apresente alternativas autorizadas ou explique com respeito os limites da condição. Atualize a etapa do CRM e o responsável pelo próximo contato. Nunca transforme a aprovação interna em pedido fechado sem aceite do cliente e validações necessárias."
     ],
     "demonstrar": {
-      "certo": "Conferi com a operação: seu pedido segue em produção. A data de entrega ainda não foi confirmada; farei nova checagem na quinta-feira e aviso.",
-      "errado": "Seu sofá chega com certeza amanhã. Nem consultei a fábrica, mas pode desmarcar todos os compromissos para receber.",
-      "porQue": "A comunicação correta informa o status validado e o próximo contato; a incorreta cria uma garantia sem base operacional."
+      "certo": "Vou encaminhar sua solicitação à gerência com a proposta atual e os pontos que conversamos. Retorno com a condição efetivamente aprovada, sem antecipar uma promessa.",
+      "errado": "O gerente vai conceder qualquer desconto; já confirmei o preço novo ao cliente sem consultar ninguém e apaguei o histórico anterior.",
+      "porQue": "A transferência correta preserva contexto e limites de decisão; a incorreta cria compromisso não autorizado e impede rastrear a negociação."
     },
     "praticar": {
-      "cenario": "Pedido de sofá e mesa para Dourados está em produção. O cliente pergunta por uma data exata, mas a transportadora ainda não confirmou a janela e o condomínio exige agendamento.",
-      "tarefa": "Escreva uma atualização transparente, cinco pontos para conferir com logística e um registro de CRM com responsável e próximo retorno, sem garantir data."
+      "cenario": "Cliente de Campo Grande apresentou proposta concorrente para sala completa e solicita condição fora da alçada. Thiago possui PDF atualizado, mas ainda não confirmou qual alternativa permitiria fechar.",
+      "tarefa": "Prepare um resumo de handoff para a gerência, uma mensagem ao cliente com prazo de retorno combinado e um registro de CRM que distinga solicitação, aprovação e aceite."
     },
     "provar": {
       "criterios": [
-        "Consulta status real",
-        "Distingue estimativa de confirmação",
-        "Combina comunicação",
-        "Escala ocorrências com evidência",
-        "Valida acesso e montagem",
-        "Acompanha pós-venda"
+        "Identifica motivo do escalonamento",
+        "Resume contexto sem excessos",
+        "Respeita alçada",
+        "Define responsável e prazo",
+        "Mantém comunicação com cliente",
+        "Registra decisão e versão"
       ],
       "perguntas": [
         [
-          "O primeiro passo para informar o andamento é...",
-          "Conferir o status com os setores responsáveis",
-          "Inventar conclusão da produção",
-          "Repetir a previsão como certeza",
-          "Encerrar o atendimento"
+          "Quando acionar a gerência?",
+          "Quando a decisão ultrapassa a alçada ou exige aprovação",
+          "Em toda saudação inicial",
+          "Para evitar registrar o CRM",
+          "Para prometer desconto antes"
         ],
         [
-          "Uma previsão sem confirmação deve ser comunicada como...",
-          "Estimativa sujeita a validação",
-          "Data garantida",
-          "Entrega já agendada",
-          "Compensação aprovada"
+          "O resumo de handoff deve incluir...",
+          "Versão, valor conferido, objeção e próximo passo",
+          "Dados pessoais desnecessários",
+          "Apenas o nome do cliente",
+          "Suposições sobre concorrente"
         ],
         [
-          "Como combinar atualizações?",
-          "Respeitando preferência e marcos relevantes",
-          "Enviando mensagens a cada hora",
-          "Nunca respondendo dúvidas",
-          "Usando canais pessoais sem permissão"
+          "Uma condição especial solicitada é...",
+          "Pedido pendente até aprovação responsável",
+          "Desconto automaticamente autorizado",
+          "Venda confirmada",
+          "Pagamento recebido"
         ],
         [
-          "Se o prazo mudar, a consultora deve...",
-          "Apurar impacto e escalar antes de prometer",
-          "Culpar um terceiro sem provas",
-          "Ocultar o problema",
-          "Inventar novo prazo"
+          "Quem acompanha o cliente durante a análise?",
+          "Responsável definido e informado ao cliente",
+          "Ninguém até o fechamento",
+          "Qualquer terceiro sem contexto",
+          "O sistema sozinho"
         ],
         [
-          "Antes da entrega em condomínio, é necessário...",
-          "Verificar acesso e regras com operação e cliente",
-          "Supor que elevador comporta tudo",
-          "Ignorar agendamento",
-          "Prometer montagem sem verificar"
+          "Se há concorrência, o correto é...",
+          "Comparar diferenciais verificáveis sem desqualificar",
+          "Inventar defeitos do concorrente",
+          "Prometer preço sem aprovação",
+          "Ignorar o comparativo"
         ],
         [
-          "Uma avaria relatada pelo cliente exige...",
-          "Registro objetivo e acompanhamento da solução",
-          "Culpar o cliente de imediato",
-          "Apagar a conversa",
-          "Marcar caso como resolvido"
+          "Depois da aprovação interna, falta...",
+          "Confirmar aceite do cliente e processo comercial",
+          "Apagar a versão antiga",
+          "Marcar entrega concluída",
+          "Emitir avaliação positiva"
         ],
         [
-          "Qual etapa do CRM indica conclusão correta?",
-          "Entrega realizada somente após confirmação",
-          "Entrega agendada como realizada",
-          "Produção como faturamento recebido",
-          "Dúvida como cancelamento"
+          "Como registrar a decisão?",
+          "Quem aprovou, versão, condição e validade",
+          "Somente um emoji",
+          "Sem data nem responsável",
+          "Preço alterado sem histórico"
         ],
         [
-          "O que fazer quando não existe nova informação?",
-          "Informar que segue verificando e combinar retorno",
-          "Inventar uma novidade",
-          "Prometer data aleatória",
-          "Parar de atender"
+          "Se o gerente negar a condição, deve-se...",
+          "Explicar limites e alternativas autorizadas",
+          "Inventar aprovação verbal",
+          "Pressionar o cliente a pagar",
+          "Ocultar o retorno"
         ]
       ]
     }
   },
   "57": {
-    "objetivo": "Conduzir o encerramento consultivo e solicitar avaliação ou indicação de forma ética, respeitando satisfação, privacidade e ausência de obrigação do cliente.",
+    "titulo": "Critérios para perda e validação",
+    "objetivo": "Registrar oportunidades efetivamente perdidas com motivo sustentado e validação gerencial, diferenciando desistência, pausa, falta de resposta e venda em outro fornecedor sem distorcer indicadores.",
     "aprender": [
-      "Antes de pedir avaliação ou indicação, verifique se o cliente recebeu o que foi contratado e se existe alguma pendência de pós-venda. Uma solicitação feita durante reclamação aberta pode transmitir desinteresse pela solução. Pergunte primeiro sobre entrega, montagem, conforto, acabamento e atendimento, de maneira aberta. Ouça elogios e críticas com a mesma atenção e registre apenas fatos úteis ao acompanhamento.",
-      "Quando a experiência estiver concluída, convide o cliente a deixar uma avaliação honesta no canal oficial da loja, sem determinar quantidade de estrelas ou texto. Não ofereça desconto condicionado a avaliação positiva nem peça para esconder problemas. Se houver insatisfação, encaminhe ao responsável e mantenha a possibilidade de feedback espontâneo. O objetivo é aprender e melhorar o serviço, não fabricar reputação.",
-      "Para indicações, prefira convidar o próprio cliente a compartilhar o contato da loja com pessoas interessadas. Evite pedir números de familiares ou amigos sem que essas pessoas tenham autorizado contato. Caso alguém procure a loja por indicação, registre a origem conforme a política de privacidade e agradeça ao cliente sem revelar detalhes comerciais de terceiros. Uma indicação qualificada nasce de confiança, não de pressão.",
-      "Fotos do ambiente e depoimentos podem ajudar o portfólio, mas exigem autorização específica para a finalidade e o canal de divulgação. Diferencie imagem para assistência técnica de imagem para Instagram, site ou campanha. Não publique endereço, rosto, nome, projeto ou detalhes do imóvel sem consentimento adequado. Se o cliente não autorizar, agradeça e preserve a relação; a venda não dá direito automático ao uso da imagem.",
-      "No CRM, conclua o pós-venda apenas quando a situação estiver realmente resolvida. Registre se houve convite para avaliação, autorização de uso de imagem quando existente e eventual indicação originada de contato espontâneo. Não contabilize avaliações ou indicações presumidas. Acompanhe padrões de elogios e dificuldades para melhorar o treinamento e a operação, sem expor dados pessoais desnecessários."
+      "Perda é uma conclusão comercial baseada em evidência, não uma punição por demora de resposta. Antes de encerrar, revise a origem do lead, a última interação, o orçamento vigente e a cadência de contato permitida. Um cliente que pediu para retomar após a obra deve ficar em pausa ou acompanhamento conforme o fluxo; não pode ser tratado como recusa definitiva só porque ainda não comprou.",
+      "Quando o cliente informar que não seguirá com a compra, pergunte com respeito se deseja compartilhar o motivo, sem exigir justificativa. Registre categorias objetivas, como orçamento incompatível, prazo, mudança de projeto, compra em outra loja ou desistência do investimento. Não atribua a causa ao preço quando o cliente não disse isso, nem exponha avaliações pessoais sobre o perfil do comprador.",
+      "Se não houver resposta, siga a cadência aprovada, respeite preferências e pedidos de não contato. Depois do limite definido pelo gestor, registre sem resposta ou inativo conforme a política; não invente que o cliente comprou de concorrente. Quando houver oportunidade de retomada autorizada, marque uma data contextualizada e mantenha o histórico acessível sem insistência excessiva.",
+      "A validação da perda deve conferir etapa anterior, versão do orçamento, valor efetivamente proposto, último contato, motivo sustentado e responsável pela decisão. Para tickets elevados ou negociações com arquiteto, a revisão do gerente pode revelar uma pendência recuperável antes de encerrar. Não altere o motivo para melhorar relatórios e não reabra um cliente que pediu expressamente para parar.",
+      "Use os dados agregados para identificar melhorias: muitos casos por prazo podem indicar necessidade de alinhar logística; perdas por projeto podem pedir briefing melhor; ausência de retorno pode exigir apresentação mais clara. Analise somente registros consistentes e sem expor clientes. O indicador de perda é útil quando ajuda a corrigir o processo, não quando força classificações artificiais."
     ],
     "demonstrar": {
-      "certo": "Que bom saber que ficou satisfeito! Se desejar, pode avaliar nossa loja com sinceridade. Também pode compartilhar nosso contato com alguém que esteja mobiliando a casa.",
-      "errado": "Para manter sua garantia, você precisa dar cinco estrelas e me passar três telefones de amigos. Vou publicar as fotos da sua casa sem perguntar.",
-      "porQue": "O convite correto é voluntário e protege a privacidade; o incorreto coage avaliações, coleta contatos indevidamente e publica imagens sem autorização."
+      "certo": "Entendi que o projeto foi adiado. Vou registrar a pausa e só retomar no período que você autorizou. Se mudar de ideia antes, continuo à disposição.",
+      "errado": "Você não respondeu em um dia, então marquei como perdido por preço e vou continuar chamando por outros números até obter resposta.",
+      "porQue": "O correto diferencia pausa de perda e respeita o consentimento; o incorreto inventa motivo e desrespeita a preferência de contato."
     },
     "praticar": {
-      "cenario": "Cliente recebeu a sala e elogiou o resultado, mas informou que ainda aguarda a troca de uma almofada. A consultora possui fotos do ambiente feitas para acompanhar a entrega.",
-      "tarefa": "Escreva uma resposta que priorize a pendência, um convite futuro para avaliação honesta e uma pergunta de autorização separada para eventual uso das fotos."
+      "cenario": "Três clientes estão sem compra: um informou que comprou de outra loja, outro adiou a reforma por seis meses e o terceiro não respondeu ao último follow-up autorizado.",
+      "tarefa": "Classifique os três casos com evidência, indique quais precisam de validação gerencial, defina registros mínimos no CRM e explique como agir se alguém pedir para não ser contatado."
     },
     "provar": {
       "criterios": [
-        "Verifica pendências",
-        "Acolhe críticas",
-        "Pede avaliação honesta",
-        "Não exige contatos de terceiros",
-        "Obtém consentimento para fotos",
-        "Registra indicadores verificáveis"
+        "Distingue pausa e perda",
+        "Registra motivo comprovável",
+        "Respeita não contato",
+        "Confere histórico e versão",
+        "Valida casos relevantes",
+        "Usa dados para melhoria"
       ],
       "perguntas": [
         [
-          "Quando pedir avaliação ao cliente?",
-          "Após verificar a experiência e tratar pendências",
-          "Antes de resolver reclamação",
-          "Somente após exigir cinco estrelas",
-          "Durante cobrança de atraso"
+          "Quando uma oportunidade pode ser marcada perdida?",
+          "Com motivo verificável e fluxo de validação atendido",
+          "Ao primeiro silêncio",
+          "Ao enviar PDF",
+          "Quando a consultora precisa de meta"
         ],
         [
-          "Uma avaliação solicitada deve ser...",
-          "Honesta e voluntária",
-          "Obrigatoriamente positiva",
-          "Redigida pela consultora sem permissão",
-          "Trocada por garantia"
+          "Cliente adiou a obra por seis meses. O correto é...",
+          "Registrar pausa e retorno consentido",
+          "Marcar perda por preço",
+          "Cobrar pagamento imediato",
+          "Excluir histórico sem critério"
         ],
         [
-          "Qual forma respeita a privacidade nas indicações?",
-          "Convidar o cliente a compartilhar o contato da loja",
-          "Exigir telefones de amigos",
-          "Copiar contatos do celular",
-          "Usar dados de terceiros sem permissão"
+          "Como registrar motivo de perda?",
+          "Usar o que o cliente informou ou evidência disponível",
+          "Adivinhar pelo perfil",
+          "Escolher sempre preço",
+          "Inventar concorrente"
         ],
         [
-          "Uma foto enviada para assistência técnica...",
-          "Não autoriza automaticamente uso publicitário",
-          "Pode ser publicada em qualquer campanha",
-          "Autoriza revelar endereço",
-          "Dispensa consentimento"
+          "Sem resposta após follow-up, pode-se afirmar...",
+          "Apenas ausência de resposta conforme histórico",
+          "Compra em outra loja comprovada",
+          "Recusa por acabamento",
+          "Venda fechada"
         ],
         [
-          "Se o cliente não autorizar depoimento, a consultora deve...",
-          "Respeitar a decisão sem pressionar",
-          "Publicar mesmo assim",
-          "Ameaçar retirar suporte",
-          "Pedir a outro familiar"
+          "Pedido para não receber mensagens exige...",
+          "Interromper contato e registrar preferência",
+          "Trocar de número para insistir",
+          "Pedir contatos de familiares",
+          "Criar campanha automática"
         ],
         [
-          "Como tratar uma crítica no pós-venda?",
-          "Registrar e acompanhar solução com respeito",
-          "Apagar o histórico",
-          "Questionar a honestidade do cliente",
-          "Condicionar reparo a avaliação"
+          "Antes de validar perda de ticket alto, o gerente deve...",
+          "Revisar proposta, histórico, motivo e pendências",
+          "Ignorar o atendimento",
+          "Alterar motivo sem evidência",
+          "Marcar receita realizada"
         ],
         [
-          "Uma indicação só entra no indicador quando...",
-          "Existe evidência de origem e contato legítimo",
-          "A consultora presume três amigos",
-          "O cliente elogia a loja",
-          "Uma lista é comprada"
+          "Qual dado ajuda a analisar perdas por prazo?",
+          "Motivos consistentes e ocorrências documentadas",
+          "Suposições da equipe",
+          "Apenas avaliações positivas",
+          "Contatos sem origem"
         ],
         [
-          "Qual status de CRM é correto com almofada pendente?",
-          "Pós-venda aberto até solução confirmada",
-          "Resolvido automaticamente",
-          "Indicação garantida",
-          "Entrega nunca realizada"
+          "Como tratar cliente que comprou de outra loja?",
+          "Registrar informação com respeito e encerrar conforme preferência",
+          "Desqualificar a escolha",
+          "Prometer desconto retroativo",
+          "Continuar insistindo"
         ]
       ]
     }
