@@ -33,3 +33,12 @@ Estado: **código preparado, NÃO ATIVADO**. Autorização do gestor em 27/10/20
 - Verificação de gravação ponta a ponta e idempotência sob concorrência.
 - Validação de acesso às mensagens somente pelo Thiago e gestores autorizados no CRM.
 - Nenhuma ativação real feita por esta mudança; **não publicar na oficial**.
+
+## Verificação operacional após autorização (27/10/2026)
+- Gestor confirmou contratação da Zappy e autorizou **teste real de entrada**, somente para o número comercial do Thiago, em homologação e sem respostas automáticas.
+- Vercel: preview do commit `03b28d85` confirmado READY; variáveis necessárias ao webhook **não existem** no projeto (somente `BRUNO_OPENING_URL` em produção).
+- Proteção de deployment Vercel: `ssoProtection.enabled=true` com `deploymentType=all_except_custom_domains`. A URL `*.vercel.app` do preview pode exigir login e **não deve ser cadastrada como webhook externo antes de teste HTTP de acessibilidade**. Não desligar SSO global; avaliar acesso pontual e seguro ou domínio customizado exclusivo de homologação após aprovação.
+- Não há teste HTTP externo concluído, nem webhook real criado, nem mensagem real registrada. A autorização para testar não equivale a sucesso de conexão.
+- Não registrar ou solicitar segredos pelo chat. Administrador deve configurar chaves no painel seguro da Vercel, **somente Preview e restritas à branch**, e segredo HMAC no painel Zappy. Sem esses valores, manter `ZAPPY_INBOUND_ENABLED` ausente ou `false`.
+- Antes da ativação, conferir **na documentação/painel da Zappy** o formato real do cabeçalho de assinatura, instância e corpo; não assumir que a integração Z-API usa o mesmo payload. Testar primeiro requisições simuladas sem dados pessoais.
+- Requer validação de acesso ao CRM piloto e da política de retenção antes de gravar dados reais. Sem alterar esquema/RLS.
