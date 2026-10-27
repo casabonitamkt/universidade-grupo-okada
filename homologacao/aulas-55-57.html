@@ -25,7 +25,7 @@ fieldset{border:0;border-top:1px solid #4d4d55;margin:16px 0;padding:14px 0;min-
 <h1>Universidade · Aulas 55–57</h1>
 <p class="muted">HOMOLOGAÇÃO EDITORIAL · Conteúdo para revisão, ainda não integrado ao treinamento real. Não envia respostas, não grava notas, não altera progresso e não concede certificação.</p>
 <div class="card"><label for="dia">Escolha a aula</label>
-<select id="dia"><option value="55">Dia 55 — Formalizar pedido com segurança</option><option value="56">Dia 56 — Acompanhar pedido e pós-venda</option><option value="57">Dia 57 — Avaliações e indicações éticas</option></select>
+<select id="dia"><option value="55">Dia 55 — Organização do funil</option><option value="56">Dia 56 — Handoff entre consultora e gerente</option><option value="57">Dia 57 — Critérios para perda e validação</option></select>
 <h2 id="titulo"></h2><p id="objetivo"></p></div>
 <section class="card" id="aprender"><h2>Aprender · 6 minutos</h2></section>
 <section class="card" id="demonstrar"><h2>Demonstrar · 3 minutos</h2></section>
@@ -55,7 +55,7 @@ function questoes(){
 }
 function show(){
   const dia=$("dia").value,a=AULAS_55_57[dia];
-  $("titulo").textContent="Dia "+dia+" · "+$("dia").selectedOptions[0].textContent.split(" — ")[1];
+  $("titulo").textContent="Dia "+dia+" · "+a.titulo;
   $("objetivo").textContent=a.objetivo;
   const aprender=$("aprender");aprender.replaceChildren();add(aprender,"h2","Aprender · 6 minutos");
   a.aprender.forEach(p=>add(aprender,"p",p));
