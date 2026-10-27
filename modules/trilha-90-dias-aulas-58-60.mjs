@@ -1,6 +1,7 @@
 /* Aulas editoriais 58–60: revisão isolada, sem rede, persistência, notas ou usuários reais. */
 export const AULAS_58_60 = {
   "58": {
+    "titulo": "Pós-venda e indicação",
     "objetivo": "Conduzir pós-venda de alto padrão com rastreabilidade, solução de pendências, feedback voluntário e indicações legítimas, sem encerrar casos prematuramente.",
     "aprender": [
       "Uma entrega concluída não significa necessariamente uma experiência concluída. Confirme com o cliente, sem perguntas que induzam elogios, se todos os itens chegaram, se a montagem foi executada e se há qualquer ajuste pendente. Separe satisfação declarada, conclusão operacional e resolução de ocorrências: são fatos diferentes e devem aparecer como etapas diferentes no acompanhamento.",
@@ -88,6 +89,7 @@ export const AULAS_58_60 = {
     }
   },
   "59": {
+    "titulo": "Simulação avançada de negociação",
     "objetivo": "Executar uma simulação completa de negociação consultiva de projeto de alto padrão, articulando cliente, arquiteto, orçamento, objeções e escalonamento responsável.",
     "aprender": [
       "Uma simulação avançada deve começar antes da apresentação de preço. Organize um briefing que inclua objetivo do cliente, ambientes, fase da obra, medidas, preferências, orçamento de referência e participação do arquiteto. Identifique lacunas que exigem confirmação e não preencha dados técnicos por adivinhação. O avaliador deve observar perguntas abertas, escuta e capacidade de resumir a necessidade em linguagem acessível.",
@@ -175,6 +177,7 @@ export const AULAS_58_60 = {
     }
   },
   "60": {
+    "titulo": "Marco 60: projeto e negociação",
     "objetivo": "Realizar o marco de avaliação do dia 60 com prova, simulação e evidências revisáveis, distinguindo prontidão para decisão gerencial de certificação automática.",
     "aprender": [
       "O marco do dia 60 consolida competências de projeto, relacionamento com arquitetos e negociação. Antes da avaliação, revise os registros das aulas anteriores e identifique lacunas em briefing, leitura de projeto, apresentação de proposta, objeções, respeito à alçada e acompanhamento. A conclusão de dias ou o tempo de tela não comprovam domínio; o que importa são respostas e comportamentos demonstrados.",
