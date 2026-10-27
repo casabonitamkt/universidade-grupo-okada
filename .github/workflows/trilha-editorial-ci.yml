@@ -3,12 +3,16 @@ on:
   push:
     paths:
       - 'modules/trilha-90-dias*.mjs'
+      - 'homologacao/aulas-*.html'
+      - 'homologacao/trilha-90-dias.html'
       - 'tests/trilha-*.test.mjs'
       - 'tests/trilha-90-dias-browser.mjs'
       - '.github/workflows/trilha-editorial-ci.yml'
   pull_request:
     paths:
       - 'modules/trilha-90-dias*.mjs'
+      - 'homologacao/aulas-*.html'
+      - 'homologacao/trilha-90-dias.html'
       - 'tests/trilha-*.test.mjs'
       - 'tests/trilha-90-dias-browser.mjs'
       - '.github/workflows/trilha-editorial-ci.yml'
