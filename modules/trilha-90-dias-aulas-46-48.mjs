@@ -86,5 +86,92 @@ export const AULAS_46_48 = {
       ]
     ]
   }
+},
+  "47": {
+  "objetivo": "Identificar a intenção real de fechamento por sinais verificáveis e perguntas respeitosas, sem confundir entusiasmo, silêncio ou proposta visualizada com aceite.",
+  "aprender": [
+    "Nem todo cliente que elogia uma peça está pronto para comprar. O atendimento consultivo diferencia curiosidade, preferência, intenção de decidir e aceite formal. Observe sinais concretos: escolha de modelo, conferência de medidas, envolvimento de decisores e dúvidas sobre execução. Nenhum desses sinais isolados autoriza registrar venda. Pergunte o que ainda falta para a decisão em vez de usar frases de pressão.",
+    "Uma pergunta útil precisa ser específica e fácil de responder: 'Se confirmarmos as medidas e o acabamento, qual outra informação você precisa para decidir?'. Ela revela obstáculos reais sem presumir compromisso. Evite perguntas manipulativas como 'posso emitir o pedido agora?' quando o cliente ainda aguarda projeto, orçamento ou aprovação familiar. Respeite também quem está apenas pesquisando possibilidades para o futuro.",
+    "Mapeie quem participa da decisão e o momento do projeto. Em uma casa em construção, entrega, instalações e disponibilidade podem exigir alinhamento com arquiteto, obra e família. Não contate terceiros sem autorização. Se houver proposta em PDF, confirme que a versão foi recebida e compreendida; envio ou leitura não são aceite. Uma videochamada de apresentação pode ajudar quando o cliente concorda com horário e pauta.",
+    "Para qualificar a oportunidade, registre evidências objetivas: itens preferidos, pontos técnicos confirmados, investimento discutido com respeito, dúvidas restantes e próxima ação combinada. Não atribua probabilidade numérica inventada nem transforme ausência de resposta em rejeição definitiva. Se o cliente pedir tempo, registre a preferência de contato; se não autorizar retorno, não agende mensagem automática. O CRM deve refletir fatos e não otimismo da equipe.",
+    "Quando o cliente expressar decisão de compra, confirme a versão exata, especificações, serviços, pagamento, prazos validados e responsáveis antes de encaminhar o pedido pelo processo oficial. Se algum dado estiver pendente, mantenha a etapa correta até a confirmação. O objetivo não é arrancar um sim, mas descobrir com clareza se existe decisão, quais condições a sustentam e como concluir sem retrabalho nem arrependimento."
+  ],
+  "demonstrar": {
+    "certo": "Você comentou que gostou do sofá e da composição. Para decidir com segurança, ainda precisamos confirmar medidas, acabamento ou alguma condição do orçamento?",
+    "errado": "Como você disse que gostou e abriu o PDF, já considerei a venda fechada e vou mandar o pedido para a fábrica.",
+    "porQue": "O correto investiga pendências e respeita o estágio real. O incorreto confunde interesse com aceite e cria risco operacional."
+  },
+  "praticar": {
+    "cenario": "Cliente de Maringá gostou da apresentação em vídeo e abriu o orçamento, mas ainda precisa conversar com a esposa e conferir uma medida com a arquiteta. Não definiu data de compra.",
+    "tarefa": "Escreva duas perguntas abertas, registre três fatos confirmados e três pendências, e proponha uma continuidade opcional sem marcar venda ou disparar follow-up automático."
+  },
+  "provar": {
+    "criterios": [
+      "Diferencia interesse e aceite",
+      "Investiga pendências reais",
+      "Respeita decisores e consentimento",
+      "Confirma versão do orçamento",
+      "Evita probabilidade inventada",
+      "Registra estágio verdadeiro"
+    ],
+    "perguntas": [
+      [
+        "Elogiar um sofá significa que a compra está concluída?",
+        "Não, demonstra interesse, mas não aceite formal",
+        "Sim, automaticamente",
+        "Sim, se houver orçamento",
+        "Sim, se houve videochamada"
+      ],
+      [
+        "Qual pergunta ajuda a identificar intenção real?",
+        "O que ainda falta confirmar para sua decisão?",
+        "Posso faturar sem consultar?",
+        "Você vai comprar agora ou perderá a oferta?",
+        "Por que está demorando tanto?"
+      ],
+      [
+        "Abrir um PDF de proposta indica...",
+        "Visualização, não concordância contratual",
+        "Aceite de todas as condições",
+        "Autorização de cobrança",
+        "Pagamento confirmado"
+      ],
+      [
+        "Se a família participa da decisão, a consultora deve...",
+        "Respeitar o fluxo e pedir autorização antes de envolver terceiros",
+        "Telefonar para todos sem consentimento",
+        "Ignorar outros decisores",
+        "Pressionar pela resposta imediata"
+      ],
+      [
+        "Quando uma medida está pendente, é correto...",
+        "Confirmá-la antes de garantir compatibilidade",
+        "Supor que cabe",
+        "Enviar à fábrica mesmo assim",
+        "Trocar a medida no orçamento"
+      ],
+      [
+        "Sem resposta ao follow-up, o CRM deve...",
+        "Registrar ausência de retorno sem inventar perda definitiva",
+        "Marcar venda perdida automaticamente",
+        "Enviar mensagens sem limite",
+        "Criar nota de aceite"
+      ],
+      [
+        "O registro de uma oportunidade deve priorizar...",
+        "Fatos, pendências e próximo passo autorizado",
+        "Probabilidade arbitrária de 100%",
+        "Opiniões sem contexto",
+        "Informações pessoais irrelevantes"
+      ],
+      [
+        "Antes de encaminhar um pedido, é necessário...",
+        "Conferir aceite e versão exata com condições validadas",
+        "Apenas elogio do cliente",
+        "Uma visualização do catálogo",
+        "Um palpite da consultora"
+      ]
+    ]
+  }
 }
 };
