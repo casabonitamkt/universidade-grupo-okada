@@ -21,7 +21,7 @@ test("aulas 4 a 6 tem conteudo, demonstracao, pratica e 8 questoes validas", () 
     assert.ok(aula.objetivo.length>=50);
     assert.equal(aula.aprender.length,5);
     assert.ok(aula.aprender.every(p=>p.length>=150));
-    for(const key of ["certo","errado","porQue"]) assert.ok(aula.demonstrar[key].length>=40);
+    for(const key of ["certo","errado","porQue"]) assert.ok(aula.demonstrar[key].length>=43);
     assert.ok(aula.praticar.cenario.length>=80);
     assert.ok(aula.praticar.tarefa.length>=80);
     assert.ok(aula.provar.criterios.length>=6);
