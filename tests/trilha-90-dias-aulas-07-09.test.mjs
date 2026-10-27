@@ -2,16 +2,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { AULAS_PILOTO, FASES, planoDia, questoesPara, corrigirProva, avaliarMarco } from "../modules/trilha-90-dias.mjs";
 
-test("90 dias permanecem planejados; apenas 1 a 9 possuem conteudo em homologacao", () => {
+test("90 dias permanecem planejados; 1 a 24 possuem conteudo em homologacao", () => {
   assert.equal(FASES.length,3);
   assert.deepEqual(FASES.map(f=>f[1].length),[30,30,30]);
-  assert.deepEqual(Object.keys(AULAS_PILOTO).map(Number).sort((a,b)=>a-b),[1,2,3,4,5,6,7,8,9]);
+  assert.deepEqual(Object.keys(AULAS_PILOTO).map(Number).sort((a,b)=>a-b),Array.from({length:24},(_,i)=>i+1));
   for(let d=1;d<=90;d++){
     const p=planoDia(d);
     assert.equal(p.dia,d);
     assert.equal(p.tempoPrevisto,15);
-    assert.equal(p.estado,d<=9?"conteudo_para_revisao":"planejado");
-    assert.equal(Boolean(p.conteudo),d<=9);
+    assert.equal(p.estado,d<=24?"conteudo_para_revisao":"planejado");
+    assert.equal(Boolean(p.conteudo),d<=24);
   }
 });
 
@@ -56,8 +56,8 @@ test("provas 7 a 9: gabaritos e retestes, nota minima e revisao", () => {
 });
 
 test("sem prova em dias planejados e sem certificacao automatica", () => {
-  assert.throws(()=>corrigirProva(10,Array(8).fill(0)));
-  assert.throws(()=>questoesPara(10));
+  assert.throws(()=>corrigirProva(25,Array(8).fill(0)));
+  assert.throws(()=>questoesPara(25));
   assert.throws(()=>corrigirProva(7,[]));
   for(const d of [30,60,90]){
     const evidence=Object.fromEntries(avaliarMarco(d).requisitos.map((_,i)=>["r"+i,true]));
