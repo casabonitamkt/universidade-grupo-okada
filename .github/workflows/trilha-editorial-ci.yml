@@ -4,11 +4,13 @@ on:
     paths:
       - 'modules/trilha-90-dias*.mjs'
       - 'tests/trilha-*.test.mjs'
+      - 'tests/trilha-90-dias-browser.mjs'
       - '.github/workflows/trilha-editorial-ci.yml'
   pull_request:
     paths:
       - 'modules/trilha-90-dias*.mjs'
       - 'tests/trilha-*.test.mjs'
+      - 'tests/trilha-90-dias-browser.mjs'
       - '.github/workflows/trilha-editorial-ci.yml'
 permissions:
   contents: read
@@ -26,3 +28,25 @@ jobs:
           for f in modules/trilha-90-dias*.mjs tests/trilha-*.test.mjs; do node --check "$f"; done
       - name: Regressao da trilha (sem banco ou rede)
         run: node --test tests/trilha-*.test.mjs
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar navegador de teste isolado
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Validar desktop, mobile, prova e reteste
+        run: node tests/trilha-90-dias-browser.mjs
+      - name: Guardar capturas para revisao visual
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trilha-editorial-capturas
+          path: artifacts/trilha-27-*.png
+          if-no-files-found: ignore
+          retention-days: 1
