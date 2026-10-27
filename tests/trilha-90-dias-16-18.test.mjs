@@ -41,5 +41,5 @@ for (const dia of [16,17,18]) {
 }
 test("conteúdo novo não certifica automaticamente nem libera dias planejados",()=>{
  for(const dia of [30,60,90])assert.equal(avaliarMarco(dia,{}).certificado,false);
- for(let dia=40;dia<=90;dia++)assert.equal(planoDia(dia).conteudo,null);
+ for(let dia=43;dia<=90;dia++)assert.equal(planoDia(dia).conteudo,null);
 });

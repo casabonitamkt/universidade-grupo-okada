@@ -38,10 +38,10 @@ test("provas e retestes das aulas 37-39 mantêm gabarito e corte", () => {
   }
 });
 
-test("fronteira editorial: 39 completas e 40-90 planejadas", () => {
-  assert.equal(Object.keys(AULAS_PILOTO).length, 39);
-  assert.equal(planoDia(39).estado, "conteudo_para_revisao");
-  for (let d = 40; d <= 90; d++) {
+test("fronteira editorial: 42 completas e 43-90 planejadas", () => {
+  assert.equal(Object.keys(AULAS_PILOTO).length, 42);
+  assert.equal(planoDia(42).estado, "conteudo_para_revisao");
+  for (let d = 43; d <= 90; d++) {
     assert.equal(planoDia(d).estado, "planejado");
     assert.equal(planoDia(d).conteudo, null);
   }
@@ -51,7 +51,7 @@ test("fronteira editorial: 39 completas e 40-90 planejadas", () => {
 
 test("prévia é somente demonstrativa e sem persistência", async () => {
   const html = await readFile(new URL("../homologacao/trilha-90-dias.html", import.meta.url), "utf8");
-  assert.match(html, /1–39 completas/);
-  assert.match(html, /Dias 40–90 continuam planejados/);
+  assert.match(html, /1–42 completas/);
+  assert.match(html, /Dias 43–90 continuam planejados/);
   assert.doesNotMatch(html, /supabase\.from\(|fetch\(|XMLHttpRequest|localStorage|sessionStorage|z-api|wa\.me\//i);
 });

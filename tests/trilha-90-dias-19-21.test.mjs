@@ -41,7 +41,7 @@ for (const dia of [19,20,21]) {
  });
 }
 test("dias seguintes não são liberados e certificação exige gestor",()=>{
- for(let dia=40;dia<=90;dia++)assert.equal(planoDia(dia).conteudo,null);
+ for(let dia=43;dia<=90;dia++)assert.equal(planoDia(dia).conteudo,null);
  for(const dia of [30,60,90]){
   assert.equal(avaliarMarco(dia,{}).certificado,false);
   const requisitos=avaliarMarco(dia,{}).requisitos;

@@ -39,9 +39,9 @@ test("prova e reteste dos dias 31-33 corrigem sem gravar notas", () => {
   }
 });
 
-test("dias 40-90 permanecem planejados; marcos não certificam automaticamente", () => {
-  for(let dia=1;dia<=39;dia++) assert.equal(planoDia(dia).estado,"conteudo_para_revisao");
-  for(let dia=40;dia<=90;dia++) assert.equal(planoDia(dia).estado,"planejado");
-  assert.throws(()=>questoesPara(40),/não escrita/);
+test("dias 43-90 permanecem planejados; marcos não certificam automaticamente", () => {
+  for(let dia=1;dia<=42;dia++) assert.equal(planoDia(dia).estado,"conteudo_para_revisao");
+  for(let dia=43;dia<=90;dia++) assert.equal(planoDia(dia).estado,"planejado");
+  assert.throws(()=>questoesPara(43),/não escrita/);
   for(const dia of [30,60,90]) assert.equal(avaliarMarco(dia,{}).certificado,false);
 });
