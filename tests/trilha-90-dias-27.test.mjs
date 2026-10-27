@@ -9,14 +9,14 @@ import {
 
 test('trilha de 90 dias preserva fases, títulos e conteúdos planejados', () => {
   assert.equal(FASES.length, 3);
-  assert.equal(Object.keys(AULAS_PILOTO).length, 33);
+  assert.equal(Object.keys(AULAS_PILOTO).length, 36);
   for (let dia = 1; dia <= 90; dia++) {
     const plano = planoDia(dia);
     assert.equal(plano.dia, dia);
     assert.equal(plano.tempoPrevisto, 15);
     assert.ok(plano.titulo);
     assert.equal(plano.etapas.join(','), 'APRENDER,DEMONSTRAR,PRATICAR,PROVAR');
-    if (dia <= 33) {
+    if (dia <= 36) {
       assert.equal(plano.estado, 'conteudo_para_revisao');
       assert.ok(plano.conteudo);
     } else {
@@ -29,8 +29,8 @@ test('trilha de 90 dias preserva fases, títulos e conteúdos planejados', () =>
   }
 });
 
-test('33 aulas editoriais possuem conteúdo completo e oito questões', () => {
-  for (let dia = 1; dia <= 33; dia++) {
+test('36 aulas editoriais possuem conteúdo completo e oito questões', () => {
+  for (let dia = 1; dia <= 36; dia++) {
     const aula = planoDia(dia).conteudo;
     assert.ok(aula.objetivo, 'objetivo dia ' + dia);
     assert.equal(aula.aprender.length, 5, 'aprender dia ' + dia);
@@ -45,7 +45,7 @@ test('33 aulas editoriais possuem conteúdo completo e oito questões', () => {
 });
 
 test('prova e reteste reordenam respostas corretamente e respeitam nota mínima', () => {
-  for (let dia = 1; dia <= 33; dia++) {
+  for (let dia = 1; dia <= 36; dia++) {
     const aula = planoDia(dia).conteudo;
     for (let versao = 0; versao < 8; versao++) {
       const questoes = questoesPara(dia, versao);
@@ -71,7 +71,7 @@ test('prova e reteste reordenam respostas corretamente e respeitam nota mínima'
     }
   }
   assert.throws(() => corrigirProva(1, [0]), /Responda todas as questões/);
-  for (const dia of [34, 60, 90]) {
+  for (const dia of [37, 60, 90]) {
     assert.throws(() => questoesPara(dia), /Aula ainda não escrita/);
   }
 });
