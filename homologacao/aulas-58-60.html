@@ -20,7 +20,7 @@ fieldset{border:0;border-top:1px solid #4d4d55;margin:16px 0;padding:14px 0;min-
 <h1>Universidade · Aulas 58–60</h1>
 <p class="muted">HOMOLOGAÇÃO EDITORIAL · Conteúdo para revisão, não integrado ao treinamento real. Não envia respostas, não grava notas, não altera progresso e não concede certificação. O marco 60 exige validação expressa do gestor.</p>
 <div class="card"><label for="dia">Escolha a aula</label>
-<select id="dia"><option value="58">Dia 58 — Pós-venda, ocorrências e indicações</option><option value="59">Dia 59 — Simulação avançada de negociação</option><option value="60">Dia 60 — Marco de avaliação e prontidão</option></select>
+<select id="dia"><option value="58">Dia 58 — Pós-venda e indicação</option><option value="59">Dia 59 — Simulação avançada de negociação</option><option value="60">Dia 60 — Marco 60: projeto e negociação</option></select>
 <h2 id="titulo"></h2><p id="objetivo"></p></div>
 <section class="card" id="aprender"><h2>Aprender · 6 minutos</h2></section>
 <section class="card" id="demonstrar"><h2>Demonstrar · 3 minutos</h2></section>
@@ -49,7 +49,7 @@ function questoes(){
 }
 function show(){
   const dia=$("dia").value,a=AULAS_58_60[dia];
-  $("titulo").textContent="Dia "+dia+" · "+$("dia").selectedOptions[0].textContent.split(" — ")[1];
+  $("titulo").textContent="Dia "+dia+" · "+a.titulo;
   $("objetivo").textContent=a.objetivo;
   const aprender=$("aprender");aprender.replaceChildren();add(aprender,"h2","Aprender · 6 minutos");
   a.aprender.forEach(p=>add(aprender,"p",p));
