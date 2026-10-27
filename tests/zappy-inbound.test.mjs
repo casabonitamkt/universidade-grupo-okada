@@ -85,3 +85,74 @@ test('rejeita HMAC inválido sem tocar banco', async () => {
     assert.equal(res.body.error, 'invalid_signature');
   } finally { process.env = original; }
 });
+
+
+test('registra somente entrada nas tabelas piloto, sem qualquer chamada ao WhatsApp', async () => {
+  const originalEnv = { ...process.env }, originalFetch = globalThis.fetch;
+  const requests = [];
+  try {
+    Object.assign(process.env, {
+      VERCEL_ENV: 'preview', ZAPPY_INBOUND_ENABLED: 'true',
+      SUPABASE_URL: 'https://unit-test.invalid', SUPABASE_SERVICE_ROLE_KEY: 'test-only',
+      CRM_THIAGO_USER_ID: '123e4567-e89b-42d3-a456-426614174000',
+      ZAPPY_INSTANCE_ID: INSTANCE, ZAPPY_WEBHOOK_SECRET: SECRET
+    });
+    globalThis.fetch = async (url, options) => {
+      requests.push({ url, options });
+      assert.match(url, /^https:\/\/unit-test\.invalid\/rest\/v1\/crm_pilot_/);
+      const path = new URL(url).pathname;
+      if (path.endsWith('/crm_pilot_leads') && options.method === 'GET') {
+        return { ok: true, status: 200, json: async () => [] };
+      }
+      if (path.endsWith('/crm_pilot_leads') && options.method === 'POST') {
+        return { ok: true, status: 201, json: async () => [{ id: '123e4567-e89b-42d3-a456-426614174001' }] };
+      }
+      if (path.endsWith('/crm_pilot_messages') && options.method === 'GET') {
+        return { ok: true, status: 200, json: async () => [] };
+      }
+      if (path.endsWith('/crm_pilot_messages') && options.method === 'POST') {
+        return { ok: true, status: 204 };
+      }
+      throw new Error('unexpected_mock_request');
+    };
+    const raw = JSON.stringify(event());
+    const res = response();
+    await handler(request(raw, sign(raw)), res);
+    assert.equal(res.code, 200);
+    assert.equal(res.body.status, 'stored');
+    assert.equal(requests.length, 4);
+    const message = JSON.parse(requests[3].options.body);
+    assert.equal(message.direction, 'entrada');
+    assert.equal(message.source, 'zapi');
+    assert.equal(message.body, 'Quero conhecer os sofás');
+  } finally { process.env = originalEnv; globalThis.fetch = originalFetch; }
+});
+test('evento repetido não grava segunda mensagem no fluxo sequencial', async () => {
+  const originalEnv = { ...process.env }, originalFetch = globalThis.fetch;
+  let calls = 0;
+  try {
+    Object.assign(process.env, {
+      VERCEL_ENV: 'preview', ZAPPY_INBOUND_ENABLED: 'true',
+      SUPABASE_URL: 'https://unit-test.invalid', SUPABASE_SERVICE_ROLE_KEY: 'test-only',
+      CRM_THIAGO_USER_ID: '123e4567-e89b-42d3-a456-426614174000',
+      ZAPPY_INSTANCE_ID: INSTANCE, ZAPPY_WEBHOOK_SECRET: SECRET
+    });
+    globalThis.fetch = async (url, options) => {
+      calls++;
+      assert.equal(options.method, 'GET');
+      if (url.includes('crm_pilot_leads')) return {
+        ok: true, status: 200, json: async () => [{ id: '123e4567-e89b-42d3-a456-426614174001' }]
+      };
+      if (url.includes('crm_pilot_messages')) return {
+        ok: true, status: 200, json: async () => [{ id: '123e4567-e89b-42d3-a456-426614174002' }]
+      };
+      throw new Error('unexpected_mock_request');
+    };
+    const raw = JSON.stringify(event());
+    const res = response();
+    await handler(request(raw, sign(raw)), res);
+    assert.equal(res.code, 200);
+    assert.equal(res.body.status, 'duplicate');
+    assert.equal(calls, 2);
+  } finally { process.env = originalEnv; globalThis.fetch = originalFetch; }
+});
