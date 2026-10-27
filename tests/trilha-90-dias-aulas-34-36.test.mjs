@@ -6,7 +6,7 @@ import { AULAS_PILOTO, planoDia, questoesPara, corrigirProva, avaliarMarco, reco
 
 test("dias 34–36: três aulas completas com 24 questões distintas", () => {
   assert.deepEqual(Object.keys(AULAS_34_36).sort(), ["34","35","36"]);
-  assert.equal(Object.keys(AULAS_PILOTO).length, 39);
+  assert.equal(Object.keys(AULAS_PILOTO).length, 42);
   for(const dia of [34,35,36]) {
     const a=AULAS_34_36[dia],p=planoDia(dia);
     assert.equal(p.conteudo,a);
@@ -28,13 +28,13 @@ test("dias 34–36: três aulas completas com 24 questões distintas", () => {
   }
 });
 
-test("90 dias planejados, 39 editoriais e futuros não publicados", () => {
+test("90 dias planejados, 42 editoriais e futuros não publicados", () => {
   for(let dia=1;dia<=90;dia++) {
     const p=planoDia(dia);
-    assert.equal(p.estado,dia<=39?"conteudo_para_revisao":"planejado");
-    assert.equal(Boolean(p.conteudo),dia<=39);
+    assert.equal(p.estado,dia<=42?"conteudo_para_revisao":"planejado");
+    assert.equal(Boolean(p.conteudo),dia<=42);
   }
-  assert.throws(()=>questoesPara(40),/não escrita/);
+  assert.throws(()=>questoesPara(43),/não escrita/);
   assert.equal(recomendacaoPorFalha("arquiteto").disponibilidade,"conteudo_para_revisao");
 });
 
@@ -68,7 +68,7 @@ test("biblioteca 34–36 é editorial isolada, sem acesso a banco, CRM ou WhatsA
   const source=await readFile(new URL("../modules/trilha-90-dias-aulas-34-36.mjs",import.meta.url),"utf8");
   const html=await readFile(new URL("../homologacao/trilha-90-dias.html",import.meta.url),"utf8");
   assert.doesNotMatch(source,/supabase|fetch\s*\(|XMLHttpRequest|WebSocket|localStorage|sessionStorage|z-api|whatsapp\.com/i);
-  assert.match(html,/aulas-piloto 1–39 completas/);
-  assert.match(html,/Dias 40–90 continuam planejados/);
+  assert.match(html,/aulas-piloto 1–42 completas/);
+  assert.match(html,/Dias 43–90 continuam planejados/);
   assert.match(html,/não altera progresso, notas ou certificações reais/);
 });
