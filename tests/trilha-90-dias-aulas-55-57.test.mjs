@@ -54,3 +54,16 @@ test('55–57: página demonstrativa não envia respostas nem grava dados', asyn
   assert.match(html, /corrigir/);
   assert.match(html, /refazer/);
 });
+
+test('55–57: títulos e conteúdo seguem o plano pedagógico oficial de 90 dias', async () => {
+  const html = await readFile(new URL('../homologacao/aulas-55-57.html', import.meta.url), 'utf8');
+  for (const dia of [55, 56, 57]) {
+    const planejado = planoDia(dia);
+    const aula = AULAS_55_57[dia];
+    assert.equal(aula.titulo, planejado.titulo, 'Dia ' + dia + ' deve respeitar tema planejado');
+    assert.match(html, new RegExp('Dia ' + dia + ' — ' + aula.titulo));
+  }
+  assert.match(AULAS_55_57[55].objetivo, /funil|CRM/i);
+  assert.match(AULAS_55_57[56].objetivo, /gerente|transferir/i);
+  assert.match(AULAS_55_57[57].objetivo, /perdid|perda/i);
+});
