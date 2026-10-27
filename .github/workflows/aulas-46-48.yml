@@ -1,0 +1,28 @@
+name: Aulas 46-48 - regressao editorial isolada
+on:
+  pull_request:
+    paths:
+      - 'modules/trilha-90-dias-aulas-46-48.mjs'
+      - 'homologacao/aulas-46-48.html'
+      - 'tests/trilha-90-dias-aulas-46-48.test.mjs'
+      - '.github/workflows/aulas-46-48.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  editorial:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verificar sintaxe do conteudo e testes
+        run: |
+          node --check modules/trilha-90-dias-aulas-46-48.mjs
+          node --check tests/trilha-90-dias-aulas-46-48.test.mjs
+      - name: Executar testes editoriais sem rede ou credenciais
+        run: node --test tests/trilha-90-dias-aulas-46-48.test.mjs
+      - name: Regressao da biblioteca 90 dias
+        run: node --test tests/trilha-90-dias*.test.mjs
