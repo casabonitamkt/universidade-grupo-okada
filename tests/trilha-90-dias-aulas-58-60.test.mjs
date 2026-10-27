@@ -58,3 +58,17 @@ test('58–60: página responsiva e demonstrativa sem gravação', async () => {
   assert.match(html, /não concede certificação/);
   assert.doesNotMatch(html, /fetch\s*\(|XMLHttpRequest|WebSocket|localStorage|sessionStorage|supabase|service_role/i);
 });
+
+test('58–60: títulos da aula e do seletor respeitam o planejamento de 90 dias', async () => {
+  const html = await readFile(new URL('../homologacao/aulas-58-60.html', import.meta.url), 'utf8');
+  for (const dia of [58, 59, 60]) {
+    const planejado = planoDia(dia);
+    const aula = AULAS_58_60[dia];
+    assert.equal(aula.titulo, planejado.titulo, 'Dia ' + dia + ' deve manter o tema planejado');
+    assert.match(html, new RegExp('Dia ' + dia + ' — ' + aula.titulo));
+  }
+  assert.match(AULAS_58_60[58].objetivo, /pós-venda|indicaç/i);
+  assert.match(AULAS_58_60[59].objetivo, /simulaç|negociaç/i);
+  assert.match(AULAS_58_60[60].objetivo, /avaliaç|marco/i);
+  assert.match(html, /a\.titulo/);
+});
