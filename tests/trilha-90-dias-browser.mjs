@@ -39,11 +39,11 @@ try {
     const response = await page.goto(base + '/homologacao/trilha-90-dias.html', { waitUntil: 'networkidle' });
     assert.equal(response.status(), 200);
     assert.equal(await page.locator('#day option').count(), 90);
-    await page.locator('#day').selectOption('27');
-    assert.match(await page.locator('#title').innerText(), /Dia 27/);
+    await page.locator('#day').selectOption('30');
+    assert.match(await page.locator('#title').innerText(), /Dia 30/);
     assert.equal(await page.locator('#questions > div').count(), 8);
     assert.match(await page.locator('#content').innerText(), /APRENDER/);
-    await page.screenshot({ path: 'artifacts/trilha-27-' + name + '.png', fullPage: true });
+    await page.screenshot({ path: 'artifacts/trilha-30-' + name + '.png', fullPage: true });
     for (let i = 0; i < 8; i++) await page.locator('input[name="q' + i + '"][value="' + (i % 4) + '"]').check();
     await page.getByRole('button', { name: 'Corrigir prova' }).click();
     assert.match(await page.locator('#content').innerText(), /Nota 10\/10/);
@@ -51,14 +51,14 @@ try {
     for (let i = 0; i < 8; i++) await page.locator('input[name="q' + i + '"][value="' + ((i + 1) % 4) + '"]').check();
     await page.getByRole('button', { name: 'Corrigir prova' }).click();
     assert.match(await page.locator('#content').innerText(), /Nota 10\/10/);
-    await page.locator('#day').selectOption('28');
+    await page.locator('#day').selectOption('31');
     assert.match(await page.locator('#state').innerText(), /planejado/i);
     assert.equal(await page.locator('#questions').count(), 0);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
     assert.equal(overflow, false, 'Overflow horizontal no ' + name);
     assert.deepEqual(failures, [], 'Erros no ' + name);
     await context.close();
-    process.stdout.write('OK ' + name + ': 90 dias, aula 27, prova, reteste, dia 28, sem requisicoes externas.\n');
+    process.stdout.write('OK ' + name + ': 90 dias, aula 30, prova, reteste, dia 31, sem requisicoes externas.\n');
   }
 } finally {
   if (browser) await browser.close();
