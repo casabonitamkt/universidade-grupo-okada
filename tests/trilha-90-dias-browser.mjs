@@ -185,6 +185,38 @@ try {
     await review55.setViewportSize(viewport);
     await review55.screenshot({ path: 'artifacts/trilha-55-57-' + name + '.png', fullPage: true });
     await review55.close();
+    // Revisão isolada 58–60: prova/reteste, acessibilidade mobile e ausência de persistência.
+    const review58 = await context.newPage();
+    review58.on('pageerror', e => failures.push('Erro na revisão 58-60: ' + e.message));
+    review58.on('console', m => { if (m.type() === 'error') failures.push('Console revisão: ' + m.text()); });
+    const review58Response = await review58.goto(base + '/homologacao/aulas-58-60.html', { waitUntil: 'networkidle' });
+    assert.equal(review58Response.status(), 200);
+    assert.equal(await review58.locator('#dia option').count(), 3);
+    for (const dia of [58,59,60]) {
+      await review58.locator('#dia').selectOption(String(dia));
+      assert.match(await review58.locator('#titulo').innerText(), new RegExp('Dia ' + dia));
+      assert.equal(await review58.locator('#questoes fieldset').count(), 8);
+      for (let i = 0; i < 8; i++) await review58.locator('input[name="q' + i + '"][value="' + (i % 4) + '"]').check();
+      await review58.locator('#corrigir').click();
+      assert.match(await review58.locator('#resultado').innerText(), /8\/8/);
+      await review58.locator('#refazer').click();
+      for (let i = 0; i < 8; i++) await review58.locator('input[name="q' + i + '"][value="' + ((i + 1) % 4) + '"]').check();
+      await review58.locator('#corrigir').click();
+      assert.match(await review58.locator('#resultado').innerText(), /8\/8/);
+    }
+    await review58.locator('#praticar textarea').fill('Rascunho local que não deve persistir');
+    await review58.reload({ waitUntil: 'networkidle' });
+    assert.equal(await review58.locator('#praticar textarea').inputValue(), '');
+    // Regressão específica do seletor de aulas e das alternativas em telas estreitas.
+    // O seletor possui opções longas; sem max-width, causava overflow a 390px.
+    for (const width of [viewport.width, 320]) {
+      await review58.setViewportSize({ width, height: viewport.height });
+      const overflow = await review58.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
+      assert.equal(overflow, false, 'Overflow na revisão 58-60 (' + name + ', ' + width + 'px)');
+    }
+    await review58.setViewportSize(viewport);
+    await review58.screenshot({ path: 'artifacts/trilha-58-60-' + name + '.png', fullPage: true });
+    await review58.close();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
     assert.equal(overflow, false, 'Overflow horizontal no ' + name);
     assert.deepEqual(failures, [], 'Erros no ' + name);
