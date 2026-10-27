@@ -2,17 +2,17 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { FASES, AULAS_PILOTO, planoDia, questoesPara, corrigirProva, avaliarMarco } from "../modules/trilha-90-dias.mjs";
 
-test("90 dias planejados em tres fases; 1 a 33 com conteudo editorial", () => {
+test("90 dias planejados em tres fases; 1 a 36 com conteudo editorial", () => {
   assert.equal(FASES.length, 3);
   assert.deepEqual(FASES.map(f => f[1].length), [30,30,30]);
   for(let dia=1;dia<=90;dia++){
     const p=planoDia(dia);
     assert.equal(p.dia,dia);
     assert.equal(p.tempoPrevisto,15);
-    assert.equal(p.estado,dia<=33?"conteudo_para_revisao":"planejado");
-    assert.equal(Boolean(p.conteudo),dia<=33);
+    assert.equal(p.estado,dia<=36?"conteudo_para_revisao":"planejado");
+    assert.equal(Boolean(p.conteudo),dia<=36);
   }
-  assert.deepEqual(Object.keys(AULAS_PILOTO).map(Number).sort((a,b)=>a-b),Array.from({length:33},(_,i)=>i+1));
+  assert.deepEqual(Object.keys(AULAS_PILOTO).map(Number).sort((a,b)=>a-b),Array.from({length:36},(_,i)=>i+1));
 });
 
 test("aulas 4 a 6 tem conteudo, demonstracao, pratica e 8 questoes validas", () => {
@@ -62,5 +62,5 @@ test("marcos nunca certificam sem aprovacao do gestor", () => {
 test("dias invalidos e prova sem respostas sao rejeitados", () => {
   for(const d of [0,-1,91,1.2,"4",null])assert.throws(()=>planoDia(d));
   assert.throws(()=>corrigirProva(4,[]));
-  assert.throws(()=>corrigirProva(34,Array(8).fill(0)));
+  assert.throws(()=>corrigirProva(37,Array(8).fill(0)));
 });
