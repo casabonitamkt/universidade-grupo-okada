@@ -25,7 +25,7 @@ for (const dia of [25, 26, 27]) {
     assert.equal(errado.aprovado, false);
   }
 }
-assert.equal(planoDia(40).estado, "planejado");
+assert.equal(planoDia(43).estado, "planejado");
 assert.equal(planoDia(90).estado, "planejado");
 assert.equal(avaliarMarco(30, {}).certificado, false);
 console.log("OK: aulas 25-27, 24 questões, 4 versões, limites e certificação.");
