@@ -47,6 +47,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: trilha-editorial-capturas
-          path: artifacts/trilha-30-*.png
+          path: |
+            artifacts/trilha-30-*.png
+            artifacts/trilha-46-48-*.png
           if-no-files-found: ignore
           retention-days: 1
