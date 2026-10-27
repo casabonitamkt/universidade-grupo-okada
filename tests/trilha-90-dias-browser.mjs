@@ -79,7 +79,14 @@ try {
     await review.locator('#praticar textarea').fill('Rascunho local que não deve persistir');
     await review.reload({ waitUntil: 'networkidle' });
     assert.equal(await review.locator('#praticar textarea').inputValue(), '');
-    assert.equal(await review.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2), false, 'Overflow na revisão 46-48 (' + name + ')');
+    // Regressão específica do seletor de aulas e das alternativas em telas estreitas.
+    // O seletor possui opções longas; sem max-width, causava overflow a 390px.
+    for (const width of [viewport.width, 320]) {
+      await review.setViewportSize({ width, height: viewport.height });
+      const overflow = await review.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
+      assert.equal(overflow, false, 'Overflow na revisão 46-48 (' + name + ', ' + width + 'px)');
+    }
+    await review.setViewportSize(viewport);
     await review.screenshot({ path: 'artifacts/trilha-46-48-' + name + '.png', fullPage: true });
     await review.close();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
