@@ -4,10 +4,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {planoDia,questoesPara,corrigirProva,avaliarMarco} from "../modules/trilha-90-dias.mjs";
-test("trilha tem 90 dias, 1–27 completos e 28–90 planejados",()=>{
+test("trilha tem 90 dias, 1–30 completos e 31–90 planejados",()=>{
  for(let d=1;d<=90;d++){
   const l=planoDia(d);assert.equal(l.dia,d);assert.equal(l.tempoPrevisto,15);
-  if(d<=27){assert.equal(l.conteudo.aprender.length,5);assert.equal(l.conteudo.provar.perguntas.length,8);assert.ok(l.conteudo.demonstrar.certo);assert.ok(l.conteudo.praticar.tarefa);}
+  if(d<=30){assert.equal(l.conteudo.aprender.length,5);assert.equal(l.conteudo.provar.perguntas.length,8);assert.ok(l.conteudo.demonstrar.certo);assert.ok(l.conteudo.praticar.tarefa);}
   else assert.equal(l.conteudo,null);
  }
  for(const d of [0,91,1.5])assert.throws(()=>planoDia(d));
