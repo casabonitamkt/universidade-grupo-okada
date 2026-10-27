@@ -50,5 +50,6 @@ jobs:
           path: |
             artifacts/trilha-30-*.png
             artifacts/trilha-46-48-*.png
+            artifacts/trilha-49-51-*.png
           if-no-files-found: ignore
           retention-days: 1
