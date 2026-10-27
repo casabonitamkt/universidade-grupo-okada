@@ -20,14 +20,14 @@ test("dias 28 a 30 têm conteúdo completo, 15 parágrafos e 24 questões", () =
   }
 });
 
-test("dias 1-30 são editoriais e 31-90 permanecem planejados", () => {
-  for (let dia = 1; dia <= 30; dia++) {
+test("dias 1-33 são editoriais e 34-90 permanecem planejados", () => {
+  for (let dia = 1; dia <= 33; dia++) {
     const aula = planoDia(dia);
     assert.equal(aula.estado, "conteudo_para_revisao");
     assert.ok(aula.conteudo);
     assert.equal(aula.tempoPrevisto, 15);
   }
-  for (let dia = 31; dia <= 90; dia++) {
+  for (let dia = 34; dia <= 90; dia++) {
     const aula = planoDia(dia);
     assert.equal(aula.estado, "planejado");
     assert.equal(aula.conteudo, null);
