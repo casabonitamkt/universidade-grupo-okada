@@ -52,5 +52,6 @@ jobs:
             artifacts/trilha-46-48-*.png
             artifacts/trilha-49-51-*.png
             artifacts/trilha-52-54-*.png
+            artifacts/trilha-55-57-*.png
           if-no-files-found: ignore
           retention-days: 1
