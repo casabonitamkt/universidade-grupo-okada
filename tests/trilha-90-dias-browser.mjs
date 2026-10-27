@@ -51,17 +51,17 @@ try {
     for (let i = 0; i < 8; i++) await page.locator('input[name="q' + i + '"][value="' + ((i + 1) % 4) + '"]').check();
     await page.getByRole('button', { name: 'Corrigir prova' }).click();
     assert.match(await page.locator('#content').innerText(), /Nota 10\/10/);
-    await page.locator('#day').selectOption('39');
+    await page.locator('#day').selectOption('42');
     assert.match(await page.locator('#state').innerText(), /revisão editorial/i);
     assert.equal(await page.locator('#questions > div').count(), 8);
-    await page.locator('#day').selectOption('40');
+    await page.locator('#day').selectOption('43');
     assert.match(await page.locator('#state').innerText(), /planejado/i);
     assert.equal(await page.locator('#questions').count(), 0);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
     assert.equal(overflow, false, 'Overflow horizontal no ' + name);
     assert.deepEqual(failures, [], 'Erros no ' + name);
     await context.close();
-    process.stdout.write('OK ' + name + ': 90 dias, aula 30, prova, reteste, dias 39 e 40, sem requisicoes externas.\n');
+    process.stdout.write('OK ' + name + ': 90 dias, aula 30, prova, reteste, dias 42 e 43, sem requisicoes externas.\n');
   }
 } finally {
   if (browser) await browser.close();
