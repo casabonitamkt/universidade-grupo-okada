@@ -1,0 +1,28 @@
+name: Trilha editorial - regressao isolada
+on:
+  push:
+    paths:
+      - 'modules/trilha-90-dias*.mjs'
+      - 'tests/trilha-*.test.mjs'
+      - '.github/workflows/trilha-editorial-ci.yml'
+  pull_request:
+    paths:
+      - 'modules/trilha-90-dias*.mjs'
+      - 'tests/trilha-*.test.mjs'
+      - '.github/workflows/trilha-editorial-ci.yml'
+permissions:
+  contents: read
+jobs:
+  editorial:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verificar sintaxe de modulos e testes
+        run: |
+          for f in modules/trilha-90-dias*.mjs tests/trilha-*.test.mjs; do node --check "$f"; done
+      - name: Regressao da trilha (sem banco ou rede)
+        run: node --test tests/trilha-*.test.mjs
