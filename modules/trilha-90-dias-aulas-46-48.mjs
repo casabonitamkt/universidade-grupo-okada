@@ -173,5 +173,92 @@ export const AULAS_46_48 = {
       ]
     ]
   }
+},
+  "48": {
+  "objetivo": "Comunicar condições comerciais autorizadas com precisão, validade e registro rastreável, sem alterar itens ou prometer benefícios além da aprovação recebida.",
+  "aprender": [
+    "Depois que uma condição é aprovada, ainda é preciso garantir que cliente e equipe compreendam exatamente o que foi autorizado. A aprovação deve estar vinculada a uma versão específica da proposta, a itens definidos e a parâmetros verificáveis de pagamento e serviços. Não use a palavra 'aprovado' para uma simulação, conversa informal ou solicitação pendente. Antes de comunicar, confira o registro interno e o responsável pela decisão.",
+    "Organize a apresentação da condição em linguagem simples: identificação da proposta, itens e acabamentos, valor validado, forma de pagamento, serviços incluídos, prazo informado pela área responsável e eventual validade documentada. Se alguma informação não foi confirmada, marque como pendente em vez de completar por hábito. Evite anunciar urgência artificial ou prazo de oferta que não esteja escrito na aprovação.",
+    "Se a condição exige mudança de composição, apresente lado a lado a versão anterior e a revisada. Indique quais produtos, materiais, dimensões, serviços ou prazos mudam e peça concordância expressa do cliente e dos profissionais responsáveis pelo projeto. Não substitua couro por tecido, elimine montagem ou altere a mesa sem explicar. Um desconto não autoriza reduzir silenciosamente a qualidade ou o escopo.",
+    "Na conversa, convide o cliente a revisar o resumo e a apontar dúvidas. Se ele solicitar nova exceção, abra uma nova análise; a autorização anterior não se estende automaticamente a outra versão, outra data ou outro pagamento. Não encaminhe pedidos ao fornecedor com dados divergentes do orçamento aceito. Quando houver confirmação, siga o fluxo oficial de pedido e pagamento, preservando evidências necessárias sem armazenar dados excessivos.",
+    "No CRM, registre data, responsável, versão, condição autorizada, limites, retorno do cliente e próximo passo. Diferencie proposta apresentada, negociação e venda efetivamente confirmada. Se a validade terminar sem aceite, não mantenha a condição como garantida; solicite nova confirmação conforme política vigente. O resultado esperado é transparência comercial, proteção de margem e uma experiência de compra segura para o cliente."
+  ],
+  "demonstrar": {
+    "certo": "A gerência aprovou esta condição para a proposta versão 3, com os itens e a forma de pagamento descritos. Vou revisar os detalhes com você e confirmar qualquer pendência antes do pedido.",
+    "errado": "O desconto vale para qualquer produto, pagamento e data. Vou alterar a proposta sem mostrar as diferenças e garantir o preço por tempo indeterminado.",
+    "porQue": "O correto vincula autorização a escopo e condições documentados; o incorreto extrapola a alçada e oculta alterações."
+  },
+  "praticar": {
+    "cenario": "Gerência autorizou condição específica para a versão 3 de um projeto em Dourados. O cliente pede aplicar o mesmo valor a uma versão 4 com outro revestimento e prazo ainda não confirmado.",
+    "tarefa": "Escreva a apresentação da condição autorizada, uma comparação de versões, uma resposta ao pedido adicional e o registro no CRM com status correto e pendências explícitas."
+  },
+  "provar": {
+    "criterios": [
+      "Identifica autorização formal",
+      "Vincula condição à versão",
+      "Confere itens e serviços",
+      "Expõe alterações de escopo",
+      "Respeita limites e validade",
+      "Registra aceite real no CRM"
+    ],
+    "perguntas": [
+      [
+        "Uma condição autorizada vale automaticamente para outra versão?",
+        "Não, requer confirmação de escopo e alçada",
+        "Sim, sempre",
+        "Sim, se for o mesmo cliente",
+        "Sim, quando há urgência"
+      ],
+      [
+        "Antes de comunicar um valor aprovado, confira...",
+        "Versão, itens, pagamento, serviços e limites",
+        "Somente o valor final",
+        "A opinião da concorrência",
+        "Um percentual antigo"
+      ],
+      [
+        "Uma validade não informada pela gerência deve ser...",
+        "Tratada como pendente, sem prazo inventado",
+        "Fixada em uma hora",
+        "Apresentada como vitalícia",
+        "Ignorada no registro"
+      ],
+      [
+        "Se a proposta revisada muda acabamento, deve-se...",
+        "Mostrar a diferença e obter concordância necessária",
+        "Ocultar a troca",
+        "Alterar apenas no pedido",
+        "Dizer que nada mudou"
+      ],
+      [
+        "A autorização de desconto permite retirar montagem sem avisar?",
+        "Não, qualquer mudança de serviço exige transparência",
+        "Sim, para preservar margem",
+        "Sim, se for pouco valor",
+        "Sim, se a loja estiver ocupada"
+      ],
+      [
+        "O cliente pede uma segunda exceção. A conduta correta é...",
+        "Submeter novo pedido dentro do fluxo de aprovação",
+        "Prometer aprovação automática",
+        "Reutilizar condição vencida",
+        "Mudar o valor sem registro"
+      ],
+      [
+        "No CRM, o registro correto inclui...",
+        "Versão, condição, responsável, limites e resposta do cliente",
+        "Apenas a frase venda certa",
+        "Somente um emoji",
+        "Informações não verificadas"
+      ],
+      [
+        "Quando se deve marcar a venda como fechada?",
+        "Após aceite real e conferências exigidas pelo processo",
+        "Após enviar proposta",
+        "Após abrir o PDF",
+        "Após o gerente autorizar uma condição"
+      ]
+    ]
+  }
 }
 };
