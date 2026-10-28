@@ -43,11 +43,11 @@ try{
       await page.locator('#dia').selectOption(String(start));
       for(let i=0;i<8;i++)await page.locator('input[name="q'+i+'"][value="'+(i%4)+'"]').check();
       await page.locator('#corrigir').click();
-      assert.match(await page.locator('#resultado').innerText(),/8\\/8/);
+      assert.match(await page.locator('#resultado').innerText(),/8\/8/);
       await page.locator('#refazer').click();
       for(let i=0;i<8;i++)await page.locator('input[name="q'+i+'"][value="'+((i+1)%4)+'"]').check();
       await page.locator('#corrigir').click();
-      assert.match(await page.locator('#resultado').innerText(),/8\\/8/);
+      assert.match(await page.locator('#resultado').innerText(),/8\/8/);
       await page.locator('#praticar textarea').fill('Rascunho descartavel');
       await page.reload({waitUntil:'networkidle'});
       assert.equal(await page.locator('#praticar textarea').inputValue(),'');
