@@ -5,12 +5,16 @@ on:
       - 'modules/trilha-90-dias*.mjs'
       - 'tests/trilha-*.test.mjs'
       - 'tests/trilha-90-dias-browser.mjs'
+      - 'tests/trilha-90-dias-aulas-67-69-browser.mjs'
+      - 'homologacao/aulas-67-69.html'
       - '.github/workflows/trilha-editorial-ci.yml'
   pull_request:
     paths:
       - 'modules/trilha-90-dias*.mjs'
       - 'tests/trilha-*.test.mjs'
       - 'tests/trilha-90-dias-browser.mjs'
+      - 'tests/trilha-90-dias-aulas-67-69-browser.mjs'
+      - 'homologacao/aulas-67-69.html'
       - '.github/workflows/trilha-editorial-ci.yml'
 permissions:
   contents: read
@@ -41,12 +45,16 @@ jobs:
           npm install --no-save --no-package-lock playwright@1.56.1
           npx playwright install --with-deps chromium
       - name: Validar desktop, mobile, prova e reteste
-        run: node tests/trilha-90-dias-browser.mjs
+        run: |
+          node tests/trilha-90-dias-browser.mjs
+          node tests/trilha-90-dias-aulas-67-69-browser.mjs
       - name: Guardar capturas para revisao visual
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: trilha-editorial-capturas
-          path: artifacts/trilha-30-*.png
+          path: |
+            artifacts/trilha-30-*.png
+            artifacts/sierra-69-*.png
           if-no-files-found: ignore
           retention-days: 1
