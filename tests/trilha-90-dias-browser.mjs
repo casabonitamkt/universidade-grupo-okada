@@ -73,11 +73,11 @@ try {
       assert.equal(await pageSierra.locator('#questoes fieldset').count(), 8);
       for (let i = 0; i < 8; i++) await pageSierra.locator('input[name="q' + i + '"][value="' + (i % 4) + '"]').check();
       await pageSierra.getByRole('button', { name: 'Corrigir nesta tela' }).click();
-      assert.match(await pageSierra.locator('#resultado').innerText(), /8\\/8/);
+      assert.match(await pageSierra.locator('#resultado').innerText(), /8\/8/);
       await pageSierra.getByRole('button', { name: /Refazer/ }).click();
       for (let i = 0; i < 8; i++) await pageSierra.locator('input[name="q' + i + '"][value="' + ((i + 1) % 4) + '"]').check();
       await pageSierra.getByRole('button', { name: 'Corrigir nesta tela' }).click();
-      assert.match(await pageSierra.locator('#resultado').innerText(), /8\\/8/);
+      assert.match(await pageSierra.locator('#resultado').innerText(), /8\/8/);
     }
     await pageSierra.locator('#praticar textarea').fill('Rascunho temporario, nao salvar.');
     await pageSierra.screenshot({ path: 'artifacts/sierra-66-' + name + '.png', fullPage: true });
@@ -87,7 +87,7 @@ try {
     assert.equal(await pageSierra.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2), false, 'Overflow Sierra no ' + name);
     assert.deepEqual(failures, [], 'Erros Sierra no ' + name);
     await pageSierra.close();
-    process.stdout.write('OK Sierra 64-66 ' + name + ': 3 aulas, prova, reteste, rascunho descartado, sem requisicoes externas.\\n');
+    process.stdout.write('OK Sierra 64-66 ' + name + ': 3 aulas, prova, reteste, rascunho descartado, sem requisicoes externas.\n');
     await context.close();
     process.stdout.write('OK ' + name + ': 90 dias, aula 30, prova, reteste, dias 39 e 40, sem requisicoes externas.\n');
   }
