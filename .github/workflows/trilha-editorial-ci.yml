@@ -5,6 +5,7 @@ on:
       - 'modules/trilha-90-dias*.mjs'
       - 'tests/trilha-*.test.mjs'
       - 'tests/trilha-90-dias-browser.mjs'
+      - 'tests/trilha-90-dias-40-66-browser.mjs'
       - 'tests/trilha-90-dias-aulas-67-69-browser.mjs'
       - 'tests/trilha-90-dias-aulas-70-72-browser.mjs'
       - 'tests/trilha-90-dias-aulas-73-75-browser.mjs'
@@ -27,6 +28,7 @@ on:
       - 'modules/trilha-90-dias*.mjs'
       - 'tests/trilha-*.test.mjs'
       - 'tests/trilha-90-dias-browser.mjs'
+      - 'tests/trilha-90-dias-40-66-browser.mjs'
       - 'tests/trilha-90-dias-aulas-67-69-browser.mjs'
       - 'tests/trilha-90-dias-aulas-70-72-browser.mjs'
       - 'tests/trilha-90-dias-aulas-73-75-browser.mjs'
@@ -75,6 +77,7 @@ jobs:
       - name: Validar desktop, mobile, prova e reteste
         run: |
           node tests/trilha-90-dias-browser.mjs
+          node tests/trilha-90-dias-40-66-browser.mjs
           node tests/trilha-90-dias-aulas-67-69-browser.mjs
           node tests/trilha-90-dias-aulas-70-72-browser.mjs
           node tests/trilha-90-dias-aulas-73-75-browser.mjs
