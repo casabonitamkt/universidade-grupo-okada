@@ -90,7 +90,7 @@ export const AULAS_67_69 = {
   },
   "68": {
     "titulo": "Apresentar soluções conforme projeto",
-    "objetivo": "Conduzir apresentação consultiva Sierra a partir de briefing, layout e memorial aprovados, relacionando necessidades a alternativas verificadas sem substituir especificações, prometer disponibilidade ou pressionar o cliente.",
+    "objetivo": "Apresentar soluções Sierra conforme projeto aprovado, briefing, layout e memorial, relacionando necessidades a alternativas verificadas sem substituir especificações, prometer disponibilidade ou pressionar o cliente.",
     "aprender": [
       "Comece pela leitura conjunta do briefing, da planta atualizada e das prioridades do cliente. Identifique o uso de cada ambiente, circulação, preferências estéticas, investimento informado e participação do arquiteto. Uma solução adequada é aquela cuja compatibilidade pode ser explicada e verificada; não basta apresentar o produto mais caro ou o que está em destaque no showroom.",
       "Organize a apresentação por ambientes e necessidades, com poucas opções bem justificadas. Para cada sugestão, registre modelo, código, configuração, referência documental e condição que ainda depende de confirmação. Diferencie claramente o que já foi aprovado no projeto do que é uma alternativa para análise. Não altere acabamento, medida ou posição de módulo sem registrar a concordância do responsável.",
