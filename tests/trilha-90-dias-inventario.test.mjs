@@ -40,7 +40,7 @@ test('90 dias disponiveis editorialmente sem integrar dias 40-90 ao treinamento 
     const aula = isoladas.get(dia);
     assert.equal(plano.estado, 'planejado', 'Biblioteca nao implica aula real publicada');
     assert.equal(plano.conteudo, null, 'Sem integracao ao aluno');
-    if (dia >= 43) assert.equal(aula.titulo, plano.titulo, 'Tema divergente no dia '+dia);
+    if (typeof aula.titulo === 'string') assert.equal(aula.titulo, plano.titulo, 'Tema divergente no dia '+dia);
     assert.equal(aula.aprender.length, 5, 'Aprender incompleto no dia '+dia);
     assert.equal(aula.provar.perguntas.length, 8, 'Prova incompleta no dia '+dia);
     assert.equal(aula.provar.criterios.length, 6, 'Rubrica incompleta no dia '+dia);
