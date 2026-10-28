@@ -30,7 +30,7 @@ test('82–84: três aulas completas, 15 blocos e 24 questões únicas',()=>{
 });
 test('82–84: conteúdo isolado, sem rede, banco, WhatsApp ou credenciais',async()=>{
  const src=await readFile(new URL('../modules/trilha-90-dias-aulas-82-84.mjs',import.meta.url),'utf8');
- assert.doesNotMatch(src,/supabase|fetch\\s*\\(|XMLHttpRequest|WebSocket|localStorage|sessionStorage|service_role|z-api|zappy|wa\\.me\\//i);
+ assert.doesNotMatch(src,/supabase|fetch\s*\(|XMLHttpRequest|WebSocket|localStorage|sessionStorage|service_role|z-api|zappy|wa\.me\//i);
 });
 test('82–84: demonstração mobile sem rede ou gravação de notas',async()=>{
  const html=await readFile(new URL('../homologacao/aulas-82-84.html',import.meta.url),'utf8');
@@ -41,6 +41,6 @@ test('82–84: demonstração mobile sem rede ou gravação de notas',async()=>{
  assert.match(html,/refazer/);
  assert.match(html,/não concede certificação/);
  assert.match(html,/Nenhuma nota foi registrada/);
- assert.doesNotMatch(html,/supabase|fetch\\s*\\(|XMLHttpRequest|WebSocket|localStorage|sessionStorage|service_role|z-api|zappy/i);
+ assert.doesNotMatch(html,/supabase|fetch\s*\(|XMLHttpRequest|WebSocket|localStorage|sessionStorage|service_role|z-api|zappy/i);
  for(let dia=82;dia<=84;dia++)assert.match(html,new RegExp('Dia '+dia+' — '+AULAS_82_84[dia].titulo));
 });
