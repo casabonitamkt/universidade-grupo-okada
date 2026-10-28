@@ -11,6 +11,8 @@ h1{font-size:clamp(1.5rem,4vw,2.2rem);line-height:1.2}h2{font-size:1.25rem}
 .card{background:#202026;border:1px solid #47474e;border-radius:14px;padding:18px;margin:14px 0}
 p{line-height:1.6}.muted{color:#c6c5c9}.ok{color:#a6f0bf}.bad{color:#ffd4a1}
 select,button,textarea{font:inherit;color:#fff;background:#33333b;border:1px solid #676771;border-radius:9px;padding:12px;min-height:44px}
+/* Evita overflow do seletor de titulos longos em mobile. */
+select{display:block;width:100%;max-width:100%;min-width:0}
 button{background:#a52c34;border-color:#a52c34;cursor:pointer}button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid #ffd4a1;outline-offset:3px}
 label{display:block;margin:12px 0}.answer{padding:12px;border:1px solid #4d4d55;border-radius:9px;display:flex;gap:10px;align-items:flex-start}
 .answer input{margin-top:5px;flex:none}textarea{width:100%;min-height:130px;resize:vertical}
