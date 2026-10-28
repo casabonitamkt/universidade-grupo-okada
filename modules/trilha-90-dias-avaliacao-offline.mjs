@@ -86,3 +86,34 @@ export function avaliarPraticaOffline({ resultadoTeorico, notaPratica, erroCriti
     conclusaoAutomatica: false, certificacaoAutomatica: false
   });
 }
+
+
+// Marco F1-D30: duas simulacoes DISTINTAS e observadas, sem assinatura do gestor.
+// O resultado e somente um parecer offline; nunca autentica tentativas ou aprova o marco.
+export function avaliarMarco30Offline({ resultadoTeorico, simulacaoProjeto, simulacaoPecaAvulsa }) {
+  if (!simulacaoProjeto || !simulacaoPecaAvulsa ||
+      typeof simulacaoProjeto !== 'object' || typeof simulacaoPecaAvulsa !== 'object' ||
+      simulacaoProjeto === simulacaoPecaAvulsa) {
+    falha('Marco 30 exige duas simulacoes praticas distintas');
+  }
+  const projeto = avaliarPraticaOffline({
+    resultadoTeorico,
+    notaPratica: simulacaoProjeto.nota,
+    erroCriticoPratico: simulacaoProjeto.erroCritico
+  });
+  const pecaAvulsa = avaliarPraticaOffline({
+    resultadoTeorico,
+    notaPratica: simulacaoPecaAvulsa.nota,
+    erroCriticoPratico: simulacaoPecaAvulsa.erroCritico
+  });
+  return Object.freeze({
+    teoriaAprovada: projeto.teoriaAprovada,
+    projetoAprovado: projeto.praticaAprovada,
+    pecaAvulsaAprovada: pecaAvulsa.praticaAprovada,
+    prontoParaAnaliseDoGestor: projeto.prontoParaAnaliseDoGestor &&
+      pecaAvulsa.prontoParaAnaliseDoGestor,
+    aprovacaoGestorNecessaria: true,
+    conclusaoAutomatica: false,
+    certificacaoAutomatica: false
+  });
+}
