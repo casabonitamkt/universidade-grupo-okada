@@ -29,3 +29,8 @@ Data: 2026-10-28, 16h27 BRT. Escopo: verificacao somente leitura no GitHub, Verc
 - PR de seguranca Zappy #38 deve continuar independente da trilha e sujeito a testes proprios.
 
 **Nenhuma alteracao de producao, Supabase, RLS, progresso, nota, certificacao, WhatsApp ou servico pago foi feita por esta auditoria.**
+
+## Bloqueio funcional adicional identificado no painel real
+- Inspecionado `index.html` no commit de producao `8bec869d`: `openLesson` exibe `content.body`, `content.mission` e campo de evidencia; `completeLesson` pode marcar `lesson_progress.status=completed` apos a evidencia. **Nao foram encontradas referencias a `questions_a`, `questions_b`, `minimum_score` ou `retest_rule` no painel real**.
+- Portanto, as 10 aulas ocultas possuem bancos de questoes, mas a interface real **nao demonstra a prova diaria A/B nem o reteste exigido**. Publicar agora faria o aluno concluir sem esse gate pedagogico. A biblioteca editorial tem simulacao de prova isolada, que nao substitui a avaliacao autenticada.
+- Gate de liberacao: implementar e homologar separadamente o fluxo APRENDER/DEMONSTRAR/PRATICAR/PROVAR com avaliacao A/B, nota minima, reteste, controle de erro critico e persistencia segura, **sem modificar registros anteriores**. Somente depois revisar uma aula candidata e autorizar a publicacao pontual.
