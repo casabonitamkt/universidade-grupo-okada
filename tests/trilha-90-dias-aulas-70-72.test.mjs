@@ -32,3 +32,16 @@ test('70–72: conteúdo isolado, sem rede, banco, WhatsApp ou credenciais',asyn
  const src=await readFile(new URL('../modules/trilha-90-dias-aulas-70-72.mjs',import.meta.url),'utf8');
  assert.doesNotMatch(src,/supabase|fetch\s*\(|XMLHttpRequest|WebSocket|localStorage|sessionStorage|service_role|z-api|zappy|wa\.me\//i);
 });
+
+test('70–72: demonstração mobile sem rede ou gravação de notas',async()=>{
+ const html=await readFile(new URL('../homologacao/aulas-70-72.html',import.meta.url),'utf8');
+ assert.match(html,/HOMOLOGAÇÃO EDITORIAL/);
+ assert.match(html,/AULAS_70_72/);
+ assert.match(html,/viewport/);
+ assert.match(html,/corrigir/);
+ assert.match(html,/refazer/);
+ assert.match(html,/não concede certificação/);
+ assert.match(html,/Nenhuma nota foi registrada/);
+ assert.doesNotMatch(html,/supabase|fetch\s*\(|XMLHttpRequest|WebSocket|localStorage|sessionStorage|service_role|z-api|zappy/i);
+ for(let dia=70;dia<=72;dia++)assert.match(html,new RegExp('Dia '+dia+' — '+AULAS_70_72[dia].titulo));
+});
