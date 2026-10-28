@@ -1,0 +1,34 @@
+name: Zappy inbound read-only (homologacao)
+
+on:
+  pull_request:
+    paths:
+      - 'api/zappy-inbound.js'
+      - 'tests/zappy-inbound.test.mjs'
+      - '.github/workflows/zappy-inbound-ci.yml'
+  push:
+    branches:
+      - 'feature/zappy-thiago-inbound-readonly-20261027'
+    paths:
+      - 'api/zappy-inbound.js'
+      - 'tests/zappy-inbound.test.mjs'
+      - '.github/workflows/zappy-inbound-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-webhook-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check (no credentials)
+        run: |
+          node --check api/zappy-inbound.js
+          node --check tests/zappy-inbound.test.mjs
+      - name: Unit tests (no WhatsApp, Supabase or paid API calls)
+        run: node --test tests/zappy-inbound.test.mjs
