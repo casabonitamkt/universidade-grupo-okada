@@ -42,3 +42,24 @@ Estado: **código preparado, NÃO ATIVADO**. Autorização do gestor em 27/10/20
 - Não registrar ou solicitar segredos pelo chat. Administrador deve configurar chaves no painel seguro da Vercel, **somente Preview e restritas à branch**, e segredo HMAC no painel Zappy. Sem esses valores, manter `ZAPPY_INBOUND_ENABLED` ausente ou `false`.
 - Antes da ativação, conferir **na documentação/painel da Zappy** o formato real do cabeçalho de assinatura, instância e corpo; não assumir que a integração Z-API usa o mesmo payload. Testar primeiro requisições simuladas sem dados pessoais.
 - Requer validação de acesso ao CRM piloto e da política de retenção antes de gravar dados reais. Sem alterar esquema/RLS.
+
+## Esclarecimento operacional Zappy — 28/10/2026 (sem ativação)
+
+A interface do painel exibiu **“Tudo pronto”** depois de conectar a instância e enviar a primeira mensagem de teste. Isso **não comprova** que exista webhook de entrada registrado, listener em execução, endpoint de CRM acessível ou mensagens chegando ao CRM. A etapa “Receber mensagens (opcional)” mostra o **listener local**, não um campo para cadastrar diretamente a URL do CRM.
+
+A [documentação oficial de webhooks da Zappy](https://zappy.api.br/docs/webhooks) descreve **duas formas distintas** de receber eventos:
+- **Webhook HTTP persistente:** registrar `POST /v1/instances/{id}/webhooks` com `url`, `events: ["message.received"]` e `secret` opcional. Quando há `secret`, o provedor envia `X-Webhook-Signature: sha256=<hex>`, calculado sobre o corpo JSON completo. O receptor atual pressupõe esse formato e exige segredo.
+- **Listener local:** `zappy-webhook-listener listen --api-key ... --instance-id ... --forward-to http://localhost:3000/webhooks`. É uma conexão de saída mantida pelo processo local; **não** se deve presumir que esse comando funcione como serviço persistente em função serverless da Vercel. O exemplo do painel usa `localhost`, que não é o endereço da homologação.
+
+**Decisão:** manter o PR em DRAFT, flag desativada, sem registrar webhook, sem executar listener e sem enviar mensagens. Para a Vercel, estudar o webhook HTTP documentado e somente após resolver proteção SSO, segredo, autenticação e acesso ao CRM piloto. A opção “Pular por agora” não configura recebimento automático.
+
+**Incidente de credencial em captura de tela:** o comando mostrado no painel contém a chave Bearer completa. Se a chave visível era a chave nova, **tratá-la como exposta**, revogar e gerar outra pelo painel seguro. Não registrar a chave no GitHub, Vercel logs, tickets ou mensagens. Rotacionar não exige desconectar a instância do WhatsApp; verificar eventuais integrações dependentes antes da revogação.
+
+**Checklist de aceite adicional (ainda pendente):**
+1. Confirmar no painel/API Zappy se há webhooks existentes e quais eventos estão assinados, sem compartilhar tokens.
+2. Confirmar Preview protegido e endpoint acessível de forma segura **sem** remover a proteção global.
+3. Verificar assinaturas com eventos simulados, resposta 2xx, duplicidade/retry, rejeição de mensagens enviadas pelo próprio número e grupos.
+4. Validar privacidade, retenção e autorização por consultor antes de receber mensagens reais; não alterar RLS/esquema sem aprovação.
+5. Só então configurar webhook de teste no Preview com `message.received`, mantendo IA e envio desligados.
+
+Fonte técnica: https://zappy.api.br/docs/webhooks (consultada em 28/10/2026).
