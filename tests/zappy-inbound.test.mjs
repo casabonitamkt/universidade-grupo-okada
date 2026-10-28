@@ -105,7 +105,7 @@ test('registra somente entrada nas tabelas piloto, sem qualquer chamada ao Whats
         return { ok: true, status: 200, json: async () => [] };
       }
       if (path.endsWith('/crm_pilot_leads') && options.method === 'POST') {
-        return { ok: true, status: 201, json: async () => [{ id: '123e4567-e89b-42d3-a456-426614174001' }] };
+        return { ok: true, status: 201, json: async () => [{ id: '123e4567-e89b-42d3-a456-426614174001', owner_consultant_id: '123e4567-e89b-42d3-a456-426614174000' }] };
       }
       if (path.endsWith('/crm_pilot_messages') && options.method === 'GET') {
         return { ok: true, status: 200, json: async () => [] };
@@ -141,7 +141,7 @@ test('evento repetido não grava segunda mensagem no fluxo sequencial', async ()
       calls++;
       assert.equal(options.method, 'GET');
       if (url.includes('crm_pilot_leads')) return {
-        ok: true, status: 200, json: async () => [{ id: '123e4567-e89b-42d3-a456-426614174001' }]
+        ok: true, status: 200, json: async () => [{ id: '123e4567-e89b-42d3-a456-426614174001', owner_consultant_id: '123e4567-e89b-42d3-a456-426614174000' }]
       };
       if (url.includes('crm_pilot_messages')) return {
         ok: true, status: 200, json: async () => [{ id: '123e4567-e89b-42d3-a456-426614174002' }]
@@ -155,4 +155,95 @@ test('evento repetido não grava segunda mensagem no fluxo sequencial', async ()
     assert.equal(res.body.status, 'duplicate');
     assert.equal(calls, 2);
   } finally { process.env = originalEnv; globalThis.fetch = originalFetch; }
+});
+
+function testConfig() {
+  return {
+    VERCEL_ENV: 'preview', ZAPPY_INBOUND_ENABLED: 'true',
+    SUPABASE_URL: 'https://unit-test.invalid', SUPABASE_SERVICE_ROLE_KEY: 'test-only',
+    CRM_THIAGO_USER_ID: '123e4567-e89b-42d3-a456-426614174000',
+    ZAPPY_INSTANCE_ID: INSTANCE, ZAPPY_WEBHOOK_SECRET: SECRET
+  };
+}
+function mockHttp(status, data) {
+  return { ok: status >= 200 && status < 300, status, json: async () => data };
+}
+test('nao grava mensagens em lead pertencente a outro consultor', async () => {
+  const env = { ...process.env }, oldFetch = globalThis.fetch;
+  const calls = [];
+  try {
+    Object.assign(process.env, testConfig());
+    globalThis.fetch = async (url, options) => {
+      calls.push({ url, method: options.method });
+      assert.equal(options.method, 'GET');
+      assert.match(url, /crm_pilot_leads/);
+      return mockHttp(200, [{ id: '123e4567-e89b-42d3-a456-426614174001',
+        owner_consultant_id: '123e4567-e89b-42d3-a456-426614174099' }]);
+    };
+    const raw = JSON.stringify(event()), res = response();
+    await handler(request(raw, sign(raw)), res);
+    assert.equal(res.code, 503);
+    assert.equal(res.body.error, 'storage_unavailable');
+    assert.equal(calls.length, 1);
+  } finally { process.env = env; globalThis.fetch = oldFetch; }
+});
+test('concorrencia na criacao de lead: conflito 409 so aceita mesmo proprietario', async () => {
+  const env = { ...process.env }, oldFetch = globalThis.fetch;
+  let leadGets = 0, leadPosts = 0, messagePosts = 0;
+  try {
+    Object.assign(process.env, testConfig());
+    globalThis.fetch = async (url, options) => {
+      if (url.includes('crm_pilot_leads') && options.method === 'GET') {
+        leadGets++;
+        return mockHttp(200, leadGets === 1 ? [] : [{
+          id: '123e4567-e89b-42d3-a456-426614174001',
+          owner_consultant_id: testConfig().CRM_THIAGO_USER_ID
+        }]);
+      }
+      if (url.includes('crm_pilot_leads') && options.method === 'POST') {
+        leadPosts++; return mockHttp(409, {});
+      }
+      if (url.includes('crm_pilot_messages') && options.method === 'GET') return mockHttp(200, []);
+      if (url.includes('crm_pilot_messages') && options.method === 'POST') {
+        messagePosts++; return mockHttp(204);
+      }
+      throw new Error('unexpected_mock_request');
+    };
+    const raw = JSON.stringify(event()), res = response();
+    await handler(request(raw, sign(raw)), res);
+    assert.equal(res.code, 200);
+    assert.equal(res.body.status, 'stored');
+    assert.equal(leadGets, 2);
+    assert.equal(leadPosts, 1);
+    assert.equal(messagePosts, 1);
+  } finally { process.env = env; globalThis.fetch = oldFetch; }
+});
+test('conflito 409 em mensagem so vira duplicata apos confirmacao no banco', async () => {
+  const env = { ...process.env }, oldFetch = globalThis.fetch;
+  let messageGets = 0, messagePosts = 0;
+  try {
+    Object.assign(process.env, testConfig());
+    globalThis.fetch = async (url, options) => {
+      if (url.includes('crm_pilot_leads') && options.method === 'GET') return mockHttp(200, [{
+        id: '123e4567-e89b-42d3-a456-426614174001',
+        owner_consultant_id: testConfig().CRM_THIAGO_USER_ID
+      }]);
+      if (url.includes('crm_pilot_messages') && options.method === 'GET') {
+        messageGets++;
+        return mockHttp(200, messageGets === 1 ? [] : [{
+          id: '123e4567-e89b-42d3-a456-426614174002'
+        }]);
+      }
+      if (url.includes('crm_pilot_messages') && options.method === 'POST') {
+        messagePosts++; return mockHttp(409, {});
+      }
+      throw new Error('unexpected_mock_request');
+    };
+    const raw = JSON.stringify(event()), res = response();
+    await handler(request(raw, sign(raw)), res);
+    assert.equal(res.code, 200);
+    assert.equal(res.body.status, 'duplicate');
+    assert.equal(messageGets, 2);
+    assert.equal(messagePosts, 1);
+  } finally { process.env = env; globalThis.fetch = oldFetch; }
 });
