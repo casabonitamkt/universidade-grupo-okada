@@ -45,41 +45,65 @@ async function supabase(path, options, config) {
     },
     signal: AbortSignal.timeout(6000)
   });
-  if (!response.ok) throw new Error('crm_storage_error_' + response.status);
+  if (!response.ok) { const error = new Error('crm_storage_error_' + response.status); error.status = response.status; throw error; }
   if (response.status === 204) return [];
   return response.json();
 }
-async function persist(message, config) {
-  const filters = new URLSearchParams({
-    select: 'id', source: 'eq.zapi', phone: 'eq.' + message.phone,
-    owner_consultant_id: 'eq.' + config.owner, limit: '1'
-  });
-  let leads = await supabase('crm_pilot_leads?' + filters, { method: 'GET' }, config);
-  let leadId = leads[0]?.id;
-  if (!leadId) {
-    const inserted = await supabase('crm_pilot_leads', {
-      method: 'POST', headers: { Prefer: 'return=representation' },
-      body: JSON.stringify({
-        source: 'zapi', phone: message.phone, display_name: message.name,
-        store: 'Sierra - homologação', owner_consultant_id: config.owner, stage: 'novo'
-      })
-    }, config);
-    leadId = inserted[0]?.id;
-    if (!leadId) throw new Error('crm_lead_missing_id');
-  }
-  const existing = await supabase('crm_pilot_messages?' + new URLSearchParams({
+async function findLead(message, config) {
+  return supabase('crm_pilot_leads?' + new URLSearchParams({
+    select: 'id,owner_consultant_id', source: 'eq.zapi', phone: 'eq.' + message.phone, limit: '1'
+  }), { method: 'GET' }, config);
+}
+function assertOwner(lead, config) {
+  if (!lead || lead.owner_consultant_id !== config.owner) throw new Error('crm_owner_mismatch');
+  return lead.id;
+}
+async function findMessage(message, config) {
+  return supabase('crm_pilot_messages?' + new URLSearchParams({
     select: 'id', source: 'eq.zapi', instance_id: 'eq.' + message.instanceId,
     external_message_id: 'eq.' + message.messageId, limit: '1'
   }), { method: 'GET' }, config);
-  if (existing.length) return 'duplicate';
-  await supabase('crm_pilot_messages', {
-    method: 'POST', headers: { Prefer: 'return=minimal' },
-    body: JSON.stringify({
-      lead_id: leadId, source: 'zapi', instance_id: message.instanceId,
-      external_message_id: message.messageId, direction: 'entrada',
-      kind: message.kind, body: message.body, event_at: message.eventAt
-    })
-  }, config);
+}
+async function persist(message, config) {
+  const leads = await findLead(message, config);
+  let leadId;
+  if (leads.length) {
+    // A chave unica no banco e (source,phone), nao inclui consultor.
+    // Nunca reassociar silenciosamente um contato de outro consultor.
+    leadId = assertOwner(leads[0], config);
+  } else {
+    try {
+      const inserted = await supabase('crm_pilot_leads', {
+        method: 'POST', headers: { Prefer: 'return=representation' },
+        body: JSON.stringify({
+          source: 'zapi', phone: message.phone, display_name: message.name,
+          store: 'Sierra - homologação', owner_consultant_id: config.owner, stage: 'novo'
+        })
+      }, config);
+      leadId = assertOwner(inserted[0], config);
+    } catch (error) {
+      if (error.status !== 409) throw error;
+      // Outro evento pode ter criado o mesmo lead; confirmar proprietario.
+      const concurrent = await findLead(message, config);
+      leadId = assertOwner(concurrent[0], config);
+    }
+  }
+  if ((await findMessage(message, config)).length) return 'duplicate';
+  try {
+    await supabase('crm_pilot_messages', {
+      method: 'POST', headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        lead_id: leadId, source: 'zapi', instance_id: message.instanceId,
+        external_message_id: message.messageId, direction: 'entrada',
+        kind: message.kind, body: message.body, event_at: message.eventAt
+      })
+    }, config);
+  } catch (error) {
+    if (error.status !== 409) throw error;
+    // UNIQUE(source,instance_id,external_message_id) impede duplicata em corrida.
+    if (!(await findMessage(message, config)).length) throw error;
+    return 'duplicate';
+  }
   return 'stored';
 }
 module.exports = async function handler(req, res) {
