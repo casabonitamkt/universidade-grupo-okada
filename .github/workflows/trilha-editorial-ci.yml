@@ -10,11 +10,13 @@ on:
       - 'tests/trilha-90-dias-aulas-73-75-browser.mjs'
       - 'tests/trilha-90-dias-aulas-76-78-browser.mjs'
       - 'tests/trilha-90-dias-aulas-79-81-browser.mjs'
+      - 'tests/trilha-90-dias-aulas-82-84-browser.mjs'
       - 'homologacao/aulas-67-69.html'
       - 'homologacao/aulas-70-72.html'
       - 'homologacao/aulas-73-75.html'
       - 'homologacao/aulas-76-78.html'
       - 'homologacao/aulas-79-81.html'
+      - 'homologacao/aulas-82-84.html'
       - '.github/workflows/trilha-editorial-ci.yml'
   pull_request:
     paths:
@@ -26,11 +28,13 @@ on:
       - 'tests/trilha-90-dias-aulas-73-75-browser.mjs'
       - 'tests/trilha-90-dias-aulas-76-78-browser.mjs'
       - 'tests/trilha-90-dias-aulas-79-81-browser.mjs'
+      - 'tests/trilha-90-dias-aulas-82-84-browser.mjs'
       - 'homologacao/aulas-67-69.html'
       - 'homologacao/aulas-70-72.html'
       - 'homologacao/aulas-73-75.html'
       - 'homologacao/aulas-76-78.html'
       - 'homologacao/aulas-79-81.html'
+      - 'homologacao/aulas-82-84.html'
       - '.github/workflows/trilha-editorial-ci.yml'
 permissions:
   contents: read
@@ -68,6 +72,7 @@ jobs:
           node tests/trilha-90-dias-aulas-73-75-browser.mjs
           node tests/trilha-90-dias-aulas-76-78-browser.mjs
           node tests/trilha-90-dias-aulas-79-81-browser.mjs
+          node tests/trilha-90-dias-aulas-82-84-browser.mjs
       - name: Guardar capturas para revisao visual
         if: always()
         uses: actions/upload-artifact@v4
@@ -80,5 +85,6 @@ jobs:
             artifacts/sierra-75-*.png
             artifacts/sierra-78-*.png
             artifacts/sierra-81-*.png
+            artifacts/sierra-84-*.png
           if-no-files-found: ignore
           retention-days: 1
