@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {AULAS_73_75} from '../modules/trilha-90-dias-aulas-73-75.mjs';
 import {planoDia} from '../modules/trilha-90-dias.mjs';
 test('73–75: três aulas completas, 15 blocos e 24 questões únicas',()=>{
- assert.deepEqual(Object.keys(AULAS_73_75),['70','71','72']);
+ assert.deepEqual(Object.keys(AULAS_73_75),['73','74','75']);
  const perguntas=[];
  for(let dia=73;dia<=75;dia++){
   const a=AULAS_73_75[dia],plano=planoDia(dia);
