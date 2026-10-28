@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aulas 82–84 · Homologação editorial</title>
+<style>
+:root{color-scheme:dark;font:16px system-ui,sans-serif;background:#111115;color:#f6f2ed}
+*{box-sizing:border-box}body{margin:0}.wrap{max-width:860px;margin:auto;padding:16px}
+h1{font-size:clamp(1.5rem,4vw,2.2rem);line-height:1.2}h2{font-size:1.25rem}
+.card{background:#202026;border:1px solid #47474e;border-radius:14px;padding:18px;margin:14px 0}
+p{line-height:1.6}.muted{color:#c6c5c9}.ok{color:#a6f0bf}.bad{color:#ffd4a1}
+select,button,textarea{font:inherit;color:#fff;background:#33333b;border:1px solid #676771;border-radius:9px;padding:12px;min-height:44px}
+select{display:block;width:100%;max-width:100%;min-width:0}
+button{background:#a52c34;border-color:#a52c34;cursor:pointer}button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid #ffd4a1;outline-offset:3px}
+label{display:block;margin:12px 0}.answer{padding:12px;border:1px solid #4d4d55;border-radius:9px;display:flex;gap:10px;align-items:flex-start;min-width:0;overflow-wrap:anywhere}
+.answer input{margin-top:5px;flex:none}textarea{width:100%;min-height:130px;resize:vertical}
+fieldset{border:0;border-top:1px solid #4d4d55;margin:16px 0;padding:14px 0;min-width:0;max-width:100%}legend{font-weight:700;padding-right:8px}
+.controls{display:flex;gap:10px;flex-wrap:wrap}small{display:block;line-height:1.5}
+@media(max-width:620px){.wrap{padding:12px}.card{padding:14px}.controls{display:grid}.controls button{width:100%}}
+</style></head><body><main class="wrap">
+<h1>Universidade · Aulas 82–84</h1>
+<p class="muted">HOMOLOGAÇÃO EDITORIAL · Conteúdo para revisão, não integrado ao treinamento real. Não envia respostas, não grava notas, não altera progresso e não concede certificação. A especialização Sierra exige fontes vigentes, aprovações comerciais formais e controle de versões, e validação expressa do gestor.</p>
+<div class="card"><label for="dia">Escolha a aula</label>
+<select id="dia"><option value="82">Dia 82 — Objeção de prazo Sierra</option><option value="83">Dia 83 — Follow-up consultivo Sierra</option><option value="84">Dia 84 — Negociação com gerente</option></select>
+<h2 id="titulo"></h2><p id="objetivo"></p></div>
+<section class="card" id="aprender"><h2>Aprender · 6 minutos</h2></section>
+<section class="card" id="demonstrar"><h2>Demonstrar · 3 minutos</h2></section>
+<section class="card" id="praticar"><h2>Praticar · 3 minutos</h2></section>
+<section class="card" id="provar"><h2>Provar · 3 minutos</h2><div id="questoes"></div>
+<div class="controls"><button type="button" id="corrigir">Corrigir nesta tela</button><button type="button" id="refazer">Refazer com alternativas reordenadas</button></div>
+<p id="resultado" aria-live="polite"></p><small class="muted">Prova demonstrativa: oito questões, corte teórico de sete acertos. Respostas e rascunhos são descartados ao sair ou recarregar a página.</small></section>
+</main><script type="module">
+import {AULAS_82_84} from "../modules/trilha-90-dias-aulas-82-84.mjs";
+const $=id=>document.getElementById(id);
+let versao=0;
+const add=(parent,tag,text,cls)=>{const e=document.createElement(tag);e.textContent=text;if(cls)e.className=cls;parent.append(e);return e};
+function questoes(){
+  const dia=$("dia").value,lista=AULAS_82_84[dia].provar.perguntas;
+  $("questoes").replaceChildren();$("resultado").textContent="";
+  lista.forEach((q,i)=>{
+    const fs=add($("questoes"),"fieldset","");add(fs,"legend",(i+1)+". "+q[0]);
+    const op=q.slice(1),shift=(versao+i)%4;
+    op.forEach((_,j)=>{
+      const idx=(j-shift+4)%4;
+      const label=add(fs,"label","","answer"),radio=document.createElement("input");
+      radio.type="radio";radio.name="q"+i;radio.value=String(j);
+      label.append(radio,document.createTextNode(op[idx]));
+    });
+  });
+}
+function show(){
+  const dia=$("dia").value,a=AULAS_82_84[dia];
+  $("titulo").textContent="Dia "+dia+" · "+a.titulo;
+  $("objetivo").textContent=a.objetivo;
+  const aprender=$("aprender");aprender.replaceChildren();add(aprender,"h2","Aprender · 6 minutos");
+  a.aprender.forEach(p=>add(aprender,"p",p));
+  const demonstrar=$("demonstrar");demonstrar.replaceChildren();add(demonstrar,"h2","Demonstrar · 3 minutos");
+  add(demonstrar,"p","CERTO: "+a.demonstrar.certo,"ok");add(demonstrar,"p","ERRADO: "+a.demonstrar.errado,"bad");add(demonstrar,"p",a.demonstrar.porQue);
+  const praticar=$("praticar");praticar.replaceChildren();add(praticar,"h2","Praticar · 3 minutos");
+  add(praticar,"p",a.praticar.cenario);add(praticar,"p",a.praticar.tarefa);
+  const campo=add(praticar,"textarea","");campo.placeholder="Rascunho local para revisão com o gestor (não será salvo).";
+  versao=0;questoes();
+}
+$("dia").addEventListener("change",show);
+$("refazer").addEventListener("click",()=>{versao++;questoes()});
+$("corrigir").addEventListener("click",()=>{
+  const a=AULAS_82_84[$("dia").value],q=a.provar.perguntas;
+  let acertos=0;const pendentes=[];
+  q.forEach((item,i)=>{
+    const marcado=document.querySelector('input[name="q'+i+'"]:checked');
+    if(!marcado){pendentes.push(i+1);return}
+    if(Number(marcado.value)===(versao+i)%4)acertos++;
+  });
+  if(pendentes.length){$("resultado").textContent="Responda as questões: "+pendentes.join(", ")+". Nenhuma nota foi registrada.";return}
+  const nota=(acertos*10/q.length).toFixed(1).replace(".",",");
+  $("resultado").textContent="Resultado demonstrativo: "+acertos+"/8 · nota "+nota+" · "+(acertos>=7?"Atingiu o corte teórico. Sem certificação.":"Revise o conteúdo e refaça a prova.");
+});
+show();
+</script></body></html>
