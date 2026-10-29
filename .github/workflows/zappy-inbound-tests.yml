@@ -1,0 +1,26 @@
+name: Zappy inbound validation
+on:
+  pull_request:
+    paths:
+      - 'api/zappy-inbound.js'
+      - 'tests/zappy-inbound.test.cjs'
+      - '.github/workflows/zappy-inbound-tests.yml'
+  push:
+    branches:
+      - 'fix/zappy-inbound-diagnostics-20261029'
+    paths:
+      - 'api/zappy-inbound.js'
+      - 'tests/zappy-inbound.test.cjs'
+      - '.github/workflows/zappy-inbound-tests.yml'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check api/zappy-inbound.js
+      - run: node --test tests/zappy-inbound.test.cjs
