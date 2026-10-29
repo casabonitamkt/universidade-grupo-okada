@@ -9,6 +9,7 @@ assert.ok(SECRET?.length >= 32, 'TEST_JWT_SECRET deve ser ficticio e ter >=32 ca
 
 const consultant='11111111-1111-4111-8111-111111111111';
 const manager='22222222-2222-4222-8222-222222222222';
+const legacy='33333333-3333-4333-8333-333333333333';
 const exam='44444444-4444-4444-8444-444444444444';
 const retest='66666666-6666-4666-8666-666666666666';
 const exposed='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
@@ -57,6 +58,19 @@ assert.equal(lessons.length,1);
 assert.equal(lessons[0].content.exam_required,true);
 assert.equal(lessons[0].content.questions_a,undefined);
 assert.equal(lessons[0].content.questions_b,undefined);
+
+// Regressao HTTP contra o esquema real: 56 aulas historicas tem
+// minimum_score/retest_rule, mas nao possuem banco A/B. A migracao
+// nao pode bloquear a atualizacao do progresso ja concluido.
+r=await api('/lessons?select=code,content&code=eq.HISTORICA');
+const legacyLesson=ok(r,'Leitura de aula historica')[0];
+assert.equal(legacyLesson.content.minimum_score,8);
+assert.ok(legacyLesson.content.retest_rule);
+assert.equal(legacyLesson.content.exam_required,undefined);
+r=await api('/lesson_progress?lesson_id=eq.'+legacy,'PATCH',{updated_at:new Date().toISOString()});
+assert.equal(ok(r,'Atualizacao de progresso historico preservada').length,1);
+r=await api('/lesson_progress?select=status&lesson_id=eq.'+legacy);
+assert.equal(ok(r,'Conclusao historica permanece intacta')[0].status,'completed');
 
 // Regressao HTTP: aula legada com pass_score=9 nao pode aprovar 8/10.
 r=await rpc('training_exam_questions',{p_lesson_id:strictScore,p_stage:'a'});
