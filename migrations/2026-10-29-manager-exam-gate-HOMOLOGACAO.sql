@@ -87,6 +87,25 @@ set content = ((content - 'questions_a') - 'questions_b') ||
               '{"exam_required":true}'::jsonb
 where content ? 'questions_a' or content ? 'questions_b';
 
+-- Defesa permanente: um editor, integracao ou importacao futura nao pode
+-- reintroduzir gabaritos no JSON publico apos a migracao atomica.
+-- Mesmo usuarios privilegiados que escrevam em lessons passam pelo trigger.
+create or replace function training_private.reject_public_exam_keys()
+returns trigger language plpgsql security definer
+set search_path=pg_catalog,public,training_private
+as $guard$
+begin
+  if new.content ? 'questions_a' or new.content ? 'questions_b' then
+    raise exception 'Gabarito de prova nao pode ser armazenado em lessons.content';
+  end if;
+  return new;
+end
+$guard$;
+drop trigger if exists training_public_exam_keys_guard on public.lessons;
+create trigger training_public_exam_keys_guard
+before insert or update of content on public.lessons
+for each row execute function training_private.reject_public_exam_keys();
+
 -- Nao existe rota PostgREST publica para exam_banks.
 -- O RPC entrega apenas enunciado e alternativas, nunca indice correto ou erro critico.
 create or replace function public.training_exam_questions(p_lesson_id uuid,p_stage text)
