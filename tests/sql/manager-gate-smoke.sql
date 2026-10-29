@@ -104,7 +104,21 @@ select public.test_expect_error($sql$
  select public.training_exam_audit('77777777-7777-4777-8777-777777777777')
 $sql$,'Somente gestor');
 
--- Regra historica: o consultor continua podendo concluir aula sem prova.
+-- Regra historica: 56 aulas reais usam minimum_score/retest_rule sem
+-- bancos A/B. Esses metadados legados NAO ativam o gate transacional.
+do $legacy$
+declare v_content jsonb;
+begin
+  select content into v_content from public.lessons where code='HISTORICA';
+  if not (v_content ? 'minimum_score' and v_content ? 'retest_rule')
+     or v_content ? 'exam_required'
+     or exists(select 1 from training_private.exam_banks
+               where lesson_id='33333333-3333-4333-8333-333333333333') then
+    raise exception 'Fixture historica nao reproduz aula real sem A/B';
+  end if;
+end
+$legacy$;
+-- Atualizar progresso historico concluido continua permitido.
 insert into public.lesson_progress(user_id,lesson_id,status,started_at,completed_at)
 values('11111111-1111-4111-8111-111111111111',
  '33333333-3333-4333-8333-333333333333','completed',now(),now())
