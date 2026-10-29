@@ -22,9 +22,9 @@ test('gestor recalcula gabarito e detecta nota preliminar falsificada',()=>{
  assert.equal(audit.valid,true);assert.equal(audit.score,10);assert.equal(audit.critical,0);
  assert.equal(audit.passed,true);assert.equal(audit.previewMismatch,true);
  const rendered=ctx.renderPendingLessonExams();
- assert.match(rendered,/Correção independente:/);
- assert.match(rendered,/nota preliminar enviada difere/);
- assert.match(rendered,/10\/10/);
+ assert.match(rendered,/Conferir prova no servidor/);
+ assert.match(rendered,/Nota ainda não consultada/);
+ assert.doesNotMatch(rendered,/10\\/10/);
  assert.doesNotMatch(rendered,/onclick="review\('/);
 });
 test('reprova respostas incompletas, erro crítico e evidência curta',()=>{
