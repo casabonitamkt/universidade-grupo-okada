@@ -101,10 +101,17 @@ select id,'55555555-5555-4555-8555-555555555555',code,
 from a cross join b cross join (values
  ('44444444-4444-4444-8444-444444444444'::uuid,'EXAM-APROVA'),
  ('66666666-6666-4666-8666-666666666666'::uuid,'EXAM-RETESTE'),
- ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid,'EXAM-EXPOSTO')
+ ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid,'EXAM-EXPOSTO'),
+ ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'::uuid,'F1-D30-A01')
 ) as v(id,code);
 
 -- Legado preexistente, que a migracao nao pode alterar.
 insert into public.lesson_progress(user_id,lesson_id,status,started_at,completed_at)
 values('11111111-1111-4111-8111-111111111111',
  '33333333-3333-4333-8333-333333333333','completed',now(),now());
+
+-- Marco 30 ficticio: duas simulacoes com notas independentes (projeto e peca).
+update public.lessons
+set content=jsonb_set(content,'{milestone}',
+ '{"day":30,"criteria":{"practice_project_min":8,"practice_piece_min":8,"critical_errors_allowed":0}}'::jsonb)
+where code='F1-D30-A01';
