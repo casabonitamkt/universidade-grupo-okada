@@ -53,3 +53,37 @@ test('gestor nao aprova sem pratica observada e nota minima',async()=>{
  await ctx.managerReviewExam('e1','approve');
  assert.equal(calls.filter(x=>x[0]==='rpc').length,0);
 });
+
+test('Marco 30 envia duas simulacoes ao servidor, sem aceitar caso incompleto',async()=>{
+ const {ctx,calls,fields}=setup();
+ ctx.profile.role='admin';ctx.user.id='admin';
+ ctx.cache.ls[0].code='F1-D30-A01';
+ const evidence='Simulacao observada: medidas, uso, arquiteto, investimento e proximo passo com data confirmada.';
+ fields['exam-case-project-score-e1']={value:'9'};
+ fields['exam-case-piece-score-e1']={value:'8'};
+ fields['exam-case-project-critical-e1']={checked:false};
+ fields['exam-case-piece-critical-e1']={checked:false};
+ fields['exam-case-project-evidence-e1']={value:evidence};
+ fields['exam-case-piece-evidence-e1']={value:evidence};
+ await ctx.managerReviewExam('e1','approve');
+ const rpc=calls.find(x=>x[0]==='rpc');
+ assert.ok(rpc,'RPC do Marco 30 deve ser chamada');
+ assert.equal(rpc[2].p_practice_score,8);
+ assert.equal(rpc[2].p_practice_cases.length,2);
+ assert.equal(rpc[2].p_practice_cases[0].case,'project');
+ assert.equal(rpc[2].p_practice_cases[1].case,'piece');
+});
+test('Marco 30 com erro critico nao envia aprovacao ao servidor',async()=>{
+ const {ctx,calls,fields}=setup();
+ ctx.profile.role='admin';ctx.user.id='admin';
+ ctx.cache.ls[0].code='F1-D30-A01';
+ fields['exam-case-project-score-e1']={value:'9'};
+ fields['exam-case-piece-score-e1']={value:'8'};
+ fields['exam-case-project-critical-e1']={checked:true};
+ fields['exam-case-piece-critical-e1']={checked:false};
+ fields['exam-case-project-evidence-e1']={value:'Evidencia detalhada de projeto com medidas, escuta, arquiteto e cronograma confirmados.'};
+ fields['exam-case-piece-evidence-e1']={value:'Evidencia detalhada de peca avulsa com foto, circulacao e retorno com data definida.'};
+ await ctx.managerReviewExam('e1','approve');
+ assert.equal(calls.filter(x=>x[0]==='rpc').length,0);
+ assert.match(calls.at(-1)[1],/duas simulações/);
+});
