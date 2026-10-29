@@ -5,6 +5,27 @@ begin;
 create schema if not exists training_private;
 revoke all on schema training_private from public, anon, authenticated;
 
+-- Vulnerabilidade real observada: profiles_self_update aceita UPDATE da
+-- propria linha sem restringir role. Sem este trigger consultor pode virar admin.
+create or replace function training_private.protect_profile_role()
+returns trigger language plpgsql security definer
+set search_path=pg_catalog,public,training_private
+as $role$
+begin
+ if new.id is distinct from old.id then
+   raise exception 'Identidade do perfil nao pode ser alterada';
+ end if;
+ if new.role is distinct from old.role and (auth.uid() is null or not public.is_admin()) then
+   raise exception 'Somente gestor pode alterar papel de acesso';
+ end if;
+ return new;
+end
+$role$;
+drop trigger if exists training_profile_role_guard on public.profiles;
+create trigger training_profile_role_guard
+before update on public.profiles
+for each row execute function training_private.protect_profile_role();
+
 -- Gabaritos jamais podem permanecer em lessons.content acessivel ao consultor.
 create table if not exists training_private.exam_banks (
   lesson_id uuid primary key references public.lessons(id) on delete restrict,
