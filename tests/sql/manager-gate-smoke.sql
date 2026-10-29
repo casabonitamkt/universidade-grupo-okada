@@ -31,6 +31,16 @@ select public.test_expect_error($sql$
  select public.training_exam_questions(
  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','a')
 $sql$,'Prova anteriormente exposta');
+-- NULL nao pode contornar o gate do reteste B via CASE ... ELSE.
+select public.test_expect_error($sql$
+ select public.training_exam_questions(
+ '66666666-6666-4666-8666-666666666666',NULL::text)
+$sql$,'Acesso nao autorizado');
+-- B so abre apos reprovacao teorica e revisao do gestor.
+select public.test_expect_error($sql$
+ select public.training_exam_questions(
+ '66666666-6666-4666-8666-666666666666','b')
+$sql$,'Reteste nao autorizado');
 -- Gabaritos migrados para schema privado, inacessiveis ao consultor.
 do $check$
 declare c jsonb; q jsonb;
@@ -118,6 +128,12 @@ $sql$,'Apenas gestor');
 
 set role authenticated;
 select set_config('app.test_uid','22222222-2222-4222-8222-222222222222',false);
+-- NULL nunca pode ser interpretado implicitamente como needs_revision.
+select public.test_expect_error($sql$
+ select public.training_review_exam(
+ '77777777-7777-4777-8777-777777777777',NULL::text,9,true,
+ 'Decisao nula nao pode gerar revisao gerencial.')
+$sql$,'Decisao, nota pratica');
 select public.test_expect_error($sql$
  select public.training_review_exam(
  '77777777-7777-4777-8777-777777777777','approve',7,false,
