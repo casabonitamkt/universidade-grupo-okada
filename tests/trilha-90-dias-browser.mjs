@@ -67,7 +67,7 @@ try {
   for (const [name, viewport] of Object.entries({ desktop: { width: 1366, height: 850 }, mobile: { width: 390, height: 844 } })) {
     const context = await browser.newContext({ viewport });
     const errors = [];
-    const stub = "window.supabase={createClient(){return {auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}},from(){throw Error('Acesso inesperado ao Supabase')}}}}";
+    const stub = "window.supabase={createClient(){return {auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}},from(){throw Error('Acesso inesperado ao Supabase')},rpc:async(name,args)=>name==='training_exam_questions'?{data:Array.from({length:10},(_,i)=>['Pergunta '+i,['A','B','C']]),error:null}:{data:null,error:{message:'RPC nao simulada'}}}}}";
     await context.route('**/*', route => {
       const hostname = new URL(route.request().url()).hostname;
       if (hostname === '127.0.0.1') return route.continue();
@@ -82,7 +82,7 @@ try {
     await page.evaluate(() => {
       cache = { less: [
         { id: 'historica', code: 'S1-D1-A01', title: 'Aula historica', content: { body: 'Treino anterior', mission: 'Pratica', evidence: 'Relato' } },
-        { id: 'nova', code: 'F1-D29-A01', title: 'Aula nova', content: { body: 'Treino futuro', mission: 'Pratica', questions_a: Array.from({length:10}, (_,i)=>['Pergunta '+i,['A','B','C'],i%3,i===2]), questions_b: Array.from({length:10}, (_,i)=>['Reteste '+i,['A','B','C'],i%3,i===5]), minimum_score: 8, aprender:'Aprender a conduzir' } }
+        { id: 'nova', code: 'F1-D29-A01', title: 'Aula nova', content: { body: 'Treino futuro', mission: 'Pratica', exam_required:true, minimum_score: 8, aprender:'Aprender a conduzir' } }
       ], subs: [] };
       document.getElementById('app').classList.remove('hide');
       document.getElementById('login').classList.add('hide');
@@ -93,24 +93,24 @@ try {
       window.openLesson('historica');
     });
     assert.equal(await page.locator('#lessonBox button').count(), 1, 'Aula antiga deve manter botao no ' + name);
-    await page.evaluate(() => window.openLesson('nova'));
+    await page.evaluate(async () => await window.openLesson('nova'));
     assert.equal(await page.locator('#lessonBox button:not(#lessonExamSubmit)').count(), 0, 'Aula com prova nao pode concluir diretamente no ' + name);
     assert.match(await page.locator('#lessonBox').textContent(), /PROVAR — avaliação teórica e prática/);
     assert.equal(await page.locator('#lessonBox fieldset').count(), 10);
     assert.equal(await page.locator('#lessonExamSubmit').count(), 1);
     assert.equal(await page.locator('#lessonExamEvidence').count(), 1);
     await page.evaluate(() => {
-      cache.subs=[{lesson_id:'nova',submission_type:'lesson_exam_a',submitted_at:'2026-10-29T10:00:00Z',text_content:JSON.stringify({answers:Array(10).fill(0)})}];
-      window.openLesson('nova');
+      cache.subs=[{lesson_id:'nova',submission_type:'lesson_exam_a',status:'needs_revision',submitted_at:'2026-10-29T10:00:00Z',text_content:JSON.stringify({answers:Array(10).fill(0)})}];
+      return window.openLesson('nova');
     });
     assert.equal(await page.locator('#lessonExamReview').count(), 1, 'Reteste deve exigir revisao no '+name);
     assert.equal(await page.locator('#lessonBox fieldset').count(), 10);
     await page.evaluate(() => {
-      cache.subs=[{lesson_id:'nova',submission_type:'lesson_exam_a',submitted_at:'2026-10-29T10:00:00Z',text_content:JSON.stringify({answers:Array.from({length:10},(_,i)=>i%3)})}];
-      window.openLesson('nova');
+      cache.subs=[{lesson_id:'nova',submission_type:'lesson_exam_a',status:'pending',submitted_at:'2026-10-29T10:00:00Z',text_content:JSON.stringify({answers:Array.from({length:10},(_,i)=>i%3)})}];
+      return window.openLesson('nova');
     });
     assert.equal(await page.locator('#lessonExamSubmit').count(), 0, 'Aprovacao teorica aguarda gestor no '+name);
-    assert.match(await page.locator('#lessonBox').textContent(), /Registro enviado para análise/);
+    assert.match(await page.locator('#lessonBox').textContent(), /Registro recebido/);
     await page.evaluate(() => completeLesson('nova', '', true));
     // Auditoria gerencial em desktop/mobile: somente leitura e sem conta real.
     await page.evaluate(() => {
@@ -126,8 +126,8 @@ try {
         submission_type:'lesson_exam_a',text_content:JSON.stringify(payload),status:'pending',submitted_at:'2026-10-29T10:00:00Z'}]};
       const box=document.createElement('div');box.id='managerExamFixture';box.innerHTML=renderPendingLessonExams();document.body.appendChild(box);
     });
-    assert.match(await page.locator('#managerExamFixture').innerText(), /Correção independente:/);
-    assert.match(await page.locator('#managerExamFixture').innerText(), /nota preliminar enviada difere/);
+    assert.match(await page.locator('#managerExamFixture').innerText(), /Conferir prova no servidor/);
+    assert.match(await page.locator('#managerExamFixture').innerText(), /Nota ainda não consultada/);
     assert.equal(await page.locator('#managerExamFixture button[onclick^="managerReviewExam"]').count(), 2, 'Gestor deve usar somente RPC no '+name);
     assert.equal(await page.locator('#managerExamFixture button[onclick^="review("]').count(), 0, 'Sem aprovação direta por update no '+name);
     assert.deepEqual(errors, [], 'Falha no navegador ' + name);
