@@ -24,7 +24,8 @@ test('somente prova A/B ou marcador explicito bloqueia conclusao direta', () => 
   // As 56 aulas historicas usam estes campos, mas nao possuem banco A/B.
   for (const content of [
     { minimum_score: 8 }, { retest_rule: 'Revisao escrita' },
-    { minimum_score: 8, retest_rule: 'Revisao escrita' }
+    { minimum_score: 8, retest_rule: 'Revisao escrita' },
+    { exam_required: false, minimum_score: 8, retest_rule: 'Revisao escrita' }
   ]) assert.equal(requiresLessonAssessment({ content }), false);
 });
 
