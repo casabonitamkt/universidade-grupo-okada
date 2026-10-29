@@ -7,10 +7,10 @@ grant usage on schema auth to authenticated,anon;
 -- No CI SQL direto usa app.test_uid; no PostgREST isolado usa claim JWT real.
 -- Somente fixture descartavel, nunca aplicado ao Supabase de producao.
 create function auth.uid() returns uuid language sql stable as
-  $ select coalesce(
+  $uid$ select coalesce(
     nullif(nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'sub',''),
     nullif(current_setting('app.test_uid',true),'')
-  )::uuid $;
+  )::uuid $uid$;
 grant execute on function auth.uid() to authenticated,anon;
 
 create type public.app_role as enum ('admin','consultant');
