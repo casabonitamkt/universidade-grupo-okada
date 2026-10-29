@@ -256,6 +256,52 @@ select public.training_review_exam(
 );
 
 reset role;
+
+-- Integridade: uma prova A/B enviada congela banco e criterio de correcao.
+select public.test_expect_error($sql$
+ update training_private.exam_banks
+ set questions_a=jsonb_set(questions_a,'{0,0}','"Questao alterada"'::jsonb)
+ where lesson_id='44444444-4444-4444-8444-444444444444'
+$sql$,'Banco de prova imutavel apos primeiro envio');
+select public.test_expect_error($sql$
+ update training_private.exam_banks
+ set minimum_score=10
+ where lesson_id='44444444-4444-4444-8444-444444444444'
+$sql$,'Banco de prova imutavel apos primeiro envio');
+select public.test_expect_error($sql$
+ delete from training_private.exam_banks
+ where lesson_id='44444444-4444-4444-8444-444444444444'
+$sql$,'Banco de prova imutavel apos primeiro envio');
+
+-- Quarentena: nao basta limpar a flag, mesmo trocando A e B diretamente.
+select public.test_expect_error($sql$
+ update training_private.exam_banks set keys_previously_public=false
+ where lesson_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+$sql$,'Prova exposta exige troca integral');
+select public.test_expect_error($sql$
+ update training_private.exam_banks
+ set keys_previously_public=false,
+ questions_a=jsonb_set(questions_a,'{0,0}','"Nova A"'::jsonb),
+ questions_b=jsonb_set(questions_b,'{0,0}','"Nova B"'::jsonb)
+ where lesson_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+$sql$,'Desbloqueio de prova exposta exige migracao auditada');
+
+-- Antes do primeiro envio, uma edicao controlada de banco valido permanece possivel.
+update training_private.exam_banks
+ set questions_a=jsonb_set(questions_a,'{0,0}','"Pergunta revisada A"'::jsonb),
+     questions_b=jsonb_set(questions_b,'{0,0}','"Pergunta revisada B"'::jsonb)
+ where lesson_id='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+do $bank_check$
+begin
+ if not exists(
+   select 1 from training_private.exam_banks
+   where lesson_id='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'
+   and questions_a->0->>0='Pergunta revisada A'
+   and questions_b->0->>0='Pergunta revisada B'
+ ) then raise exception 'Rotacao pre-envio nao foi persistida'; end if;
+end
+$bank_check$;
+
 do $fn$
 declare n integer;
 begin
