@@ -24,7 +24,7 @@ test('gestor recalcula gabarito e detecta nota preliminar falsificada',()=>{
  const rendered=ctx.renderPendingLessonExams();
  assert.match(rendered,/Conferir prova no servidor/);
  assert.match(rendered,/Nota ainda não consultada/);
- assert.doesNotMatch(rendered,/10\\/10/);
+ assert.doesNotMatch(rendered,/10\/10/);
  assert.doesNotMatch(rendered,/onclick="review\('/);
 });
 test('reprova respostas incompletas, erro crítico e evidência curta',()=>{
