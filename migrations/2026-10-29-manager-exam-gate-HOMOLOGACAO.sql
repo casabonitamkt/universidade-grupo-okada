@@ -79,6 +79,14 @@ begin
    where l.id=p_lesson_id and l.is_published and m.is_published) then
    raise exception 'Aula nao publicada';
  end if;
+ if p_stage='b' and not exists(
+   select 1 from public.submissions s
+   join training_private.exam_banks eb on eb.lesson_id=s.lesson_id
+   where s.user_id=auth.uid() and s.lesson_id=p_lesson_id
+     and s.submission_type='lesson_exam_a' and s.status='needs_revision'
+     and (training_private.grade_exam(eb.questions_a,
+          (s.text_content::jsonb)->'answers',eb.minimum_score)->>'passed')::boolean=false
+ ) then raise exception 'Reteste nao autorizado'; end if;
  select case when p_stage='a' then questions_a else questions_b end
    into v_bank from training_private.exam_banks where lesson_id=p_lesson_id;
  if jsonb_typeof(v_bank) is distinct from 'array' or jsonb_array_length(v_bank) <> 10 then
@@ -234,7 +242,7 @@ begin
       select * into v_prior from public.submissions
         where user_id=new.user_id and lesson_id=new.lesson_id
           and submission_type='lesson_exam_a';
-      if not found then raise exception 'Reteste exige prova A'; end if;
+      if not found or v_prior.status<>'needs_revision' then raise exception 'Reteste exige revisao gerencial da prova A'; end if;
       begin v_payload:=v_prior.text_content::jsonb;
       exception when others then raise exception 'Prova A anterior invalida'; end;
       select questions_a,minimum_score into v_bank,v_min
