@@ -326,7 +326,8 @@ do $fn$
 declare n integer;
 begin
  select count(*) into n from public.lesson_progress where status='completed';
- if n<>4 then raise exception 'Conclusoes esperadas 4, obtidas %',n; end if;
+ -- Quatro conclusoes originais + uma aula legada com exam_required=false.
+ if n<>5 then raise exception 'Conclusoes esperadas 5, obtidas %',n; end if;
  select count(*) into n from training_private.exam_decisions;
  if n<>4 then raise exception 'Auditorias gerenciais esperadas 4, obtidas %',n; end if;
  select count(*) into n from public.submissions where status='approved';
