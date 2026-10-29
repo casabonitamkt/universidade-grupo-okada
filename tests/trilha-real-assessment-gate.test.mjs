@@ -7,7 +7,7 @@ import { runInNewContext } from 'node:vm';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const start = html.indexOf('function requiresLessonAssessment(l){');
-const end = html.indexOf('\nwindow.openLesson=id=>', start);
+const end = html.indexOf('\nlet lessonExamSubmitting=false;', start);
 assert.ok(start > 0 && end > start, 'Gate de avaliacao ausente');
 const requiresLessonAssessment = runInNewContext('(' + html.slice(start, end) + ')');
 
