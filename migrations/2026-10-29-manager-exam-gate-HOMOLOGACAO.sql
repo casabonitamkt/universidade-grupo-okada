@@ -414,7 +414,9 @@ begin
   -- isso bloquearia conclusoes, correcoes e atualizacoes de progresso legado.
   -- A protecao nova vale apenas para aulas explicitamente marcadas como
   -- exame ou com banco de prova A/B migrado para o schema privado.
-  v_exam := v_content ? 'exam_required'
+  -- A presenca da chave nao significa exigencia: exam_required=false
+  -- deve preservar o fluxo legado sem prova, inclusive conclusoes existentes.
+  v_exam := coalesce((v_content->>'exam_required')::boolean,false)
     or exists(select 1 from training_private.exam_banks where lesson_id=v_lesson);
   if not coalesce(v_exam,false) then
     if tg_op='DELETE' then return old; else return new; end if;
