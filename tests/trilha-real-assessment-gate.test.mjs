@@ -19,7 +19,7 @@ test('aulas historicas sem prova continuam no fluxo anterior', () => {
 
 test('qualquer prova ou reteste cadastrado bloqueia conclusao direta', () => {
   for (const content of [
-    { questions_a: [] }, { questions_b: [] }, { minimum_score: 8 }, { retest_rule: 'Revisao escrita' }
+    { questions_a: [] }, { questions_b: [] }, { exam_required: true }, { minimum_score: 8 }, { retest_rule: 'Revisao escrita' }
   ]) assert.equal(requiresLessonAssessment({ content }), true);
 });
 
