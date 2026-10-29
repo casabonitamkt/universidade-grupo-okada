@@ -94,7 +94,7 @@ set search_path=pg_catalog,public,training_private
 as $questions$
 declare v_bank jsonb; v_result jsonb;
 begin
- if auth.uid() is null or p_stage not in ('a','b') then
+ if auth.uid() is null or p_stage is null or p_stage not in ('a','b') then
    raise exception 'Acesso nao autorizado a prova';
  end if;
  if not exists(select 1 from public.lessons l
@@ -387,7 +387,7 @@ begin
   if v_actor is null or not public.is_admin() then
     raise exception 'Apenas gestor autenticado pode revisar prova';
   end if;
-  if p_decision not in ('approve','needs_revision')
+  if p_decision is null or p_decision not in ('approve','needs_revision')
     or p_practice_score is null or p_practice_score not between 0 and 10
     or p_practice_approved is null
     or length(btrim(coalesce(p_feedback,''))) < 20 then
