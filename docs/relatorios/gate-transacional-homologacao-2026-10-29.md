@@ -1,0 +1,37 @@
+# Gate transacional das provas — PR de homologacao (29/10/2026)
+
+## Estado consultado antes do trabalho
+- GitHub main: `30f55c46ac8e3c4bc04c6621de0d388bd5db2889` (PR #43 integrado).
+- Vercel producao: READY no commit anterior `4fbf238ac154f3a34d1d2744e3856cb272795c70`; nao afirmar que o PR #43 ja esta oficial.
+- Supabase: 57 aulas publicadas, 9 ocultas; F1-D30 e F2-D34..41 ocultas. Nao foi feita nenhuma escrita de producao nesta branch.
+- `list_branches` do Supabase retornou `[]`: nao existe ambiente de homologacao de banco ja provisionado. Criar branch pode gerar custo; **nao criar sem confirmacao de custo**, nem aplicar migracao em producao antes de homologacao.
+- Politicas reais verificadas: `submissions_update_own` permite update do proprio exame, `progress_insert/update` permitem `completed` sem prova; nao havia triggers.
+- Banco real tinha 42 missoes pendentes e nenhuma submissao A/B; 68 linhas `lesson_progress` com status `completed` no total (o recorte de Thiago anteriormente confirmado era 56; nao confundir totais).
+
+## O que este PR prepara (NAO EXECUTA EM PRODUCAO)
+1. Migracao `migrations/2026-10-29-manager-exam-gate-HOMOLOGACAO.sql`: indice unico A/B; trigger imutavel de provas; politica RLS propria restringida a missoes historicas; trigger de conclusao somente com decisao aprovada; tabela privada de auditoria; RPC `training_review_exam` SECURITY DEFINER com autorizacao via `auth.uid()` e `public.is_admin()`.
+2. A RPC recalcula dez respostas no banco, aplica nota minima 8 e erro critico eliminatorio, exige evidencia/revisao escrita e nota pratica de 0 a 10, confirmacao da pratica pelo gestor e justificativa. Grava submissao e progresso na mesma transacao; se qualquer passo falhar, nada e concluido.
+3. Interface gerencial chama somente a RPC, sem `UPDATE` direto de provas/progresso, e exige nota pratica, confirmacao e justificativa.
+4. CI PostgreSQL 16 descartavel com papéis ficticios consultant/admin: envio valido, tentativa de falsificar aprovacao, duplicidade, reteste B, erro critico, aprovacao transacional, bloqueio de conclusao direta, imutabilidade e regressao historica.
+5. Teste Node de UI valida que consultor nao chama RPC e gestor nao escreve diretamente no progresso.
+
+## Limites importantes para liberar aulas
+- O CI PostgreSQL isolado testa SQL/RLS com `auth.uid()` simulado. **Nao substitui teste Supabase real com tokens de usuarios ficticios e PostgREST**, desktop/mobile e Vercel READY no SHA correto.
+- **As respostas corretas ainda estao em `lessons.content.questions_a/questions_b`**, que o consultor pode ler em aulas publicadas. Isso permite consultar o gabarito pelo navegador, mesmo com correcao server-side. Antes de certificar/liberar aulas com prova, mover chaves para armazenamento privado e servir perguntas sem gabarito, com testes de que consultant nao consegue ler respostas.
+- Nao publicar F1-D30, F2-D34..40 enquanto o banco nao estiver homologado com credenciais ficticias e o gabarito protegido. F2-D41 permanece incompleta.
+- PR #44 e independente e documental; nao equivale a aprovacao pedagogica das aulas.
+
+## Ordem de homologacao e publicacao
+1. Revisar o SQL e executar CI PostgreSQL. Corrigir falhas; inspecionar politica e privilegiados no projeto.
+2. Provisionar ambiente Supabase de teste **somente se ja incluido sem custo adicional**; nao habilitar branch paga automaticamente. Aplicar migracao apenas no banco isolado.
+3. Testar PostgREST autenticado com contas ficticias admin e consultant, concorrencia A/B, negacao de INSERT/UPDATE direto, fluxo historico e rollback. Testar isolamento de gabaritos.
+4. Validar desktop/mobile no Vercel Preview do SHA exato; conferir todos os CI, depois deploy de producao quando o limite gratuito permitir.
+5. Snapshot de contagens e IDs de progresso/submissions/certificacoes antes de qualquer migracao produtiva. Aplicar somente com rollback testado; conferir contagens apos cada passo.
+6. Revisar F1-D30 editorialmente e publicar **uma aula por vez** com seu modulo (UUIDs preservados). Depois D34..40 em lotes pequenos; D41 so apos reescrita e testes.
+
+## Rollback
+- **Antes de qualquer prova nova enviada/aprovada:** com transacao e contagens verificadas, reverter somente objetos novos: trigger `training_exam_submission_guard`, trigger `training_exam_progress_guard`, RPC, politica `submissions_update_own` (restaurar expressao original), indice `submissions_exam_unique_attempt` e objetos privados. Validar `count(*)=0` em `training_private.exam_decisions` e em `submissions` para A/B antes de remover.
+- **Se houver prova ou decisao real:** nao remover tabela privada, triggers nem indice (perderia evidencias e autorizacoes). Despublicar apenas aulas novas afetadas e corrigir por migracao aditiva; manter historico e audit trail.
+- Reverter frontend via commit GitHub/Vercel anterior sem apagar dados. Confirmar que progresso historico e certificacoes nao mudaram.
+
+**Status:** PR de homologacao, sem aplicacao em Supabase real, sem publicacao de aulas e sem custo adicional.
