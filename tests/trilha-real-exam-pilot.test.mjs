@@ -18,7 +18,7 @@ function setup(opts={}){
  const sb={from(table){events.push('from:'+table);assert.equal(table,'submissions','Nao gravar progresso ou notas');
   return{select(){return chain()},insert:async row=>{rows.push({...row,id:'attempt-'+rows.length,submitted_at:new Date(2026,9,29,12,0,rows.length).toISOString()});return{error:null}}};
  }};
- const ctx={cache,user:{id:'thiago'},document:dom,$:id=>elements[id],sb,toast:t=>events.push('toast:'+t),esc:x=>String(x),window:{openLesson:id=>events.push('open:'+id)},console};
+ const ctx={cache,requiresLessonAssessment:l=>Array.isArray(l?.content?.questions_a),user:{id:'thiago'},document:dom,$:id=>elements[id],sb,toast:t=>events.push('toast:'+t),esc:x=>String(x),window:{openLesson:id=>events.push('open:'+id)},console};
  runInNewContext(html.slice(begin,end),ctx);
  return{ctx,rows,events,lesson,state,elements};
 }
