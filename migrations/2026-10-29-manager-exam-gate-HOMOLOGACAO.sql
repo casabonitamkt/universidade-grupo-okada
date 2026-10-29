@@ -5,6 +5,15 @@ begin;
 create schema if not exists training_private;
 revoke all on schema training_private from public, anon, authenticated;
 
+-- Gabaritos jamais podem permanecer em lessons.content acessivel ao consultor.
+create table if not exists training_private.exam_banks (
+  lesson_id uuid primary key references public.lessons(id) on delete restrict,
+  questions_a jsonb, questions_b jsonb,
+  minimum_score integer not null default 8 check (minimum_score between 8 and 10)
+);
+revoke all on training_private.exam_banks from public,anon,authenticated;
+alter table training_private.exam_banks enable row level security;
+
 create table if not exists training_private.exam_decisions (
   submission_id uuid primary key references public.submissions(id) on delete restrict,
   user_id uuid not null references public.profiles(id),
@@ -23,6 +32,97 @@ create unique index if not exists exam_decisions_one_approval_per_lesson
   on training_private.exam_decisions(user_id,lesson_id) where decision='approved';
 revoke all on all tables in schema training_private from public, anon, authenticated;
 alter table training_private.exam_decisions enable row level security;
+
+-- Migracao atomica: copia os bancos antes de remover gabaritos publicos.
+insert into training_private.exam_banks(lesson_id,questions_a,questions_b,minimum_score)
+select id,content->'questions_a',content->'questions_b',
+       coalesce((content->>'minimum_score')::integer,8)
+from public.lessons
+where content ? 'questions_a' or content ? 'questions_b'
+on conflict(lesson_id) do update set
+  questions_a=excluded.questions_a,questions_b=excluded.questions_b,
+  minimum_score=excluded.minimum_score;
+
+do $verify$
+begin
+ if exists (
+   select 1 from public.lessons l
+   where (l.content ? 'questions_a' or l.content ? 'questions_b')
+     and not exists (
+       select 1 from training_private.exam_banks b
+       where b.lesson_id=l.id
+         and b.questions_a is not distinct from l.content->'questions_a'
+         and b.questions_b is not distinct from l.content->'questions_b'
+     )
+ ) then raise exception 'Falha de integridade na copia dos gabaritos'; end if;
+end
+$verify$;
+
+update public.lessons
+set content = ((content - 'questions_a') - 'questions_b') ||
+              '{"exam_required":true}'::jsonb
+where content ? 'questions_a' or content ? 'questions_b';
+
+-- Nao existe rota PostgREST publica para exam_banks.
+-- O RPC entrega apenas enunciado e alternativas, nunca indice correto ou erro critico.
+create or replace function public.training_exam_questions(p_lesson_id uuid,p_stage text)
+returns jsonb language plpgsql stable security definer
+set search_path=pg_catalog,public,training_private
+as $questions$
+declare v_bank jsonb; v_result jsonb;
+begin
+ if auth.uid() is null or p_stage not in ('a','b') then
+   raise exception 'Acesso nao autorizado a prova';
+ end if;
+ if not exists(select 1 from public.lessons l
+   join public.modules m on m.id=l.module_id
+   where l.id=p_lesson_id and l.is_published and m.is_published) then
+   raise exception 'Aula nao publicada';
+ end if;
+ select case when p_stage='a' then questions_a else questions_b end
+   into v_bank from training_private.exam_banks where lesson_id=p_lesson_id;
+ if jsonb_typeof(v_bank) is distinct from 'array' or jsonb_array_length(v_bank) <> 10 then
+   raise exception 'Prova indisponivel';
+ end if;
+ select jsonb_agg(jsonb_build_array(q.value->0,q.value->1) order by q.ordinality)
+   into v_result from jsonb_array_elements(v_bank) with ordinality as q(value,ordinality);
+ return v_result;
+end
+$questions$;
+revoke all on function public.training_exam_questions(uuid,text) from public,anon;
+grant execute on function public.training_exam_questions(uuid,text) to authenticated;
+
+create or replace function public.training_exam_audit(p_submission_id uuid)
+returns jsonb language plpgsql stable security definer
+set search_path=pg_catalog,public,training_private
+as $audit$
+declare v_s public.submissions%rowtype; v_payload jsonb; v_bank jsonb;
+        v_min integer; v_grade jsonb;
+begin
+ if auth.uid() is null or not public.is_admin() then
+   raise exception 'Somente gestor pode consultar a correcao';
+ end if;
+ select * into v_s from public.submissions where id=p_submission_id
+   and submission_type in ('lesson_exam_a','lesson_exam_b');
+ if not found then raise exception 'Prova nao encontrada'; end if;
+ begin v_payload:=v_s.text_content::jsonb;
+ exception when others then raise exception 'Prova inconsistente'; end;
+ if v_payload->'version' is distinct from '1'::jsonb
+    or v_payload->>'stage' is distinct from right(v_s.submission_type,1)
+    or v_payload->'requires_manager_validation' is distinct from 'true'::jsonb
+ then raise exception 'Prova inconsistente'; end if;
+ select case when v_s.submission_type='lesson_exam_a' then questions_a else questions_b end,
+        minimum_score into v_bank,v_min
+ from training_private.exam_banks where lesson_id=v_s.lesson_id;
+ v_grade:=training_private.grade_exam(v_bank,v_payload->'answers',v_min);
+ if (v_grade->>'valid')::boolean is distinct from true then
+   raise exception 'Gabarito ou respostas inconsistentes';
+ end if;
+ return v_grade;
+end
+$audit$;
+revoke all on function public.training_exam_audit(uuid) from public,anon;
+grant execute on function public.training_exam_audit(uuid) to authenticated;
 
 -- Uma prova A e um reteste B por consultor/aula, inclusive sob concorrencia.
 create unique index if not exists submissions_exam_unique_attempt
@@ -84,6 +184,7 @@ declare
   v_content jsonb; v_published boolean; v_module_published boolean;
   v_payload jsonb; v_grade jsonb; v_prior public.submissions%rowtype;
   v_decision training_private.exam_decisions%rowtype;
+  v_bank jsonb; v_min integer;
 begin
   if tg_op='DELETE' then
     if old.submission_type in ('lesson_exam_a','lesson_exam_b') then
@@ -115,9 +216,10 @@ begin
       or v_payload->'requires_manager_validation' is distinct from 'true'::jsonb then
       raise exception 'Metadados de prova inconsistentes';
     end if;
-    v_grade:=training_private.grade_exam(
-      v_content->('questions_'||right(new.submission_type,1)),
-      v_payload->'answers',coalesce((v_content->>'minimum_score')::integer,8));
+    select case when new.submission_type='lesson_exam_a' then questions_a else questions_b end,
+           minimum_score into v_bank,v_min
+      from training_private.exam_banks where lesson_id=new.lesson_id;
+    v_grade:=training_private.grade_exam(v_bank,v_payload->'answers',v_min);
     if (v_grade->>'valid')::boolean is distinct from true then
       raise exception 'Banco ou respostas de prova invalidos';
     end if;
@@ -135,8 +237,9 @@ begin
       if not found then raise exception 'Reteste exige prova A'; end if;
       begin v_payload:=v_prior.text_content::jsonb;
       exception when others then raise exception 'Prova A anterior invalida'; end;
-      v_grade:=training_private.grade_exam(v_content->'questions_a',
-        v_payload->'answers',coalesce((v_content->>'minimum_score')::integer,8));
+      select questions_a,minimum_score into v_bank,v_min
+        from training_private.exam_banks where lesson_id=new.lesson_id;
+      v_grade:=training_private.grade_exam(v_bank,v_payload->'answers',v_min);
       if (v_grade->>'valid')::boolean is distinct from true
         or (v_grade->>'passed')::boolean is distinct from false then
         raise exception 'Reteste permitido somente apos reprovar na prova A';
@@ -193,8 +296,8 @@ begin
   v_user:=case when tg_op='DELETE' then old.user_id else new.user_id end;
   v_lesson:=case when tg_op='DELETE' then old.lesson_id else new.lesson_id end;
   select content into v_content from public.lessons where id=v_lesson;
-  v_exam := jsonb_typeof(v_content->'questions_a')='array'
-    or jsonb_typeof(v_content->'questions_b')='array'
+  v_exam := v_content ? 'exam_required'
+    or exists(select 1 from training_private.exam_banks where lesson_id=v_lesson)
     or v_content ? 'minimum_score' or v_content ? 'retest_rule';
   if not coalesce(v_exam,false) then
     if tg_op='DELETE' then return old; else return new; end if;
@@ -241,6 +344,7 @@ declare
   v_a public.submissions%rowtype; v_grade_a jsonb;
   v_decision training_private.exam_decisions%rowtype;
   v_status public.submission_status;
+  v_bank jsonb; v_min integer;
 begin
   if v_actor is null or not public.is_admin() then
     raise exception 'Apenas gestor autenticado pode revisar prova';
@@ -273,9 +377,10 @@ begin
     or v_payload->'requires_manager_validation' is distinct from 'true'::jsonb then
     raise exception 'Metadados de prova adulterados';
   end if;
-  v_grade:=training_private.grade_exam(
-    v_content->('questions_'||right(v_submission.submission_type,1)),
-    v_payload->'answers',coalesce((v_content->>'minimum_score')::integer,8));
+  select case when v_submission.submission_type='lesson_exam_a' then questions_a else questions_b end,
+         minimum_score into v_bank,v_min
+  from training_private.exam_banks where lesson_id=v_submission.lesson_id;
+  v_grade:=training_private.grade_exam(v_bank,v_payload->'answers',v_min);
   if (v_grade->>'valid')::boolean is distinct from true then
     raise exception 'Gabarito ou respostas invalidos';
   end if;
@@ -296,8 +401,9 @@ begin
     if length(btrim(coalesce(v_payload->>'evidence',''))) < 80 then
       raise exception 'Pratica original insuficiente';
     end if;
-    v_grade_a:=training_private.grade_exam(v_content->'questions_a',
-      v_payload->'answers',coalesce((v_content->>'minimum_score')::integer,8));
+    select questions_a,minimum_score into v_bank,v_min
+      from training_private.exam_banks where lesson_id=v_submission.lesson_id;
+    v_grade_a:=training_private.grade_exam(v_bank,v_payload->'answers',v_min);
     if (v_grade_a->>'valid')::boolean is distinct from true
       or (v_grade_a->>'passed')::boolean is distinct from false then
       raise exception 'Reteste B sem reprovar validamente na prova A';
