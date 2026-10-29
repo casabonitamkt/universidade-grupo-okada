@@ -30,7 +30,8 @@ for each row execute function training_private.protect_profile_role();
 create table if not exists training_private.exam_banks (
   lesson_id uuid primary key references public.lessons(id) on delete restrict,
   questions_a jsonb, questions_b jsonb,
-  minimum_score integer not null default 8 check (minimum_score between 8 and 10)
+  minimum_score integer not null default 8 check (minimum_score between 8 and 10),
+  keys_previously_public boolean not null default false
 );
 revoke all on training_private.exam_banks from public,anon,authenticated;
 alter table training_private.exam_banks enable row level security;
@@ -55,14 +56,15 @@ revoke all on all tables in schema training_private from public, anon, authentic
 alter table training_private.exam_decisions enable row level security;
 
 -- Migracao atomica: copia os bancos antes de remover gabaritos publicos.
-insert into training_private.exam_banks(lesson_id,questions_a,questions_b,minimum_score)
+insert into training_private.exam_banks(lesson_id,questions_a,questions_b,minimum_score,keys_previously_public)
 select id,content->'questions_a',content->'questions_b',
-       coalesce((content->>'minimum_score')::integer,8)
+       coalesce((content->>'minimum_score')::integer,8),is_published
 from public.lessons
 where content ? 'questions_a' or content ? 'questions_b'
 on conflict(lesson_id) do update set
   questions_a=excluded.questions_a,questions_b=excluded.questions_b,
-  minimum_score=excluded.minimum_score;
+  minimum_score=excluded.minimum_score,
+  keys_previously_public=(training_private.exam_banks.keys_previously_public or excluded.keys_previously_public);
 
 do $verify$
 begin
@@ -108,6 +110,10 @@ begin
      and (training_private.grade_exam(eb.questions_a,
           (s.text_content::jsonb)->'answers',eb.minimum_score)->>'passed')::boolean=false
  ) then raise exception 'Reteste nao autorizado'; end if;
+ if exists(select 1 from training_private.exam_banks where lesson_id=p_lesson_id
+   and keys_previously_public) then
+   raise exception 'Prova anteriormente exposta: aguarde renovacao editorial';
+ end if;
  select case when p_stage='a' then questions_a else questions_b end
    into v_bank from training_private.exam_banks where lesson_id=p_lesson_id;
  if jsonb_typeof(v_bank) is distinct from 'array' or jsonb_array_length(v_bank) <> 10 then
@@ -245,6 +251,9 @@ begin
       or v_payload->'requires_manager_validation' is distinct from 'true'::jsonb then
       raise exception 'Metadados de prova inconsistentes';
     end if;
+    if exists(select 1 from training_private.exam_banks where lesson_id=new.lesson_id
+       and keys_previously_public) then
+      raise exception 'Prova anteriormente exposta: aguarde renovacao editorial'; end if;
     select case when new.submission_type='lesson_exam_a' then questions_a else questions_b end,
            minimum_score into v_bank,v_min
       from training_private.exam_banks where lesson_id=new.lesson_id;
@@ -406,6 +415,9 @@ begin
     or v_payload->'requires_manager_validation' is distinct from 'true'::jsonb then
     raise exception 'Metadados de prova adulterados';
   end if;
+  if exists(select 1 from training_private.exam_banks where lesson_id=v_submission.lesson_id
+    and keys_previously_public) then
+    raise exception 'Prova anteriormente exposta: aguarde renovacao editorial'; end if;
   select case when v_submission.submission_type='lesson_exam_a' then questions_a else questions_b end,
          minimum_score into v_bank,v_min
   from training_private.exam_banks where lesson_id=v_submission.lesson_id;
