@@ -48,12 +48,12 @@ test('renderiza prova A, reteste B com revisao, e estado pendente',()=>{
  assert.doesNotMatch(ctx.renderLessonExam(lesson),/lessonExamSubmit/);
 });
 test('prova A exige evidencia e todas as respostas antes de qualquer escrita',async()=>{
- const {ctx,rows,state,events}=setup();
- state.evidence='curta';
+ const {ctx,rows,state,events,elements}=setup();
+ elements.lessonExamEvidence.value='curta';
  await ctx.submitLessonExam('aula-nova','a');
  assert.equal(rows.length,0);
  assert.equal(events.filter(e=>e==='from:submissions').length,0);
- state.evidence='Resposta consultiva segura, sem prometer descontos e com pendências, responsáveis e data de retorno acordados.';
+ elements.lessonExamEvidence.value='Resposta consultiva segura, sem prometer descontos e com pendências, responsáveis e data de retorno acordados.';
  state.answers=questions().map(q=>q[2]);
  await ctx.submitLessonExam('aula-nova','a');
  assert.equal(rows.length,1);
@@ -65,7 +65,7 @@ test('prova A exige evidencia e todas as respostas antes de qualquer escrita',as
  assert.equal(rows.length,1,'Nao duplicar prova A');
 });
 test('reteste B exige reprova A, revisao escrita e nao conclui aula',async()=>{
- const {ctx,rows,state,events}=setup();
+ const {ctx,rows,state,events,elements}=setup();
  state.answers=Array(10).fill(0);
  await ctx.submitLessonExam('aula-nova','a');
  assert.equal(rows.length,1);
@@ -73,7 +73,7 @@ test('reteste B exige reprova A, revisao escrita e nao conclui aula',async()=>{
  state.answers=questions(5).map(q=>q[2]);
  await ctx.submitLessonExam('aula-nova','b');
  assert.equal(rows.length,1,'Sem revisao nao permite reteste');
- state.review='Identifiquei que não devo prometer condição comercial sem aprovação; vou confirmar a intenção do cliente, registrar pendências e consultar o gestor antes de responder.';
+ elements.lessonExamReview.value='Identifiquei que não devo prometer condição comercial sem aprovação; vou confirmar a intenção do cliente, registrar pendências e consultar o gestor antes de responder.';
  await ctx.submitLessonExam('aula-nova','b');
  assert.equal(rows.length,2);
  assert.equal(rows[1].submission_type,'lesson_exam_b');
