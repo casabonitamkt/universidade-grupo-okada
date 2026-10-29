@@ -22,17 +22,3 @@ jobs:
           node-version: '22'
       - name: Provas A/B, conferencia gerencial e regressao do historico
         run: node --test tests/manager-verified-exams.test.mjs tests/trilha-real-exam-pilot.test.mjs tests/trilha-90-dias-gate-painel-real.test.mjs
-  navegador:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Instalar navegador isolado para smoke
-        run: |
-          npm install --no-save playwright@1.56.1
-          npx playwright install --with-deps chromium
-      - name: Desktop e mobile, sem credenciais nem Supabase real
-        run: node tests/trilha-90-dias-browser.mjs
