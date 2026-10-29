@@ -87,7 +87,7 @@ select public.test_expect_error($sql$
  values('11111111-1111-4111-8111-111111111111',
  '44444444-4444-4444-8444-444444444444','lesson_exam_b',
  '{"version":1,"stage":"b","requires_manager_validation":true,"answers":[0,0,0,0,0,0,0,0,0,0],"review":"Revisao de pratica ficticia com todos os pontos e condutas explicados cuidadosamente."}')
-$sql$,'Reteste permitido');
+$sql$,'Reteste exige revisao gerencial');
 
 -- O proprio consultor nao consegue editar nota/status.
 do $fn$
