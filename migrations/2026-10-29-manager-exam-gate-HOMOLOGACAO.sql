@@ -46,6 +46,7 @@ create table if not exists training_private.exam_decisions (
   critical_errors smallint not null check (critical_errors between 0 and 10),
   practice_score smallint not null check (practice_score between 0 and 10),
   practice_approved boolean not null,
+  practice_cases jsonb not null default '[]'::jsonb,
   feedback text not null check (length(btrim(feedback)) >= 20),
   reviewed_at timestamptz not null default now(),
   constraint exam_decisions_valid_status check (decision in ('approved','needs_revision'))
@@ -372,7 +373,8 @@ create trigger training_exam_progress_guard
 -- RPC atomica: apenas admin autenticado; gabarito e pratica conferidos no banco.
 create or replace function public.training_review_exam(
   p_submission_id uuid, p_decision text, p_practice_score integer,
-  p_practice_approved boolean, p_feedback text
+  p_practice_approved boolean, p_feedback text,
+  p_practice_cases jsonb default null
 ) returns jsonb language plpgsql security definer
 set search_path = pg_catalog, public, training_private
 as $fn$
@@ -382,7 +384,11 @@ declare
   v_a public.submissions%rowtype; v_grade_a jsonb;
   v_decision training_private.exam_decisions%rowtype;
   v_status public.submission_status;
-  v_bank jsonb; v_min integer;
+  v_bank jsonb; v_min integer; v_code text;
+  v_case jsonb; v_case_score integer; v_case_min integer;
+  v_case_type text; v_practice_min integer:=10;
+  v_seen_project boolean:=false; v_seen_piece boolean:=false;
+  v_practice_cases jsonb:=coalesce(p_practice_cases,'[]'::jsonb);
 begin
   if v_actor is null or not public.is_admin() then
     raise exception 'Apenas gestor autenticado pode revisar prova';
@@ -399,7 +405,7 @@ begin
     or v_submission.status not in ('pending','needs_revision') then
     raise exception 'Prova inexistente, concluida ou nao revisavel';
   end if;
-  select l.content into v_content from public.lessons l
+  select l.content,l.code into v_content,v_code from public.lessons l
     join public.modules m on m.id=l.module_id
     where l.id=v_submission.lesson_id and l.is_published and m.is_published;
   if not found then raise exception 'Aula ainda nao publicada'; end if;
@@ -448,6 +454,89 @@ begin
     if (v_grade_a->>'valid')::boolean is distinct from true
       or (v_grade_a->>'passed')::boolean is distinct from false then
       raise exception 'Reteste B sem reprovar validamente na prova A';
+    end if;
+  end if;
+  -- Marco 30 exige duas simulacoes observadas e independentes: projeto e peca.
+  -- Nao basta nota unica. O gestor informa evidencias e zero erros criticos em cada caso.
+  if p_decision='approve' and v_code='F1-D30-A01' then
+    if jsonb_typeof(v_practice_cases) is distinct from 'array'
+       or jsonb_array_length(v_practice_cases) <> 2 then
+      raise exception 'Marco 30 exige simulacoes de projeto e peca';
+    end if;
+    for v_case in select value from jsonb_array_elements(v_practice_cases) loop
+      if jsonb_typeof(v_case) is distinct from 'object'
+         or jsonb_typeof(v_case->'score') is distinct from 'number'
+         or (v_case->>'score') !~ '^(10|[0-9])
+    or p_practice_approved is distinct from true or p_practice_score < 8
+  ) then raise exception 'Aprovacao exige teoria 8/10 sem erro critico e pratica validada >=8'; end if;
+  v_status:=case when p_decision='approve' then 'approved'::public.submission_status
+                 else 'needs_revision'::public.submission_status end;
+  insert into training_private.exam_decisions(
+    submission_id,user_id,lesson_id,reviewer_id,decision,theory_score,
+    critical_errors,practice_score,practice_approved,practice_cases,feedback,reviewed_at
+  ) values (
+    v_submission.id,v_submission.user_id,v_submission.lesson_id,v_actor,v_status,
+    (v_grade->>'score')::smallint,(v_grade->>'critical')::smallint,
+    p_practice_score::smallint,p_practice_approved,v_practice_cases,btrim(p_feedback),clock_timestamp()
+  )
+  on conflict (submission_id) do update set
+    reviewer_id=excluded.reviewer_id,decision=excluded.decision,
+    theory_score=excluded.theory_score,critical_errors=excluded.critical_errors,
+    practice_score=excluded.practice_score,practice_approved=excluded.practice_approved,
+    practice_cases=excluded.practice_cases,feedback=excluded.feedback,reviewed_at=excluded.reviewed_at
+  where training_private.exam_decisions.decision='needs_revision'
+  returning * into v_decision;
+  if not found then raise exception 'Revisao ja encerrada'; end if;
+
+  update public.submissions set status=v_status,reviewer_id=v_actor,
+    reviewer_feedback=v_decision.feedback,reviewed_at=v_decision.reviewed_at
+    where id=v_submission.id;
+  if p_decision='approve' then
+    insert into public.lesson_progress(user_id,lesson_id,status,started_at,completed_at,updated_at)
+      values(v_submission.user_id,v_submission.lesson_id,'completed',v_decision.reviewed_at,
+        v_decision.reviewed_at,clock_timestamp())
+    on conflict (user_id,lesson_id) do update set
+      status='completed',started_at=coalesce(public.lesson_progress.started_at,excluded.started_at),
+      completed_at=excluded.completed_at,updated_at=excluded.updated_at;
+  end if;
+  return jsonb_build_object('status',v_status::text,'theory_score',v_grade->'score',
+    'critical_errors',v_grade->'critical','practice_score',p_practice_score,
+    'completed',p_decision='approve');
+end
+$fn$;
+
+revoke all on function public.training_review_exam(uuid,text,integer,boolean,text,jsonb)
+  from public,anon;
+grant execute on function public.training_review_exam(uuid,text,integer,boolean,text,jsonb)
+  to authenticated;
+revoke all on all functions in schema training_private from public,anon,authenticated;
+
+commit;
+
+         or v_case->'critical_error' is distinct from 'false'::jsonb
+         or length(btrim(coalesce(v_case->>'evidence',''))) < 80 then
+        raise exception 'Simulacao sem nota valida, evidencia ou com erro critico';
+      end if;
+      v_case_score:=(v_case->>'score')::integer;
+      v_case_type:=v_case->>'case';
+      if v_case_type='project' then
+        if v_seen_project then raise exception 'Simulacao de projeto duplicada'; end if;
+        v_seen_project:=true;
+        v_case_min:=coalesce((v_content#>>'{milestone,criteria,practice_project_min}')::integer,8);
+      elsif v_case_type='piece' then
+        if v_seen_piece then raise exception 'Simulacao de peca duplicada'; end if;
+        v_seen_piece:=true;
+        v_case_min:=coalesce((v_content#>>'{milestone,criteria,practice_piece_min}')::integer,8);
+      else
+        raise exception 'Tipo de simulacao desconhecido';
+      end if;
+      if v_case_score < v_case_min or v_case_min < 8 or v_case_min > 10 then
+        raise exception 'Nota de simulacao abaixo do criterio do Marco 30';
+      end if;
+      v_practice_min:=least(v_practice_min,v_case_score);
+    end loop;
+    if not v_seen_project or not v_seen_piece or p_practice_score<>v_practice_min then
+      raise exception 'Marco 30 exige dois casos e nota geral igual a menor nota';
     end if;
   end if;
   if p_decision='approve' and (
