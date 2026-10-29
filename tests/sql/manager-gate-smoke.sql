@@ -18,6 +18,24 @@ $fn$;
 update public.lessons set is_published=true
 where code in ('EXAM-APROVA','EXAM-RETESTE','F1-D30-A01');
 
+-- REGRESSAO: a migracao nao pode deixar futuras publicacoes vazarem
+-- gabaritos por INSERT ou UPDATE de lessons.content, nem via postgres.
+select public.test_expect_error($sql$
+ update public.lessons
+ set content=jsonb_set(content,'{questions_b}','[]'::jsonb)
+ where code='EXAM-APROVA'
+$sql$,'Gabarito de prova nao pode ser armazenado');
+select public.test_expect_error($sql$
+ insert into public.lessons(id,module_id,code,content,is_published)
+ values('dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+        '55555555-5555-4555-8555-555555555555',
+        'EXAM-CHAVE-EXPOSTA','{"questions_a":[]}'::jsonb,false)
+$sql$,'Gabarito de prova nao pode ser armazenado');
+-- Atualizacao de conteudo editorial sem gabarito permanece permitida.
+update public.lessons
+set content=jsonb_set(content,'{editorial_guard_test}','true'::jsonb)
+where code='EXAM-APROVA';
+
 set role authenticated;
 select set_config('app.test_uid','11111111-1111-4111-8111-111111111111',false);
 
