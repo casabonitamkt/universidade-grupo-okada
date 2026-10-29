@@ -131,7 +131,24 @@ module.exports = async function handler(req, res) {
   try { raw = await readRaw(req); } catch { console.warn('zappy_inbound_body_read_failed'); return res.status(413).json({ error: 'body_too_large' }); }
   if (!raw.length) console.warn('zappy_inbound_empty_body');
   if (!verifySignature(raw, req.headers['x-webhook-signature'], config.secret)) {
-    console.warn('zappy_inbound_invalid_signature', { signature_present: Boolean(req.headers['x-webhook-signature']), empty_body: raw.length === 0 });
+    // Diagnóstico sem revelar segredo, assinatura, corpo, número ou mensagem.
+    const signature = req.headers['x-webhook-signature'];
+    const signatureFormatOk = typeof signature === 'string' && /^sha256=[0-9a-f]{64}$/i.test(signature);
+    let signatureMatchesReserializedJson = false;
+    try {
+      if (signatureFormatOk) {
+        const normalized = Buffer.from(JSON.stringify(JSON.parse(raw.toString('utf8'))), 'utf8');
+        signatureMatchesReserializedJson = verifySignature(normalized, signature, config.secret);
+      }
+    } catch (_) { /* JSON inválido continua não autenticado */ }
+    console.warn('zappy_inbound_invalid_signature', {
+      signature_present: Boolean(signature),
+      signature_format_ok: signatureFormatOk,
+      signature_matches_reserialized_json: signatureMatchesReserializedJson,
+      content_length_matches: typeof req.headers['content-length'] === 'string'
+        ? Number(req.headers['content-length']) === raw.length : null,
+      empty_body: raw.length === 0
+    });
     return res.status(401).json({ error: 'invalid_signature' });
   }
   let event;
