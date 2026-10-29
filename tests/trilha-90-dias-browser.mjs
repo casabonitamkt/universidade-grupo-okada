@@ -82,7 +82,7 @@ try {
     await page.evaluate(() => {
       cache = { less: [
         { id: 'historica', code: 'S1-D1-A01', title: 'Aula historica', content: { body: 'Treino anterior', mission: 'Pratica', evidence: 'Relato' } },
-        { id: 'nova', code: 'F1-D29-A01', title: 'Aula nova', content: { body: 'Treino futuro', mission: 'Pratica', questions_a: [], minimum_score: 8 } }
+        { id: 'nova', code: 'F1-D29-A01', title: 'Aula nova', content: { body: 'Treino futuro', mission: 'Pratica', questions_a: Array.from({length:10}, (_,i)=>['Pergunta '+i,['A','B','C'],i%3,i===2]), questions_b: Array.from({length:10}, (_,i)=>['Reteste '+i,['A','B','C'],i%3,i===5]), minimum_score: 8, aprender:'Aprender a conduzir' } }
       ], subs: [] };
       document.getElementById('app').classList.remove('hide');
       document.getElementById('login').classList.add('hide');
@@ -95,7 +95,22 @@ try {
     assert.equal(await page.locator('#lessonBox button').count(), 1, 'Aula antiga deve manter botao no ' + name);
     await page.evaluate(() => window.openLesson('nova'));
     assert.equal(await page.locator('#lessonBox button').count(), 0, 'Aula com prova nao pode concluir no ' + name);
-    assert.match(await page.locator('#lessonBox').textContent(), /prova e reteste homologados/);
+    assert.match(await page.locator('#lessonBox').textContent(), /PROVAR — avaliação teórica e prática/);
+    assert.equal(await page.locator('#lessonBox fieldset').count(), 10);
+    assert.equal(await page.locator('#lessonExamSubmit').count(), 1);
+    assert.equal(await page.locator('#lessonExamEvidence').count(), 1);
+    await page.evaluate(() => {
+      cache.subs=[{lesson_id:'nova',submission_type:'lesson_exam_a',submitted_at:'2026-10-29T10:00:00Z',text_content:JSON.stringify({answers:Array(10).fill(0)})}];
+      window.openLesson('nova');
+    });
+    assert.equal(await page.locator('#lessonExamReview').count(), 1, 'Reteste deve exigir revisao no '+name);
+    assert.equal(await page.locator('#lessonBox fieldset').count(), 10);
+    await page.evaluate(() => {
+      cache.subs=[{lesson_id:'nova',submission_type:'lesson_exam_a',submitted_at:'2026-10-29T10:00:00Z',text_content:JSON.stringify({answers:Array.from({length:10},(_,i)=>i%3)})}];
+      window.openLesson('nova');
+    });
+    assert.equal(await page.locator('#lessonExamSubmit').count(), 0, 'Aprovacao teorica aguarda gestor no '+name);
+    assert.match(await page.locator('#lessonBox').textContent(), /Registro enviado para análise/);
     await page.evaluate(() => completeLesson('nova', '', true));
     assert.deepEqual(errors, [], 'Falha no navegador ' + name);
     process.stdout.write('OK ' + name + ': painel real bloqueia prova nova e preserva aula antiga sem Supabase.\\n');
