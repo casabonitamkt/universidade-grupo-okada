@@ -14,6 +14,10 @@ begin
 end
 $fn$;
 
+-- As aulas novas so ficam visiveis DEPOIS da migracao dos gabaritos.
+update public.lessons set is_published=true
+where code in ('EXAM-APROVA','EXAM-RETESTE');
+
 set role authenticated;
 select set_config('app.test_uid','11111111-1111-4111-8111-111111111111',false);
 
@@ -22,6 +26,11 @@ select public.test_expect_error($sql$
  update public.profiles set role='admin'
  where id='11111111-1111-4111-8111-111111111111'
 $sql$,'Somente gestor pode alterar papel');
+-- Uma prova publicada antes da migracao nao pode ser aplicada com gabarito vazado.
+select public.test_expect_error($sql$
+ select public.training_exam_questions(
+ 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','a')
+$sql$,'Prova anteriormente exposta');
 -- Gabaritos migrados para schema privado, inacessiveis ao consultor.
 do $check$
 declare c jsonb; q jsonb;
