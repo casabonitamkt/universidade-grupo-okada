@@ -14,7 +14,7 @@
 
 No D40, as posições 1, 3, 4, 7 e 9 da prova A e 1, 2, 4, 7 e 8 da prova B foram marcadas críticas por tratarem de promessas fora da alçada, especificações, autorização e informações não verificadas. **A pertinência pedagógica dessas marcações ainda exige revisão do gestor.** Os textos das questões, alternativas, índices de resposta correta, IDs e títulos não foram modificados.
 
-Na verificação posterior: **57 aulas publicadas, 9 ocultas; 56 conclusões do Thiago intactas; zero envios de prova A/B**. As cinco aulas alteradas permanecem ocultas, com `retest_rule` presente e 10+10 questões. As provas de D35 tinham zero gabaritos inválidos e zero perguntas A/B idênticas; D37–D39 tinham dez questões por banco, índices de gabarito numéricos e nenhuma pergunta idêntica entre A/B. A revisão semântica integral das provas ainda é necessária.
+Na verificação posterior: **57 aulas publicadas, 9 ocultas; 56 conclusões do Thiago intactas; zero envios de prova A/B**. As cinco aulas alteradas permanecem ocultas, com `retest_rule` presente e 10+10 questões. Auditoria final das cinco aulas D35, D37, D38, D39 e D40: **10 questões A e 10 B por aula; zero índices de gabarito inválidos; zero enunciados idênticos entre A e B**. As questões críticas por aula são as registradas na tabela. A revisão semântica integral das alternativas e a validação pedagógica das marcações críticas ainda são necessárias.
 
 ## Bloqueio que continua impedindo publicação
 
