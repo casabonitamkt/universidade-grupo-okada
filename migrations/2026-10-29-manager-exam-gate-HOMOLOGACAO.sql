@@ -409,9 +409,13 @@ begin
   v_user:=case when tg_op='DELETE' then old.user_id else new.user_id end;
   v_lesson:=case when tg_op='DELETE' then old.lesson_id else new.lesson_id end;
   select content into v_content from public.lessons where id=v_lesson;
+  -- IMPORTANTE: 56 aulas historicas reais possuem minimum_score/retest_rule,
+  -- mas NAO possuem provas A/B. Nao transforma-las em exames transacionais:
+  -- isso bloquearia conclusoes, correcoes e atualizacoes de progresso legado.
+  -- A protecao nova vale apenas para aulas explicitamente marcadas como
+  -- exame ou com banco de prova A/B migrado para o schema privado.
   v_exam := v_content ? 'exam_required'
-    or exists(select 1 from training_private.exam_banks where lesson_id=v_lesson)
-    or v_content ? 'minimum_score' or v_content ? 'retest_rule';
+    or exists(select 1 from training_private.exam_banks where lesson_id=v_lesson);
   if not coalesce(v_exam,false) then
     if tg_op='DELETE' then return old; else return new; end if;
   end if;
