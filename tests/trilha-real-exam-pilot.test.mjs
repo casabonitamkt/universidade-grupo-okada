@@ -87,3 +87,10 @@ test('indicadores de aulas sao dinamicos; fluxo historico de conclusao mantido',
  assert.ok(html.includes("sb.from('lesson_progress').upsert({user_id:user.id,lesson_id:id"));
  assert.ok(html.includes("if(!lesson||requiresLessonAssessment(lesson))return toast"));
 });
+
+test('gestor ve prova separada de missoes e nao aprova nota do navegador',()=>{
+ assert.ok(html.includes('function renderPendingLessonExams()'));
+ assert.ok(html.includes("x.submission_type==='mission'||!x.submission_type"));
+ assert.ok(html.includes('Aguardando análise técnica e prática; sem aprovação automática.'));
+ assert.ok(html.includes('${renderPendingLessonExams()}<div class="grid2">${renderReviews()}'));
+});
