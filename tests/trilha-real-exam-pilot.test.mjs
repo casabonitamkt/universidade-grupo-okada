@@ -5,11 +5,12 @@ import { runInNewContext } from 'node:vm';
 
 const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const begin=html.indexOf('let lessonExamSubmitting=false;');
-const end=html.indexOf('\nwindow.openLesson=id=>',begin);
+const end=html.indexOf('\nwindow.openLesson=async id=>',begin);
 assert.ok(begin>0&&end>begin,'Motor real de prova ausente');
 const questions=(criticalIndex=2)=>Array.from({length:10},(_,i)=>['Pergunta '+(i+1),['A','B','C'],i%3,i===criticalIndex]);
 function setup(opts={}){
  const rows=[],events=[],lesson={id:'aula-nova',code:'F1-D29-A01',content:{questions_a:questions(),questions_b:questions(5),minimum_score:8,aprender:'Estudo'}};
+ lesson.examQuestions={a:questions().map(q=>q.slice(0,2)),b:questions(5).map(q=>q.slice(0,2))};
  const cache={less:[lesson],subs:[]};
  const state={answers:Array(10).fill(0),evidence:'Resposta consultiva segura, sem prometer descontos e com pendências, responsáveis e data de retorno acordados.',review:''};
  const dom={querySelector(sel){const i=Number(sel.match(/_(\d+)"/)?.[1]);return Number.isInteger(i)&&i<10?{value:String(state.answers[i])}:null}};
@@ -38,11 +39,11 @@ test('renderiza prova A, reteste B com revisao, e estado pendente',()=>{
  assert.match(ctx.renderLessonExam(lesson),/Prova A/);
  assert.match(ctx.renderLessonExam(lesson),/lessonExamEvidence/);
  assert.match(ctx.renderLessonExam(lesson),/Questão 10\/10/);
- rows.push({lesson_id:lesson.id,submission_type:'lesson_exam_a',submitted_at:'2026-10-29T12:00:00Z',text_content:JSON.stringify({answers:Array(10).fill(0)})});
+ rows.push({lesson_id:lesson.id,submission_type:'lesson_exam_a',status:'needs_revision',submitted_at:'2026-10-29T12:00:00Z',text_content:JSON.stringify({answers:Array(10).fill(0)})});
  ctx.cache.subs=rows.slice();
  assert.match(ctx.renderLessonExam(lesson),/Reteste B/);
  assert.match(ctx.renderLessonExam(lesson),/lessonExamReview/);
- rows[0].text_content=JSON.stringify({answers:questions().map(q=>q[2])});
+ rows[0].status='pending';rows[0].text_content=JSON.stringify({answers:questions().map(q=>q[2])});
  ctx.cache.subs=rows.slice();
  assert.match(ctx.renderLessonExam(lesson),/Registro enviado para análise/);
  assert.doesNotMatch(ctx.renderLessonExam(lesson),/lessonExamSubmit/);
@@ -59,7 +60,7 @@ test('prova A exige evidencia e todas as respostas antes de qualquer escrita',as
  assert.equal(rows.length,1);
  assert.equal(rows[0].submission_type,'lesson_exam_a');
  assert.equal(rows[0].status,'pending');
- assert.equal(JSON.parse(rows[0].text_content).preview_passed,true);
+ assert.equal(JSON.parse(rows[0].text_content).preview_passed,null,'Nota nao calculada no navegador');
  assert.equal(ctx.cache.subs.length,1);
  await ctx.submitLessonExam('aula-nova','a');
  assert.equal(rows.length,1,'Nao duplicar prova A');
@@ -69,16 +70,17 @@ test('reteste B exige reprova A, revisao escrita e nao conclui aula',async()=>{
  state.answers=Array(10).fill(0);
  await ctx.submitLessonExam('aula-nova','a');
  assert.equal(rows.length,1);
- assert.equal(JSON.parse(rows[0].text_content).preview_passed,false);
+ assert.equal(JSON.parse(rows[0].text_content).preview_passed,null);
  state.answers=questions(5).map(q=>q[2]);
  await ctx.submitLessonExam('aula-nova','b');
  assert.equal(rows.length,1,'Sem revisao nao permite reteste');
  elements.lessonExamReview.value='Identifiquei que não devo prometer condição comercial sem aprovação; vou confirmar a intenção do cliente, registrar pendências e consultar o gestor antes de responder.';
+ rows[0].status='needs_revision';ctx.cache.subs=rows.slice();
  await ctx.submitLessonExam('aula-nova','b');
  assert.equal(rows.length,2);
  assert.equal(rows[1].submission_type,'lesson_exam_b');
  assert.equal(rows[1].status,'pending');
- assert.equal(JSON.parse(rows[1].text_content).preview_passed,true);
+ assert.equal(JSON.parse(rows[1].text_content).preview_passed,null);
  assert.equal(events.some(e=>e==='from:lesson_progress'),false);
 });
 test('indicadores de aulas sao dinamicos; fluxo historico de conclusao mantido',()=>{
@@ -91,6 +93,6 @@ test('indicadores de aulas sao dinamicos; fluxo historico de conclusao mantido',
 test('gestor ve prova separada de missoes e nao aprova nota do navegador',()=>{
  assert.ok(html.includes('function renderPendingLessonExams()'));
  assert.ok(html.includes("x.submission_type==='mission'||!x.submission_type"));
- assert.ok(html.includes('A nota do navegador não autoriza conclusão.'));
+ assert.ok(html.includes('O servidor recusará qualquer aprovação sem teoria válida e prática aprovada.'));
  assert.ok(html.includes('${renderPendingLessonExams()}<div class="grid2">${renderReviews()}'));
 });
