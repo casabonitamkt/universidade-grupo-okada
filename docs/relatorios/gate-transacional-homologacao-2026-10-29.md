@@ -47,3 +47,9 @@
 - A existência de uma única aula publicada com banco A/B exposto (F1-D29-A01) foi confirmada em leitura. Nenhuma questão, chave, status de publicação, conclusão, perfil ou certificação foi alterada na produção por esta revisão.
 
 - **Quarentena dos gabaritos já expostos:** a migração registra `keys_previously_public=true` para qualquer aula que já estivesse publicada antes da transferência para o banco privado. O servidor impede abrir, enviar ou aprovar essas provas até que o gestor aprove um banco de questões substituto e uma migração auditada libere a nova versão. Isso afeta especialmente a prova do dia 29, cujas respostas já estiveram acessíveis. A aula pode permanecer publicada como conteúdo, mas **não pode gerar conclusão por essa prova antiga**. O teste isolado inclui uma aula fictícia anteriormente exposta e confirma o bloqueio.
+
+## Revisão adicional de RPCs — 29/10/2026
+- Corrigido caso de `p_stage=NULL` em `training_exam_questions`: antes, o teste `p_stage NOT IN ('a','b')` retornava NULL, e o `CASE ... ELSE questions_b` poderia expor as perguntas B antes do reteste autorizado. Agora rejeita explicitamente stage nulo. Incluídos testes de stage nulo e B prematuro.
+- Corrigido `p_decision=NULL` em `training_review_exam`: antes, `NOT IN` com NULL não falhava e o `CASE` poderia registrar `needs_revision` involuntariamente. Agora rejeita decisão nula. Incluído teste de regressão em papel admin.
+- Testes e Vercel devem ser revalidados no **SHA novo**; resultados verdes do SHA anterior não equivalem a homologação do novo commit.
+- A proteção permanece apenas em PR draft; sem escrita no Supabase real e sem publicação de aulas.
