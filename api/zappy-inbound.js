@@ -49,7 +49,10 @@ async function supabase(path, options, config) {
     signal: AbortSignal.timeout(6000)
   });
   if (!response.ok) { const error = new Error('crm_storage_error_' + response.status); error.status = response.status; throw error; }
-  if (response.status === 204) return [];
+  // PostgREST pode responder HTTP 201 com corpo vazio quando Prefer: return=minimal.
+  // A gravação já foi concluída; não tentar JSON.parse() de uma resposta vazia.
+  const prefer = options?.headers?.Prefer || '';
+  if (response.status === 204 || /(?:^|,)\s*return=minimal(?:,|$)/i.test(prefer)) return [];
   return response.json();
 }
 async function findLead(message, config) {

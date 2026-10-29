@@ -54,3 +54,71 @@ test('ignora grupo, próprio envio e outra instância', () => {
   assert.equal(normalizeEvent(sent, instance), null);
   assert.equal(normalizeEvent(clone(), 'other-instance'), null);
 });
+
+
+test('POST autenticado salva mensagem mesmo quando PostgREST responde 201 sem corpo', async () => {
+  const handler = require('../api/zappy-inbound.js');
+  const owner = 'ff819b24-a03e-4e24-a37b-8369db465fd9';
+  const secret = 'unit-test-only';
+  const raw = Buffer.from(JSON.stringify(template));
+  const signature = 'sha256=' + createHmac('sha256', secret).update(raw).digest('hex');
+  const previousEnv = {};
+  const updates = {
+    VERCEL_ENV: 'production', ZAPPY_INBOUND_ENABLED: 'true',
+    SUPABASE_URL: 'https://unit-test.invalid', SUPABASE_SERVICE_ROLE_KEY: 'fake-unit-key',
+    CRM_THIAGO_USER_ID: owner, ZAPPY_INSTANCE_ID: instance, ZAPPY_WEBHOOK_SECRET: secret
+  };
+  for (const [key,value] of Object.entries(updates)) {
+    previousEnv[key] = process.env[key];
+    process.env[key] = value;
+  }
+  const oldFetch = globalThis.fetch;
+  let createdMessages = 0;
+  let createdLeads = 0;
+  const mockResponse = (status, data) => ({
+    ok: status >= 200 && status < 300, status,
+    json: async () => {
+      if (data === undefined) throw new SyntaxError('Unexpected end of JSON input');
+      return data;
+    }
+  });
+  globalThis.fetch = async (url, options) => {
+    const path = String(url);
+    if (path.includes('crm_pilot_leads?')) return mockResponse(200, []);
+    if (path.endsWith('crm_pilot_leads') && options.method === 'POST') {
+      createdLeads += 1;
+      return mockResponse(201, [{ id: 'a00fba56-2c7e-4748-bd5d-87f6e3643756', owner_consultant_id: owner }]);
+    }
+    if (path.includes('crm_pilot_messages?')) return mockResponse(200, []);
+    if (path.endsWith('crm_pilot_messages') && options.method === 'POST') {
+      assert.equal(options.headers.Prefer, 'return=minimal');
+      createdMessages += 1;
+      return mockResponse(201, undefined); // PostgREST retorna corpo vazio
+    }
+    throw new Error('Endpoint inesperado em teste: ' + path);
+  };
+  const req = {
+    method: 'POST',
+    headers: { 'x-webhook-signature': signature, 'content-length': String(raw.length) },
+    async *[Symbol.asyncIterator]() { yield raw; }
+  };
+  const res = {
+    statusCode: 200, setHeader() { return this; },
+    status(code) { this.statusCode = code; return this; },
+    json(data) { this.body = data; return this; },
+    end() { return this; }
+  };
+  try {
+    await handler(req, res);
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body, { received: true, status: 'stored' });
+    assert.equal(createdLeads, 1);
+    assert.equal(createdMessages, 1);
+  } finally {
+    globalThis.fetch = oldFetch;
+    for (const [key, value] of Object.entries(previousEnv)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+});
