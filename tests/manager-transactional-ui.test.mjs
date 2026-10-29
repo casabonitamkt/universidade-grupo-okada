@@ -18,7 +18,7 @@ function setup(){
   profile:{role:'consultant'},user:{id:'consultant'},cache:{
    su:[{id:'e1',lesson_id:'l1'}],ls:[{id:'l1',content:{}}]
   },
-  auditLessonExamSubmission:()=>({valid:true,passed:true}),
+  auditLessonExamSubmission:()=>({valid:true,passed:true}),checkExamGrade:async()=>({valid:true,passed:true}),
   $:id=>fields[id],toast:msg=>calls.push(['toast',msg]),
   sb:{rpc:async(name,args)=>{calls.push(['rpc',name,args]);return{error:null}}},
   loadAdmin:async()=>{calls.push(['refresh'])}
