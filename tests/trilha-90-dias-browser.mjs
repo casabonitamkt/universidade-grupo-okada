@@ -128,7 +128,8 @@ try {
     });
     assert.match(await page.locator('#managerExamFixture').innerText(), /Correção independente:/);
     assert.match(await page.locator('#managerExamFixture').innerText(), /nota preliminar enviada difere/);
-    assert.equal(await page.locator('#managerExamFixture button').count(), 0, 'Nenhuma aprovação direta no '+name);
+    assert.equal(await page.locator('#managerExamFixture button[onclick^="managerReviewExam"]').count(), 2, 'Gestor deve usar somente RPC no '+name);
+    assert.equal(await page.locator('#managerExamFixture button[onclick^="review("]').count(), 0, 'Sem aprovação direta por update no '+name);
     assert.deepEqual(errors, [], 'Falha no navegador ' + name);
     process.stdout.write('OK ' + name + ': painel real bloqueia prova nova e preserva aula antiga sem Supabase.\\n');
     await context.close();
