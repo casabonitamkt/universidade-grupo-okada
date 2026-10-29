@@ -17,12 +17,12 @@ function normalizeEvent(event, expectedInstance) {
   const p = event.payload || {}, m = p.message || {};
   if (p.instance_id !== expectedInstance || m.is_group || m.is_from_me) return null;
   if (typeof m.id !== 'string' || !/^[\w.-]{1,128}$/.test(m.id)) return null;
-  if (typeof m.from !== 'string' || !/^\d{10,15}@s\.whatsapp\.net$/.test(m.from)) return null;
+  // Em aparelhos com identificação LID, a Zappy pode enviar o telefone real em sender_pn.\n  // Nunca tratar identificadores @lid como números de telefone.\n  const sender = [m.sender_pn, m.from].find(x => typeof x === 'string' && /^\d{10,15}@s\.whatsapp\.net$/.test(x));\n  if (!sender || (typeof m.from === 'string' && m.from.endsWith('@g.us'))) return null;
   const kind = typeof m.type === 'string' ? m.type.slice(0, 32) : 'unknown';
   const body = kind === 'text' && typeof m.text === 'string' ? m.text.slice(0, 10000) : '';
   const timestamp = Date.parse(m.timestamp || '');
   return {
-    phone: m.from.split('@')[0], name: typeof m.push_name === 'string' ? m.push_name.slice(0, 100) : 'Cliente',
+    phone: sender.split('@')[0], name: typeof m.push_name === 'string' ? m.push_name.slice(0, 100) : 'Cliente',
     messageId: m.id, instanceId: p.instance_id, kind, body,
     eventAt: Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : new Date().toISOString()
   };
@@ -110,7 +110,7 @@ module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
   const env = process.env;
-  if (!['production', 'preview'].includes(env.VERCEL_ENV) || env.ZAPPY_INBOUND_ENABLED !== 'true') {
+  if (!['production', 'preview'].includes(env.VERCEL_ENV) || env.ZAPPY_INBOUND_ENABLED !== 'true') {\n    console.warn('zappy_inbound_disabled');
     return res.status(503).json({ error: 'inbound_disabled' });
   }
   const config = {
@@ -119,25 +119,25 @@ module.exports = async function handler(req, res) {
     secret: env.ZAPPY_WEBHOOK_SECRET
   };
   if (!config.url?.startsWith('https://') || !config.key || !UUID.test(config.owner || '') ||
-      !config.instance || !config.secret) {
+      !config.instance || !config.secret) {\n    console.error('zappy_inbound_not_configured');
     return res.status(503).json({ error: 'inbound_not_configured' });
   }
   let raw;
-  try { raw = await readRaw(req); } catch { return res.status(413).json({ error: 'body_too_large' }); }
-  if (!verifySignature(raw, req.headers['x-webhook-signature'], config.secret)) {
+  try { raw = await readRaw(req); } catch { console.warn('zappy_inbound_body_read_failed'); return res.status(413).json({ error: 'body_too_large' }); }\n  if (!raw.length) console.warn('zappy_inbound_empty_body');
+  if (!verifySignature(raw, req.headers['x-webhook-signature'], config.secret)) {\n    console.warn('zappy_inbound_invalid_signature', { signature_present: Boolean(req.headers['x-webhook-signature']), empty_body: raw.length === 0 });
     return res.status(401).json({ error: 'invalid_signature' });
   }
   let event;
   try { event = JSON.parse(raw.toString('utf8')); }
-  catch { return res.status(400).json({ error: 'invalid_json' }); }
-  if (event?.payload?.instance_id !== config.instance) return res.status(403).json({ error: 'wrong_instance' });
+  catch { console.warn('zappy_inbound_invalid_json'); return res.status(400).json({ error: 'invalid_json' }); }
+  if (event?.payload?.instance_id !== config.instance) {\n    console.warn('zappy_inbound_wrong_instance');\n    return res.status(403).json({ error: 'wrong_instance' });\n  }
   // Outros eventos autenticados são ignorados; não há resposta automática nem download de mídia.
-  if (event.event !== 'message.received') return res.status(204).end();
+  if (event.event !== 'message.received') {\n    console.info('zappy_inbound_ignored_event');\n    return res.status(204).end();\n  }
   const message = normalizeEvent(event, config.instance);
-  if (!message) return res.status(204).end();
+  if (!message) {\n    console.warn('zappy_inbound_ignored_message', { group: Boolean(event.payload?.message?.is_group), outbound: Boolean(event.payload?.message?.is_from_me), has_sender_pn: Boolean(event.payload?.message?.sender_pn) });\n    return res.status(204).end();\n  }
   try {
     const result = await persist(message, config);
-    return res.status(200).json({ received: true, status: result });
+    console.info('zappy_inbound_persisted', { status: result });\n    return res.status(200).json({ received: true, status: result });
   } catch (error) {
     // Sem log de mensagens, telefones ou credenciais. 503 permite retry pelo provedor.
     console.error('zappy_inbound_storage_failed', error.message);
