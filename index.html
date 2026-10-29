@@ -296,15 +296,20 @@ function renderAttention(cs){let arr=cs.map(x=>({x,e:evoRow(x.id)})).sort((a,b)=
 function auditLessonExamSubmission(s,l){
  const stage=s?.submission_type==='lesson_exam_a'?'a':s?.submission_type==='lesson_exam_b'?'b':null;
  const saved=lessonExamSavedAnswers(s||{});
+ const attempts=(cache.su||[]).filter(x=>x.user_id===s?.user_id&&x.lesson_id===s?.lesson_id&&(x.submission_type==='lesson_exam_a'||x.submission_type==='lesson_exam_b'));
+ const sameStage=attempts.filter(x=>x.submission_type===s?.submission_type);
+ if(!stage||sameStage.length!==1)return{valid:false,reason:'Tentativa ausente ou duplicada',score:null,critical:null,passed:false,previewMismatch:false};
+ if(!saved||saved.version!==1||saved.stage!==stage||saved.requires_manager_validation!==true)return{valid:false,reason:'Metadados da tentativa inconsistentes',score:null,critical:null,passed:false,previewMismatch:false};
  const bank=stage==='a'?l?.content?.questions_a:l?.content?.questions_b;
  const grade=gradeLessonExam(bank,saved?.answers,l?.content?.minimum_score);
- if(!stage||!saved||!grade.valid)return{valid:false,reason:'Banco ou respostas inconsistentes',score:null,critical:null,passed:false,previewMismatch:false};
+ if(!grade.valid)return{valid:false,reason:'Banco ou respostas inconsistentes',score:null,critical:null,passed:false,previewMismatch:false};
  const text=String(stage==='a'?saved.evidence||'':saved.review||'');
  if(text.trim().length<80)return{valid:false,reason:'Evidência ou revisão escrita insuficiente',score:grade.score,critical:grade.critical,passed:false,previewMismatch:false};
  if(stage==='b'){
-  const a=(cache.su||[]).find(x=>x.user_id===s.user_id&&x.lesson_id===s.lesson_id&&x.submission_type==='lesson_exam_a');
-  const prior=gradeLessonExam(l?.content?.questions_a,lessonExamSavedAnswers(a||{})?.answers,l?.content?.minimum_score);
-  if(!a||!prior.valid||prior.passed)return{valid:false,reason:'Reteste B sem reprovação A válida',score:grade.score,critical:grade.critical,passed:false,previewMismatch:false};
+  const firstAttempts=attempts.filter(x=>x.submission_type==='lesson_exam_a');
+  const a=firstAttempts[0],savedA=lessonExamSavedAnswers(a||{});
+  const prior=gradeLessonExam(l?.content?.questions_a,savedA?.answers,l?.content?.minimum_score);
+  if(firstAttempts.length!==1||!savedA||savedA.version!==1||savedA.stage!=='a'||savedA.requires_manager_validation!==true||!prior.valid||prior.passed)return{valid:false,reason:'Reteste B sem reprovação A única e válida',score:grade.score,critical:grade.critical,passed:false,previewMismatch:false};
  }
  const mismatch=Number(saved.preview_score)!==grade.score||Number(saved.preview_critical_errors)!==grade.critical||saved.preview_passed!==grade.passed;
  return{valid:true,reason:'',score:grade.score,critical:grade.critical,passed:grade.passed,previewMismatch:mismatch};
