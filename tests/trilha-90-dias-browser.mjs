@@ -63,6 +63,41 @@ try {
     await context.close();
     process.stdout.write('OK ' + name + ': 90 dias, aula 30, prova, reteste, dias 39 e 40, sem requisicoes externas.\n');
   }
+  // Smoke real do painel com Supabase simulado: nenhuma credencial, sessao ou escrita.
+  for (const [name, viewport] of Object.entries({ desktop: { width: 1366, height: 850 }, mobile: { width: 390, height: 844 } })) {
+    const context = await browser.newContext({ viewport });
+    const errors = [];
+    const stub = "window.supabase={createClient(){return {auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}},from(){throw Error('Acesso inesperado ao Supabase')}}}}";
+    await context.route('**/*', route => {
+      const hostname = new URL(route.request().url()).hostname;
+      if (hostname === '127.0.0.1') return route.continue();
+      if (hostname === 'cdn.jsdelivr.net') return route.fulfill({ status: 200, contentType: 'application/javascript', body: stub });
+      errors.push('Requisicao externa inesperada: ' + hostname);
+      return route.abort();
+    });
+    const page = await context.newPage();
+    page.on('pageerror', e => errors.push(e.message));
+    const response = await page.goto(base + '/index.html', { waitUntil: 'networkidle' });
+    assert.equal(response.status(), 200);
+    await page.evaluate(() => {
+      cache = { less: [
+        { id: 'historica', code: 'S1-D1-A01', title: 'Aula historica', content: { body: 'Treino anterior', mission: 'Pratica', evidence: 'Relato' } },
+        { id: 'nova', code: 'F1-D29-A01', title: 'Aula nova', content: { body: 'Treino futuro', mission: 'Pratica', questions_a: [], minimum_score: 8 } }
+      ], subs: [] };
+      document.getElementById('app').classList.remove('hide');
+      document.getElementById('login').classList.add('hide');
+      window.openLesson('historica');
+    });
+    assert.equal(await page.locator('#lessonBox button').count(), 1, 'Aula antiga deve manter botao no ' + name);
+    await page.evaluate(() => window.openLesson('nova'));
+    assert.equal(await page.locator('#lessonBox button').count(), 0, 'Aula com prova nao pode concluir no ' + name);
+    assert.match(await page.locator('#lessonBox').textContent(), /prova e reteste homologados/);
+    await page.evaluate(() => completeLesson('nova', '', true));
+    assert.deepEqual(errors, [], 'Falha no navegador ' + name);
+    process.stdout.write('OK ' + name + ': painel real bloqueia prova nova e preserva aula antiga sem Supabase.\\n');
+    await context.close();
+  }
+
 } finally {
   if (browser) await browser.close();
   await new Promise(ok => server.close(ok));
