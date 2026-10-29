@@ -112,6 +112,23 @@ try {
     assert.equal(await page.locator('#lessonExamSubmit').count(), 0, 'Aprovacao teorica aguarda gestor no '+name);
     assert.match(await page.locator('#lessonBox').textContent(), /Registro enviado para análise/);
     await page.evaluate(() => completeLesson('nova', '', true));
+    // Auditoria gerencial em desktop/mobile: somente leitura e sem conta real.
+    await page.evaluate(() => {
+      const lesson = { id:'nova', code:'F2-D34-A01', content:{
+        questions_a:Array.from({length:10},(_,i)=>['Pergunta '+i,['Correta','Incorreta'],0,i===2]),
+        questions_b:Array.from({length:10},(_,i)=>['Reteste '+i,['Correta','Incorreta'],0,i===5]),
+        minimum_score:8
+      }};
+      const payload = {version:1,stage:'a',requires_manager_validation:true,answers:Array(10).fill(0),
+        evidence:'Exemplo fictício com contexto, especificações confirmadas, pendências, responsável e data do retorno combinado.',
+        preview_score:1,preview_critical_errors:3,preview_passed:false};
+      cache={ps:[{id:'u1',full_name:'Consultor teste'}],ls:[lesson],su:[{id:'e1',user_id:'u1',lesson_id:'nova',
+        submission_type:'lesson_exam_a',text_content:JSON.stringify(payload),status:'pending',submitted_at:'2026-10-29T10:00:00Z'}]};
+      const box=document.createElement('div');box.id='managerExamFixture';box.innerHTML=renderPendingLessonExams();document.body.appendChild(box);
+    });
+    assert.match(await page.locator('#managerExamFixture').innerText(), /Correção independente:/);
+    assert.match(await page.locator('#managerExamFixture').innerText(), /nota preliminar enviada difere/);
+    assert.equal(await page.locator('#managerExamFixture button').count(), 0, 'Nenhuma aprovação direta no '+name);
     assert.deepEqual(errors, [], 'Falha no navegador ' + name);
     process.stdout.write('OK ' + name + ': painel real bloqueia prova nova e preserva aula antiga sem Supabase.\\n');
     await context.close();
