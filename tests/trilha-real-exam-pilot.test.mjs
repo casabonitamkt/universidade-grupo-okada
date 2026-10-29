@@ -45,7 +45,7 @@ test('renderiza prova A, reteste B com revisao, e estado pendente',()=>{
  assert.match(ctx.renderLessonExam(lesson),/lessonExamReview/);
  rows[0].status='pending';rows[0].text_content=JSON.stringify({answers:questions().map(q=>q[2])});
  ctx.cache.subs=rows.slice();
- assert.match(ctx.renderLessonExam(lesson),/Registro enviado para análise/);
+ assert.match(ctx.renderLessonExam(lesson),/Registro recebido/);
  assert.doesNotMatch(ctx.renderLessonExam(lesson),/lessonExamSubmit/);
 });
 test('prova A exige evidencia e todas as respostas antes de qualquer escrita',async()=>{
