@@ -4,6 +4,7 @@ on:
     paths:
       - 'migrations/2026-10-29-manager-exam-gate-HOMOLOGACAO.sql'
       - 'tests/sql/**'
+      - 'tests/postgrest/**'
       - '.github/workflows/manager-exam-postgres.yml'
   workflow_dispatch:
 
@@ -43,3 +44,63 @@ jobs:
             -f tests/sql/manager-gate-fixture.sql \
             -f migrations/2026-10-29-manager-exam-gate-HOMOLOGACAO.sql \
             -f tests/sql/manager-gate-smoke.sql
+
+  postgrest-auth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: training_gate_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d training_gate_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGPASSWORD: postgres
+      TEST_JWT_SECRET: "local-disposable-ci-jwt-secret-not-for-production-20261029"
+      TEST_POSTGREST_URL: http://127.0.0.1:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar cliente PostgreSQL se necessario
+        run: |
+          if ! command -v psql >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y postgresql-client
+          fi
+      - name: Preparar PostgreSQL ficticio com migracao proposta
+        run: |
+          psql -h localhost -U postgres -d training_gate_test -v ON_ERROR_STOP=1 \
+            -f tests/sql/manager-gate-fixture.sql \
+            -f migrations/2026-10-29-manager-exam-gate-HOMOLOGACAO.sql
+          psql -h localhost -U postgres -d training_gate_test -v ON_ERROR_STOP=1 \
+            -c "update public.lessons set is_published=true where code in ('EXAM-APROVA','EXAM-RETESTE')"
+      - name: Subir PostgREST temporario (sem Supabase, sem custo de branch)
+        run: |
+          docker run --detach --name training-postgrest --network host \
+            -e PGRST_DB_URI=postgres://postgres:postgres@127.0.0.1:5432/training_gate_test \
+            -e PGRST_DB_SCHEMAS=public \
+            -e PGRST_DB_ANON_ROLE=anon \
+            -e PGRST_JWT_SECRET="$TEST_JWT_SECRET" \
+            -e PGRST_SERVER_PORT=3000 \
+            postgrest/postgrest:v12.2.3
+          for i in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3000/ >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          docker logs training-postgrest
+          exit 1
+      - name: Testar JWT autenticado, RLS, gabaritos, prova A/B e gestor via HTTP
+        run: node tests/postgrest/manager-gate-auth.mjs
+      - name: Diagnostico do container quando falhar
+        if: failure()
+        run: docker logs training-postgrest || true
