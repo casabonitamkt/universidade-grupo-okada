@@ -10,12 +10,12 @@ assert.ok(a>=0&&b>a&&c>b&&d>c,'Correção independente do gestor ausente');
 const questions=Array.from({length:10},(_,i)=>['Pergunta '+i,['Certa','Errada'],0,i===2]);
 function fixture(){
  const lesson={id:'l1',code:'F2-D34-A01',content:{questions_a:questions,questions_b:questions,minimum_score:8}};
- const payload={answers:Array(10).fill(0),evidence:'Prática fictícia com contexto, especificações confirmadas, pendências e data de retorno com responsável definido.',preview_score:1,preview_critical_errors:3,preview_passed:false};
+ const payload={version:1,stage:'a',requires_manager_validation:true,answers:Array(10).fill(0),evidence:'Prática fictícia com contexto, especificações confirmadas, pendências e data de retorno com responsável definido.',preview_score:1,preview_critical_errors:3,preview_passed:false};
  const exam={id:'e1',user_id:'u1',lesson_id:'l1',submission_type:'lesson_exam_a',text_content:JSON.stringify(payload),submitted_at:'2026-10-29T01:00:00Z',status:'pending'};
  const cache={su:[exam],ps:[{id:'u1',full_name:'Consultor'}],ls:[lesson]};
  const ctx={cache,esc:x=>String(x).replaceAll('<','&lt;'),console};
  runInNewContext(html.slice(a,b)+'\n'+html.slice(c,d),ctx);
- return{ctx,exam,lesson,payload};
+ return{ctx,exam,lesson,payload,cache};
 }
 test('gestor recalcula gabarito e detecta nota preliminar falsificada',()=>{
  const {ctx,exam,lesson}=fixture(),audit=ctx.auditLessonExamSubmission(exam,lesson);
@@ -37,11 +37,25 @@ test('reprova respostas incompletas, erro crítico e evidência curta',()=>{
  assert.equal(ctx.auditLessonExamSubmission(exam,lesson).valid,false);
 });
 test('reteste B exige prova A válida e reprovada',()=>{
- const {ctx,exam,lesson,payload}=fixture();
- const b={...exam,id:'e2',submission_type:'lesson_exam_b',text_content:JSON.stringify({...payload,review:'Revisei a conduta e não prometerei prazo nem condição sem aprovação; vou confirmar as especificações e registrar o próximo contato.'})};
+ const {ctx,exam,lesson,payload,cache}=fixture();
+ const b={...exam,id:'e2',submission_type:'lesson_exam_b',text_content:JSON.stringify({...payload,stage:'b',review:'Revisei a conduta e não prometerei prazo nem condição sem aprovação; vou confirmar as especificações e registrar o próximo contato.'})};
+ cache.su.push(b);
  assert.equal(ctx.auditLessonExamSubmission(b,lesson).valid,false);
  payload.answers[2]=1;exam.text_content=JSON.stringify(payload);
  assert.equal(ctx.auditLessonExamSubmission(b,lesson).valid,true);
+});
+test('bloqueia prova com metadados alterados ou tentativa duplicada',()=>{
+ const {ctx,exam,lesson,payload,cache}=fixture();
+ payload.stage='b';exam.text_content=JSON.stringify(payload);
+ assert.equal(ctx.auditLessonExamSubmission(exam,lesson).valid,false);
+ payload.stage='a';payload.requires_manager_validation=false;exam.text_content=JSON.stringify(payload);
+ assert.equal(ctx.auditLessonExamSubmission(exam,lesson).valid,false);
+ payload.requires_manager_validation=true;exam.text_content=JSON.stringify(payload);
+ assert.equal(ctx.auditLessonExamSubmission(exam,lesson).valid,true);
+ cache.su.push({...exam,id:'e1-duplicada'});
+ const audit=ctx.auditLessonExamSubmission(exam,lesson);
+ assert.equal(audit.valid,false);
+ assert.match(audit.reason,/duplicada/);
 });
 test('gestor recebe gabarito oficial sem permitir conclusão automática',()=>{
  assert.ok(html.includes("sb.from('lessons').select('id,code,title,content')"));
