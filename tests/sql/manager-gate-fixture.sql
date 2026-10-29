@@ -92,10 +92,11 @@ with a as (
 )
 insert into public.lessons(id,module_id,code,content,is_published)
 select id,'55555555-5555-4555-8555-555555555555',code,
- jsonb_build_object('questions_a',a.bank,'questions_b',b.bank,'minimum_score',8),true
+ jsonb_build_object('questions_a',a.bank,'questions_b',b.bank,'minimum_score',8),(code='EXAM-EXPOSTO')
 from a cross join b cross join (values
  ('44444444-4444-4444-8444-444444444444'::uuid,'EXAM-APROVA'),
- ('66666666-6666-4666-8666-666666666666'::uuid,'EXAM-RETESTE')
+ ('66666666-6666-4666-8666-666666666666'::uuid,'EXAM-RETESTE'),
+ ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid,'EXAM-EXPOSTO')
 ) as v(id,code);
 
 -- Legado preexistente, que a migracao nao pode alterar.
