@@ -17,6 +17,11 @@ $fn$;
 set role authenticated;
 select set_config('app.test_uid','11111111-1111-4111-8111-111111111111',false);
 
+-- RLS profiles_self_update nao pode permitir autoconceder role=admin.
+select public.test_expect_error($sql$
+ update public.profiles set role='admin'
+ where id='11111111-1111-4111-8111-111111111111'
+$sql$,'Somente gestor pode alterar papel');
 -- Gabaritos migrados para schema privado, inacessiveis ao consultor.
 do $check$
 declare c jsonb; q jsonb;
