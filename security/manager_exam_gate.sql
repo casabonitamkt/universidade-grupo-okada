@@ -87,21 +87,22 @@ AS $fn$
 DECLARE i integer; q jsonb; answer integer; correct integer;
         score integer:=0; critical integer:=0;
 BEGIN
- IF jsonb_typeof(p_bank) <> 'array' OR jsonb_array_length(p_bank) <> 10
-    OR jsonb_typeof(p_answers) <> 'array' OR jsonb_array_length(p_answers) <> 10
+ IF jsonb_typeof(p_bank) IS DISTINCT FROM 'array' OR jsonb_array_length(p_bank) <> 10
+    OR jsonb_typeof(p_answers) IS DISTINCT FROM 'array' OR jsonb_array_length(p_answers) <> 10
     OR p_minimum IS NULL OR p_minimum < 1 OR p_minimum > 10
  THEN RETURN jsonb_build_object('valid',false); END IF;
  FOR i IN 0..9 LOOP
    q:=p_bank->i;
-   IF jsonb_typeof(q)<>'array' OR jsonb_array_length(q)<4
-      OR jsonb_typeof(q->1)<>'array' OR jsonb_array_length(q->1)<2
-      OR jsonb_typeof(q->2)<>'number' OR jsonb_typeof(q->3)<>'boolean'
-      OR jsonb_typeof(p_answers->i)<>'number'
+   IF jsonb_typeof(q) IS DISTINCT FROM 'array' OR jsonb_array_length(q)<4
+      OR jsonb_typeof(q->1) IS DISTINCT FROM 'array' OR jsonb_array_length(q->1)<2
+      OR jsonb_typeof(q->2) IS DISTINCT FROM 'number' OR jsonb_typeof(q->3) IS DISTINCT FROM 'boolean'
+      OR jsonb_typeof(p_answers->i) IS DISTINCT FROM 'number'
    THEN RETURN jsonb_build_object('valid',false); END IF;
    BEGIN
      correct:=(q->>2)::integer; answer:=(p_answers->>i)::integer;
    EXCEPTION WHEN OTHERS THEN RETURN jsonb_build_object('valid',false); END;
    IF correct<0 OR correct>=jsonb_array_length(q->1)
+      OR (q->>2)::numeric <> correct
       OR answer<0 OR answer>=jsonb_array_length(q->1)
       OR (p_answers->>i)::numeric <> answer
    THEN RETURN jsonb_build_object('valid',false); END IF;
