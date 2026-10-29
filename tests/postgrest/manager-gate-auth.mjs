@@ -13,6 +13,7 @@ const exam='44444444-4444-4444-8444-444444444444';
 const retest='66666666-6666-4666-8666-666666666666';
 const exposed='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const milestone='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+const strictScore='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
 const evidence='Pratica ficticia detalhada: acolhimento, diagnostico, investimento, prazo e retorno combinado.';
 
 function token(sub, role='authenticated') {
@@ -56,6 +57,22 @@ assert.equal(lessons.length,1);
 assert.equal(lessons[0].content.exam_required,true);
 assert.equal(lessons[0].content.questions_a,undefined);
 assert.equal(lessons[0].content.questions_b,undefined);
+
+// Regressao HTTP: aula legada com pass_score=9 nao pode aprovar 8/10.
+r=await rpc('training_exam_questions',{p_lesson_id:strictScore,p_stage:'a'});
+assert.equal(ok(r,'Questões da aula com nota minima 9').length,10);
+r=await api('/submissions','POST',{
+ user_id:consultant,lesson_id:strictScore,submission_type:'lesson_exam_a',status:'pending',
+ text_content:aBody([0,0,0,0,0,0,0,0,1,1])
+});
+const strictExam=ok(r,'Prova de 8/10 contra pass_score 9',201)[0];
+r=await rpc('training_exam_audit',{p_submission_id:strictExam.id},managerToken);
+const strictGrade=ok(r,'Gestor audita limite 9/10');
+assert.equal(strictGrade.score,8);
+assert.equal(strictGrade.critical,0);
+assert.equal(strictGrade.passed,false);
+blocked(await review(strictExam.id,'approve',10,true,
+ 'Nota 8 nao pode ser aprovada quando a aula exige 9.'),'Limite 9/10 nao pode ser burlado');
 
 blocked(await rpc('training_exam_questions',{p_lesson_id:exam,p_stage:'a'},noAuth),'Anonimo nao recebe questoes');
 blocked(await rpc('training_exam_questions',{p_lesson_id:exposed,p_stage:'a'}),'Prova ja exposta');

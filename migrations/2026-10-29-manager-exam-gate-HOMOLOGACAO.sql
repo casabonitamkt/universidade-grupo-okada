@@ -59,7 +59,11 @@ alter table training_private.exam_decisions enable row level security;
 -- Migracao atomica: copia os bancos antes de remover gabaritos publicos.
 insert into training_private.exam_banks(lesson_id,questions_a,questions_b,minimum_score,keys_previously_public)
 select id,content->'questions_a',content->'questions_b',
-       coalesce((content->>'minimum_score')::integer,8),is_published
+       greatest(
+         coalesce((content->>'minimum_score')::integer,8),
+         coalesce((content->>'pass_score')::integer,8),
+         coalesce((content#>>'{milestone,criteria,theory_min}')::integer,8)
+       ),is_published
 from public.lessons
 where content ? 'questions_a' or content ? 'questions_b'
 on conflict(lesson_id) do update set

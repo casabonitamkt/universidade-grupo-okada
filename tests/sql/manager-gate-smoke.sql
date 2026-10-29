@@ -14,6 +14,26 @@ begin
 end
 $fn$;
 
+-- Regressao: alguns dias reais declaram pass_score, sem minimum_score.
+-- O banco deve respeitar o criterio MAIS RIGOROSO; 8/10 nao aprova minimo 9.
+do $strict$
+declare v_bank jsonb; v_min integer; v_grade jsonb;
+begin
+ select b.questions_a,b.minimum_score into v_bank,v_min
+ from training_private.exam_banks b
+ join public.lessons l on l.id=b.lesson_id where l.code='EXAM-PASS-SCORE';
+ if v_min is distinct from 9 then
+   raise exception 'pass_score=9 ignorado na migracao: %',v_min;
+ end if;
+ v_grade:=training_private.grade_exam(v_bank,'[0,0,0,0,0,0,0,0,1,1]'::jsonb,v_min);
+ if (v_grade->>'score')::integer is distinct from 8
+   or (v_grade->>'critical')::integer is distinct from 0
+   or (v_grade->>'passed')::boolean is distinct from false then
+   raise exception '8/10 foi aceito contra criterio 9/10: %',v_grade;
+ end if;
+end
+$strict$;
+
 -- As aulas novas so ficam visiveis DEPOIS da migracao dos gabaritos.
 update public.lessons set is_published=true
 where code in ('EXAM-APROVA','EXAM-RETESTE','F1-D30-A01');
