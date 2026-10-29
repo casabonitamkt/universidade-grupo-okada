@@ -12,6 +12,7 @@ const manager='22222222-2222-4222-8222-222222222222';
 const exam='44444444-4444-4444-8444-444444444444';
 const retest='66666666-6666-4666-8666-666666666666';
 const exposed='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const milestone='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const evidence='Pratica ficticia detalhada: acolhimento, diagnostico, investimento, prazo e retorno combinado.';
 
 function token(sub, role='authenticated') {
@@ -118,6 +119,31 @@ r=await review(submittedB.id,'approve',9,true,'Reteste B e pratica validados pel
 assert.equal(ok(r,'Gestor aprova reteste B').completed,true);
 r=await api('/lesson_progress?select=status&lesson_id=eq.'+retest);
 assert.equal(ok(r,'Conclusao apos B')[0].status,'completed');
+
+// Marco 30: duas simulacoes, notas individuais, evidencias e erro critico.
+r=await api('/submissions','POST',{user_id:consultant,lesson_id:milestone,submission_type:'lesson_exam_a',status:'pending',text_content:aBody()});
+const markA=ok(r,'Enviar prova A do Marco 30',201)[0];
+blocked(await review(markA.id,'approve',9,true,'Sem duas simulacoes independentes.'),'Marco 30 sem casos');
+const caseProject={case:'project',score:9,critical_error:false,evidence:evidence+' Projeto completo, arquiteto e circulacao validados.'};
+const casePiece={case:'piece',score:8,critical_error:false,evidence:evidence+' Peca avulsa, medidas e uso confirmados.'};
+blocked(await rpc('training_review_exam',{
+ p_submission_id:markA.id,p_decision:'approve',p_practice_score:8,
+ p_practice_approved:true,p_feedback:'Uma simulacao nao atende ao Marco 30.',
+ p_practice_cases:[caseProject]
+},managerToken),'Marco 30 com uma simulacao');
+blocked(await rpc('training_review_exam',{
+ p_submission_id:markA.id,p_decision:'approve',p_practice_score:8,
+ p_practice_approved:true,p_feedback:'Erro critico em simulacao impede aprovacao.',
+ p_practice_cases:[caseProject,{...casePiece,critical_error:true}]
+},managerToken),'Marco 30 com erro critico');
+r=await rpc('training_review_exam',{
+ p_submission_id:markA.id,p_decision:'approve',p_practice_score:8,
+ p_practice_approved:true,p_feedback:'Duas simulacoes observadas, ambas aprovadas pelo gestor.',
+ p_practice_cases:[caseProject,casePiece]
+},managerToken);
+assert.equal(ok(r,'Marco 30 aprovado com duas simulacoes').completed,true);
+r=await api('/lesson_progress?select=status&lesson_id=eq.'+milestone);
+assert.equal(ok(r,'Conclusao Marco 30')[0].status,'completed');
 
 blocked(await api('/exam_banks?select=*'),'Tabela privada nao exposta');
 blocked(await rpc('training_exam_audit',{p_submission_id:id},noAuth),'Anonimo nao acessa auditoria');
