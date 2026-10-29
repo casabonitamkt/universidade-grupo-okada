@@ -16,7 +16,7 @@ $fn$;
 
 -- As aulas novas so ficam visiveis DEPOIS da migracao dos gabaritos.
 update public.lessons set is_published=true
-where code in ('EXAM-APROVA','EXAM-RETESTE');
+where code in ('EXAM-APROVA','EXAM-RETESTE','F1-D30-A01');
 
 set role authenticated;
 select set_config('app.test_uid','11111111-1111-4111-8111-111111111111',false);
@@ -187,16 +187,50 @@ select public.test_expect_error($sql$
  where lesson_id='44444444-4444-4444-8444-444444444444'
 $sql$,'imutavel');
 
+-- Marco 30: servidor exige duas simulacoes distintas, ambas >=8 e sem erro critico.
+set role authenticated;
+select set_config('app.test_uid','11111111-1111-4111-8111-111111111111',false);
+insert into public.submissions(id,user_id,lesson_id,submission_type,text_content,status)
+values(
+ 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+ '11111111-1111-4111-8111-111111111111',
+ 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','lesson_exam_a',
+ jsonb_build_object('version',1,'stage','a','requires_manager_validation',true,
+  'answers',jsonb_build_array(0,0,0,0,0,0,0,0,0,0),
+  'evidence',repeat('Simulacao de marco com projeto e peca e registro. ',3))::text,'pending'
+);
+select set_config('app.test_uid','22222222-2222-4222-8222-222222222222',false);
+select public.test_expect_error($sql$
+ select public.training_review_exam(
+  'cccccccc-cccc-4ccc-8ccc-cccccccccccc','approve',9,true,
+  'Aprovacao sem os dois casos nao e valida.')
+$sql$,'Marco 30 exige');
+select public.test_expect_error($sql$
+ select public.training_review_exam(
+  'cccccccc-cccc-4ccc-8ccc-cccccccccccc','approve',8,true,
+  'Erro critico em simulacao impede conclusao.',
+  '[{"case":"project","score":9,"critical_error":true,"evidence":"Evidencia detalhada do projeto com observacoes de escuta e circulacao e arquiteto."},{"case":"piece","score":8,"critical_error":false,"evidence":"Evidencia detalhada da peca com medidas de ambiente, uso e prazo confirmados."}]'::jsonb)
+$sql$,'Simulacao sem nota valida');
+select public.training_review_exam(
+ 'cccccccc-cccc-4ccc-8ccc-cccccccccccc','approve',8,true,
+ 'Duas simulacoes observadas e validadas, sem erros criticos.',
+ '[{"case":"project","score":9,"critical_error":false,"evidence":"Evidencia detalhada do projeto: medidas e arquiteto confirmados, uso e prazo alinhados, proximo passo agendado."},{"case":"piece","score":8,"critical_error":false,"evidence":"Evidencia detalhada da peca: foto e circulacao conferidas, investimento discutido e retorno com data definida."}]'::jsonb
+);
+
 reset role;
 do $fn$
 declare n integer;
 begin
  select count(*) into n from public.lesson_progress where status='completed';
- if n<>3 then raise exception 'Conclusoes esperadas 3, obtidas %',n; end if;
+ if n<>4 then raise exception 'Conclusoes esperadas 4, obtidas %',n; end if;
  select count(*) into n from training_private.exam_decisions;
- if n<>3 then raise exception 'Auditorias gerenciais esperadas 3, obtidas %',n; end if;
+ if n<>4 then raise exception 'Auditorias gerenciais esperadas 4, obtidas %',n; end if;
  select count(*) into n from public.submissions where status='approved';
- if n<>2 then raise exception 'Provas aprovadas esperadas 2, obtidas %',n; end if;
+ if n<>3 then raise exception 'Provas aprovadas esperadas 3, obtidas %',n; end if;
+ if not exists(select 1 from training_private.exam_decisions
+   where lesson_id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+     and jsonb_array_length(practice_cases)=2)
+ then raise exception 'Evidencias das duas simulacoes do Marco 30 nao preservadas'; end if;
  if not exists(select 1 from public.lesson_progress where
   lesson_id='33333333-3333-4333-8333-333333333333' and status='completed')
  then raise exception 'Conclusao historica perdida'; end if;
