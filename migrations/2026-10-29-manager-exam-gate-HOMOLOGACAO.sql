@@ -36,6 +36,55 @@ create table if not exists training_private.exam_banks (
 revoke all on training_private.exam_banks from public,anon,authenticated;
 alter table training_private.exam_banks enable row level security;
 
+-- Bloqueio de rotacao apos a PRIMEIRA prova A/B: nao recalcular provas
+-- antigas contra gabarito ou criterio alterado, inclusive via service role.
+-- Para trocar provas expostas, exigir migracao editorial separada e auditada.
+create or replace function training_private.guard_exam_bank_revision()
+returns trigger language plpgsql security definer
+set search_path=pg_catalog,public,training_private
+as $bank_guard$
+begin
+  -- A mesma trava e adquirida no envio da prova: serializa envio e rotacao.
+  perform 1 from public.lessons where id=old.lesson_id for update;
+  if exists (
+    select 1 from public.submissions s
+    where s.lesson_id=old.lesson_id
+      and s.submission_type in ('lesson_exam_a','lesson_exam_b')
+  ) then
+    raise exception 'Banco de prova imutavel apos primeiro envio A/B';
+  end if;
+  if tg_op='DELETE' then
+    raise exception 'Exclusao de banco de prova requer migracao auditada';
+  end if;
+  if new.lesson_id is distinct from old.lesson_id then
+    raise exception 'Identidade do banco de prova imutavel';
+  end if;
+  if old.keys_previously_public and not new.keys_previously_public then
+    if new.questions_a is not distinct from old.questions_a
+       or new.questions_b is not distinct from old.questions_b then
+      raise exception 'Prova exposta exige troca integral de A e B';
+    end if;
+    -- Mesmo com duas provas novas, a liberacao exige revisao editorial
+    -- e uma migracao independente; nao ha atalho por UPDATE direto.
+    raise exception 'Desbloqueio de prova exposta exige migracao auditada';
+  end if;
+  if new.questions_a is distinct from old.questions_a
+     or new.questions_b is distinct from old.questions_b then
+    if jsonb_typeof(new.questions_a) is distinct from 'array'
+       or jsonb_typeof(new.questions_b) is distinct from 'array'
+       or jsonb_array_length(new.questions_a) <> 10
+       or jsonb_array_length(new.questions_b) <> 10 then
+      raise exception 'Rotacao exige bancos A/B completos';
+    end if;
+  end if;
+  return new;
+end
+$bank_guard$;
+drop trigger if exists training_exam_bank_revision_guard on training_private.exam_banks;
+create trigger training_exam_bank_revision_guard
+before update or delete on training_private.exam_banks
+for each row execute function training_private.guard_exam_bank_revision();
+
 create table if not exists training_private.exam_decisions (
   submission_id uuid primary key references public.submissions(id) on delete restrict,
   user_id uuid not null references public.profiles(id),
@@ -267,6 +316,8 @@ begin
     if not found or not v_published or not v_module_published then
       raise exception 'Aula de prova nao publicada';
     end if;
+    -- Serializa com rotacao do banco; impede corrida entre INSERT e UPDATE.
+    perform 1 from public.lessons where id=new.lesson_id for share;
     begin v_payload:=new.text_content::jsonb;
     exception when others then raise exception 'JSON de prova invalido'; end;
     if jsonb_typeof(v_payload) is distinct from 'object'
