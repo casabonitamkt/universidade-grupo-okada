@@ -189,7 +189,7 @@ async function submitLessonExam(id,stage){
  const button=$('lessonExamSubmit');if(button)button.disabled=true;
  try{
   // Revalidar no servidor para evitar repeticao por duplo clique ou retorno de pagina.
-  const check=await sb.from('submissions').select('id,submission_type,text_content,submitted_at').eq('user_id',user.id).eq('lesson_id',id);
+  const check=await sb.from('submissions').select('id,submission_type,text_content,submitted_at,status').eq('user_id',user.id).eq('lesson_id',id);
   if(check.error)throw check.error;
   const existing=check.data||[],a=existing.find(s=>s.submission_type==='lesson_exam_a'),b=existing.find(s=>s.submission_type==='lesson_exam_b');
   if((stage==='a'&&a)||(stage==='b'&&b))throw new Error('Esta tentativa ja foi registrada. Atualize a pagina.');
