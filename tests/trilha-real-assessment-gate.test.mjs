@@ -7,7 +7,7 @@ import { runInNewContext } from 'node:vm';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const start = html.indexOf('function requiresLessonAssessment(l){');
-const end = html.indexOf('\nwindow.openLesson=id=>', start);
+const end = html.indexOf('\nlet lessonExamSubmitting=false;', start);
 assert.ok(start > 0 && end > start, 'Gate de avaliacao ausente');
 const requiresLessonAssessment = runInNewContext('(' + html.slice(start, end) + ')');
 
@@ -25,7 +25,7 @@ test('qualquer prova ou reteste cadastrado bloqueia conclusao direta', () => {
 
 test('botao de concluir e evidencia ficam ocultos para aulas com prova', () => {
   assert.ok(html.includes("noEvidence||requiresLessonAssessment(l)?''"));
-  assert.ok(html.includes("requiresLessonAssessment(l)?'<div class=\"feature adminAlert\""));
+  assert.ok(html.includes("requiresLessonAssessment(l)?renderLessonExam(l)"));
 });
 
 test('tentativa direta de concluir aula com prova nao escreve no banco', async () => {
