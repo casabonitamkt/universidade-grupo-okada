@@ -36,7 +36,7 @@ $strict$;
 
 -- As aulas novas so ficam visiveis DEPOIS da migracao dos gabaritos.
 update public.lessons set is_published=true
-where code in ('EXAM-APROVA','EXAM-RETESTE','F1-D30-A01');
+where code in ('EXAM-APROVA','EXAM-RETESTE','F1-D30-A01','EXAM-PASS-SCORE');
 
 -- REGRESSAO: a migracao nao pode deixar futuras publicacoes vazarem
 -- gabaritos por INSERT ou UPDATE de lessons.content, nem via postgres.
