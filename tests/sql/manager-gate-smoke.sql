@@ -124,6 +124,12 @@ values('11111111-1111-4111-8111-111111111111',
  '33333333-3333-4333-8333-333333333333','completed',now(),now())
 on conflict (user_id,lesson_id) do update set updated_at=now();
 
+-- Regressao: exam_required=false nao ativa prova nem bloqueia conclusao.
+insert into public.lesson_progress(user_id,lesson_id,status,started_at,completed_at)
+values('11111111-1111-4111-8111-111111111111',
+ 'cccccccc-cccc-4ccc-8ccc-cccccccccccc','completed',now(),now())
+on conflict (user_id,lesson_id) do update set updated_at=now();
+
 select public.test_expect_error($sql$
  insert into public.lesson_progress(user_id,lesson_id,status,completed_at)
  values('11111111-1111-4111-8111-111111111111',
