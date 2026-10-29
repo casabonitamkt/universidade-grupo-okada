@@ -68,3 +68,14 @@
 - Acrescentado o trigger `training_public_exam_keys_guard` (INSERT ou UPDATE OF content), que rejeita qualquer tentativa de gravar essas duas chaves em `public.lessons.content`, inclusive por integracoes privilegiadas. Ele e criado **depois** da copia atomica dos bancos para nao bloquear a migracao. Edicoes editoriais sem gabaritos continuam permitidas.
 - Adicionados testes SQL negativos de INSERT/UPDATE com gabarito e teste positivo de edicao editorial. Todos usam PostgreSQL descartavel no CI; **nenhuma mudanca aplicada no Supabase real**.
 - Revalidar CI PostgreSQL, PostgREST autenticado, editorial/browser e Vercel Preview no SHA final. A protecao nao elimina a necessidade de rollout coordenado e plano de rollback.
+
+
+## 29/10/2026 — Imutabilidade dos gabaritos após o primeiro envio (PR #46)
+
+- **Risco corrigido na proposta:** antes, `training_private.exam_banks` podia ter as questões A/B ou `minimum_score` alterados após uma submissão. A auditoria posterior recalcularia respostas históricas contra outro banco, violando a integridade da prova.
+- **Nova proteção:** trigger `training_exam_bank_revision_guard` impede UPDATE/DELETE de qualquer banco com ao menos uma submissão A/B, inclusive se a tentativa vier de acesso privilegiado. A inserção de prova bloqueia a linha da aula em modo `FOR SHARE`, enquanto a revisão do banco usa `FOR UPDATE` na mesma linha, serializando operações concorrentes.
+- **Prova previamente exposta:** `keys_previously_public=true` não pode ser removida por UPDATE direto, nem com substituição simultânea das duas provas. Desbloqueio futuro do D29 requer revisão editorial e **migração independente**, com auditoria de bancos A/B novos, sem reutilizar gabarito já divulgado.
+- **Edição legítima antes da primeira submissão:** a atualização de bancos completos A/B (10 questões cada) segue permitida em ambiente privilegiado, sem expor respostas na API pública.
+- **Testes de regressão adicionados:** UPDATE de questões, UPDATE de nota mínima e DELETE após envio; tentativa de limpar quarentena com e sem trocar A/B; rotação positiva pré-envio. Aguardam CI no SHA final.
+- **Rollback:** se houver qualquer submissão A/B, não apagar o trigger nem os bancos privados; preferir migração corretiva aditiva. A proteção de quarentena não deve ser removida em rollback de frontend.
+- **Produção:** esta mudança está apenas no PR #46; não foi executada no Supabase real. Requer CI verde, Preview Vercel READY no SHA final, homologação de permissões e rollout coordenado antes de liberar D30.
