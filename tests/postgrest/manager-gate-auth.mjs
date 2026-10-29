@@ -93,7 +93,10 @@ r=await api('/lesson_progress?select=status,completed_at&lesson_id=eq.'+exam);
 const progress=ok(r,'Consultor consulta conclusao');
 assert.equal(progress[0].status,'completed');
 assert.ok(progress[0].completed_at);
-blocked(await api('/lesson_progress?lesson_id=eq.'+exam,'DELETE',undefined),'Consultor nao apaga conclusao');
+r=await api('/lesson_progress?lesson_id=eq.'+exam,'DELETE',undefined);
+assert.ok(r.status<300||r.status===403,'DELETE inesperado: '+r.status);
+r=await api('/lesson_progress?select=status&lesson_id=eq.'+exam);
+assert.equal(ok(r,'Conclusao preservada apos DELETE negado por RLS')[0].status,'completed');
 blocked(await review(id,'approve',9,true,'Tentativa duplicada de aprovar conclusao.'),'Gestor nao duplica decisao');
 
 r=await api('/submissions','POST',{user_id:consultant,lesson_id:retest,submission_type:'lesson_exam_a',status:'pending',text_content:aBody([1,0,0,0,0,0,0,0,0,0])});
@@ -117,7 +120,8 @@ r=await api('/lesson_progress?select=status&lesson_id=eq.'+retest);
 assert.equal(ok(r,'Conclusao apos B')[0].status,'completed');
 
 blocked(await api('/exam_banks?select=*'),'Tabela privada nao exposta');
-blocked(await api('/rpc/training_exam_audit',{method:'GET'},noAuth),'Anonimo nao acessa auditoria');
-const badToken=consultantToken.slice(0,-1)+(consultantToken.endsWith('a')?'b':'a');
+blocked(await rpc('training_exam_audit',{p_submission_id:id},noAuth),'Anonimo nao acessa auditoria');
+const parts=consultantToken.split('.');
+const badToken=parts[0]+'.'+parts[1]+'.'+(parts[2][0]==='a'?'b':'a')+parts[2].slice(1);
 blocked(await api('/lessons?select=code','GET',undefined,badToken),'Assinatura JWT invalida');
 console.log('GATE POSTGREST AUTENTICADO APROVADO: JWT consultant/admin, RLS, gabarito, A/B, pratica, imutabilidade e historico.');
