@@ -25,7 +25,7 @@ test('qualquer prova ou reteste cadastrado bloqueia conclusao direta', () => {
 
 test('botao de concluir e evidencia ficam ocultos para aulas com prova', () => {
   assert.ok(html.includes("noEvidence||requiresLessonAssessment(l)?''"));
-  assert.ok(html.includes("requiresLessonAssessment(l)?'<div class=\"feature adminAlert\""));
+  assert.ok(html.includes("requiresLessonAssessment(l)?renderLessonExam(l)"));
 });
 
 test('tentativa direta de concluir aula com prova nao escreve no banco', async () => {
