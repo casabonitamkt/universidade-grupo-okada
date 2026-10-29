@@ -17,6 +17,31 @@ $fn$;
 set role authenticated;
 select set_config('app.test_uid','11111111-1111-4111-8111-111111111111',false);
 
+-- Gabaritos migrados para schema privado, inacessiveis ao consultor.
+do $check$
+declare c jsonb; q jsonb;
+begin
+ select content into c from public.lessons
+ where id='44444444-4444-4444-8444-444444444444';
+ if c ? 'questions_a' or c ? 'questions_b'
+    or c->'exam_required' is distinct from 'true'::jsonb then
+   raise exception 'Gabarito ainda exposto em lessons.content';
+ end if;
+ select public.training_exam_questions(
+   '44444444-4444-4444-8444-444444444444','a') into q;
+ if jsonb_typeof(q) is distinct from 'array' or jsonb_array_length(q)<>10
+    or jsonb_array_length(q->0)<>2 then
+   raise exception 'RPC de perguntas vazou gabarito ou falhou';
+ end if;
+end
+$check$;
+select public.test_expect_error($sql$
+ select * from training_private.exam_banks
+$sql$,'permission denied');
+select public.test_expect_error($sql$
+ select public.training_exam_audit('77777777-7777-4777-8777-777777777777')
+$sql$,'Somente gestor');
+
 -- Regra historica: o consultor continua podendo concluir aula sem prova.
 insert into public.lesson_progress(user_id,lesson_id,status,started_at,completed_at)
 values('11111111-1111-4111-8111-111111111111',
