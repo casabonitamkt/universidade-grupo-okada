@@ -141,7 +141,22 @@ module.exports = async function handler(req, res) {
         signatureMatchesReserializedJson = verifySignature(normalized, signature, config.secret);
       }
     } catch (_) { /* JSON inválido continua não autenticado */ }
+    // Diferenciar eventos recentes de retries antigos sem expor dados do cliente.
+    let age_bucket = 'unknown';
+    try {
+      const envelope = JSON.parse(raw.toString('utf8'));
+      const eventSeconds = Number(envelope.timestamp);
+      const eventMs = Number.isFinite(eventSeconds) && eventSeconds > 1000000000 && eventSeconds < 10000000000
+        ? eventSeconds * 1000
+        : Date.parse(envelope.payload?.message?.timestamp || '');
+      if (Number.isFinite(eventMs)) {
+        const diff = Date.now() - eventMs;
+        age_bucket = diff < -60000 ? 'future' : diff <= 120000 ? 'fresh_2m'
+          : diff <= 900000 ? 'recent_15m' : 'old_over_15m';
+      }
+    } catch (_) { /* não autenticado; nunca logar o payload */ }
     console.warn('zappy_inbound_invalid_signature', {
+      event_age_bucket: age_bucket,
       signature_present: Boolean(signature),
       signature_format_ok: signatureFormatOk,
       signature_matches_reserialized_json: signatureMatchesReserializedJson,
