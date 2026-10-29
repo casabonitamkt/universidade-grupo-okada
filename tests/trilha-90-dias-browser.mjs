@@ -94,7 +94,7 @@ try {
     });
     assert.equal(await page.locator('#lessonBox button').count(), 1, 'Aula antiga deve manter botao no ' + name);
     await page.evaluate(() => window.openLesson('nova'));
-    assert.equal(await page.locator('#lessonBox button').count(), 0, 'Aula com prova nao pode concluir no ' + name);
+    assert.equal(await page.locator('#lessonBox button:not(#lessonExamSubmit)').count(), 0, 'Aula com prova nao pode concluir diretamente no ' + name);
     assert.match(await page.locator('#lessonBox').textContent(), /PROVAR — avaliação teórica e prática/);
     assert.equal(await page.locator('#lessonBox fieldset').count(), 10);
     assert.equal(await page.locator('#lessonExamSubmit').count(), 1);
