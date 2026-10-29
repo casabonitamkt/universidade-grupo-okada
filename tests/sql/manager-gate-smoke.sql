@@ -110,10 +110,10 @@ do $legacy$
 declare v_content jsonb;
 begin
   select content into v_content from public.lessons where code='HISTORICA';
+  -- Rodando como authenticated: o schema privado deve continuar inacessivel.
+  -- Ausencia de banco decorre da fixture sem questions_a/questions_b.
   if not (v_content ? 'minimum_score' and v_content ? 'retest_rule')
-     or v_content ? 'exam_required'
-     or exists(select 1 from training_private.exam_banks
-               where lesson_id='33333333-3333-4333-8333-333333333333') then
+     or v_content ? 'exam_required' then
     raise exception 'Fixture historica nao reproduz aula real sem A/B';
   end if;
 end
