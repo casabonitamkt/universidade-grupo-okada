@@ -17,10 +17,15 @@ test('aulas historicas sem prova continuam no fluxo anterior', () => {
   assert.ok(html.includes("sb.from('lesson_progress').upsert({user_id:user.id,lesson_id:id"));
 });
 
-test('qualquer prova ou reteste cadastrado bloqueia conclusao direta', () => {
+test('somente prova A/B ou marcador explicito bloqueia conclusao direta', () => {
   for (const content of [
-    { questions_a: [] }, { questions_b: [] }, { exam_required: true }, { minimum_score: 8 }, { retest_rule: 'Revisao escrita' }
+    { questions_a: [] }, { questions_b: [] }, { exam_required: true }
   ]) assert.equal(requiresLessonAssessment({ content }), true);
+  // As 56 aulas historicas usam estes campos, mas nao possuem banco A/B.
+  for (const content of [
+    { minimum_score: 8 }, { retest_rule: 'Revisao escrita' },
+    { minimum_score: 8, retest_rule: 'Revisao escrita' }
+  ]) assert.equal(requiresLessonAssessment({ content }), false);
 });
 
 test('botao de concluir e evidencia ficam ocultos para aulas com prova', () => {
