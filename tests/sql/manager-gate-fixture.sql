@@ -45,6 +45,12 @@ create function public.is_admin() returns boolean language sql stable security d
 set search_path=public as $$
  select exists(select 1 from public.profiles where id=auth.uid() and role='admin');
 $$;
+alter table public.profiles enable row level security;
+create policy profiles_self_read on public.profiles for select
+ using (id=auth.uid() or public.is_admin());
+create policy profiles_self_update on public.profiles for update
+ using (id=auth.uid() or public.is_admin())
+ with check (id=auth.uid() or public.is_admin());
 alter table public.submissions enable row level security;
 alter table public.lesson_progress enable row level security;
 create policy submissions_read on public.submissions for select
@@ -67,6 +73,7 @@ grant usage on schema public to authenticated,anon;
 grant usage on type public.submission_status,public.progress_status,public.app_role to authenticated;
 grant select,insert,update,delete on public.submissions,public.lesson_progress to authenticated;
 grant select on public.profiles,public.lessons,public.modules to authenticated;
+grant update on public.profiles to authenticated;
 grant execute on function public.is_admin() to authenticated;
 
 insert into public.profiles(id,full_name,role) values
