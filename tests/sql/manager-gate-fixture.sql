@@ -87,7 +87,7 @@ insert into public.profiles(id,full_name,role) values
 insert into public.modules(id,code,is_published)
 values('55555555-5555-4555-8555-555555555555','TESTE',true);
 insert into public.lessons(id,module_id,code,content,is_published) values
-('33333333-3333-4333-8333-333333333333','55555555-5555-4555-8555-555555555555','HISTORICA','{"body":"sem prova"}',true);
+('33333333-3333-4333-8333-333333333333','55555555-5555-4555-8555-555555555555','HISTORICA','{"body":"sem prova","minimum_score":8,"retest_rule":"revisao orientada, sem prova A/B"}',true);
 with a as (
  select jsonb_agg(jsonb_build_array('A pergunta '||i,jsonb_build_array('Certa','Errada'),0,i=1) order by i) bank
  from generate_series(1,10) i
