@@ -86,6 +86,10 @@ try {
       ], subs: [] };
       document.getElementById('app').classList.remove('hide');
       document.getElementById('login').classList.add('hide');
+      // O container e criado pelo renderConsult apos login real; fixture sem autenticacao.
+      const lessonBox = document.createElement('div');
+      lessonBox.id = 'lessonBox';
+      document.getElementById('app').appendChild(lessonBox);
       window.openLesson('historica');
     });
     assert.equal(await page.locator('#lessonBox button').count(), 1, 'Aula antiga deve manter botao no ' + name);
