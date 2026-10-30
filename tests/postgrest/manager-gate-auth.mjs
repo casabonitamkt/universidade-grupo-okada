@@ -26,6 +26,8 @@ function token(sub, role='authenticated') {
 }
 const consultantToken=token(consultant);
 const managerToken=token(manager);
+const forgedMilestoneConsultant='99999999-9999-4999-8999-999999999999';
+const forgedMilestoneToken=token(forgedMilestoneConsultant);
 const noAuth=null;
 async function api(path,method='GET',payload,auth=consultantToken){
  const headers={'Accept':'application/json','Content-Type':'application/json','Prefer':'return=representation'};
@@ -166,6 +168,17 @@ blocked(await api('/submissions','POST',{
  user_id:consultant,lesson_id:f2day34,submission_type:'lesson_exam_a',status:'pending',
  text_content:aBody()
 }), 'Envio F2 bloqueado antes do Marco 30');
+
+// Nao confiar em um status completed pre-migracao sem decisao privada aprovada.
+r=await api('/lesson_progress?select=status&lesson_id=eq.'+milestone,'GET',undefined,forgedMilestoneToken);
+assert.equal(ok(r,'Perfil com marco indevidamente concluido')[0].status,'completed');
+blocked(await rpc('training_exam_questions',{
+ p_lesson_id:f2day34,p_stage:'a'
+},forgedMilestoneToken),'Marco 30 legado sem aprovacao nao abre F2');
+blocked(await api('/submissions','POST',{
+ user_id:forgedMilestoneConsultant,lesson_id:f2day34,
+ submission_type:'lesson_exam_a',status:'pending',text_content:aBody()
+},forgedMilestoneToken),'Marco 30 legado sem aprovacao nao permite enviar F2');
 
 // Marco 30: duas simulacoes, notas individuais, evidencias e erro critico.
 r=await api('/submissions','POST',{user_id:consultant,lesson_id:milestone,submission_type:'lesson_exam_a',status:'pending',text_content:aBody()});
