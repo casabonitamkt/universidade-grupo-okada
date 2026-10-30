@@ -143,3 +143,30 @@ jobs:
       - name: Parar ambiente isolado
         if: always()
         run: supabase stop --no-backup || true
+
+  main-integration-preflight:
+    name: Integracao com main atual — sem merge remoto
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Ensaiar merge da branch com main mais recente apenas no runner
+        run: |
+          git fetch origin main
+          git merge --no-commit --no-ff origin/main
+          if test -n "$(git diff --name-only --diff-filter=U)"; then
+            echo "Conflito de integracao com main; manter PR DRAFT"
+            exit 1
+          fi
+      - name: Regressao de provas e painel sobre a arvore integrada
+        run: |
+          node --test tests/manager-verified-exams.test.mjs \
+            tests/manager-transactional-ui.test.mjs \
+            tests/trilha-real-exam-pilot.test.mjs \
+            tests/trilha-90-dias-gate-painel-real.test.mjs
