@@ -56,6 +56,29 @@ update public.lessons
 set content=jsonb_set(content,'{editorial_guard_test}','true'::jsonb)
 where code='EXAM-APROVA';
 
+-- Espelhar o trigger JA EXISTENTE no Supabase real antes de testar o novo
+-- training_profile_role_guard. A producao protege role E graduation.
+-- Esta fixture e descartavel: nao altera o banco remoto.
+alter table public.profiles add column graduation text;
+create or replace function public.protect_profile_privileged_fields()
+returns trigger language plpgsql security definer
+set search_path=public as $legacy_guard$
+begin
+  if auth.uid() is not null and auth.uid()=old.id and not public.is_admin() then
+    if new.role is distinct from old.role then
+      raise exception 'role can only be changed by an administrator';
+    end if;
+    if new.graduation is distinct from old.graduation then
+      raise exception 'graduation can only be changed by an administrator';
+    end if;
+  end if;
+  return new;
+end
+$legacy_guard$;
+create trigger trg_protect_profile_privileged_fields
+before update on public.profiles
+for each row execute function public.protect_profile_privileged_fields();
+
 set role authenticated;
 select set_config('app.test_uid','11111111-1111-4111-8111-111111111111',false);
 
@@ -64,6 +87,12 @@ select public.test_expect_error($sql$
  update public.profiles set role='admin'
  where id='11111111-1111-4111-8111-111111111111'
 $sql$,'Somente gestor pode alterar papel');
+-- O guard historico de graduation continua ativo junto ao novo guard de role.
+select public.test_expect_error($sql$
+ update public.profiles set graduation='admin-fraudulenta'
+ where id='11111111-1111-4111-8111-111111111111'
+$sql$,'graduation can only be changed by an administrator');
+
 -- Uma prova publicada antes da migracao nao pode ser aplicada com gabarito vazado.
 select public.test_expect_error($sql$
  select public.training_exam_questions(
@@ -186,6 +215,17 @@ $sql$,'Apenas gestor');
 
 set role authenticated;
 select set_config('app.test_uid','22222222-2222-4222-8222-222222222222',false);
+-- Gestor autenticado pode atualizar graduation sem desativar trigger legado.
+update public.profiles set graduation='nivel-validado'
+where id='11111111-1111-4111-8111-111111111111';
+do $admin_graduation$
+begin
+  if (select graduation from public.profiles
+      where id='11111111-1111-4111-8111-111111111111') is distinct from 'nivel-validado' then
+    raise exception 'Regressao: gestor nao conseguiu atualizar graduation';
+  end if;
+end
+$admin_graduation$;
 -- NULL nunca pode ser interpretado implicitamente como needs_revision.
 select public.test_expect_error($sql$
  select public.training_review_exam(
