@@ -3,6 +3,9 @@ on:
   pull_request:
     paths:
       - 'crm-piloto.html'
+      - 'crm-master.html'
+      - 'api/crm-master.js'
+      - 'tests/crm-master.test.cjs'
       - 'index.html'
       - 'tests/crm-piloto-auto-refresh.test.cjs'
       - '.github/workflows/crm-piloto-tests.yml'
@@ -16,4 +19,4 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test tests/crm-piloto-auto-refresh.test.cjs
+      - run: node --test tests/crm-piloto-auto-refresh.test.cjs tests/crm-master.test.cjs
