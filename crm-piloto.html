@@ -231,6 +231,29 @@
     @media(max-width:1300px){.crm-sidebar{width:190px}.topbar,main{margin-left:190px;width:calc(100% - 190px)}.sidebar-brand strong{font-size:11px}.crm-kpis{gap:7px}.kpi-card{padding:10px}.layout{grid-template-columns:minmax(170px,25%) minmax(0,1fr) minmax(175px,26%)}}
     @media(max-width:1100px){.layout{height:auto;grid-template-columns:minmax(180px,34%) minmax(0,1fr)}.contacts-box,.conversation-box{height:470px;min-height:0}.details-box{grid-column:1/-1}.crm-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.followup-grid{grid-template-columns:1fr}.results-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:740px){.crm-sidebar{position:static;width:100%;height:auto;padding:9px 10px}.sidebar-brand{padding:5px 8px 9px}.sidebar-caption,.sidebar-bottom{display:none}.crm-nav{display:flex;gap:5px;overflow-x:auto;padding:7px 0}.crm-nav-link{flex-shrink:0;width:auto;padding:9px 11px;white-space:nowrap}.crm-nav-link span{display:none}.topbar,main{margin-left:0;width:100%}.header-inner{padding:10px 14px}.crm-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.overview-title{align-items:flex-start}.period-chip{display:none}.overview-actions{flex-wrap:wrap}.overview-actions button{margin-left:0}.layout{display:flex;flex-direction:column;height:auto}.contacts-box{height:auto;max-height:290px}.conversation-box{height:550px;min-height:480px}.details-box{min-height:0}.results-grid{grid-template-columns:1fr 1fr}.workspace-heading{align-items:flex-start;flex-direction:column}.workspace-button{margin-left:0}}
+
+    /* Alertas de follow-up visíveis na primeira tela, com prioridade por inatividade real. */
+    .followup-alerts{margin:16px 0 17px;padding:16px 18px 13px;background:linear-gradient(125deg,#28221e,#1d1e20 70%);border:1px solid #8e6d46;border-radius:15px}
+    .followup-alerts-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px}
+    .followup-alerts-heading h2{font-size:18px;color:#f6eddd;margin:3px 0 1px}
+    .followup-alerts-heading p{font-size:11px;color:#c3b7a5;margin:3px 0}
+    .followup-total{display:inline-flex;min-width:24px;justify-content:center;align-items:center;background:#9e6b3c;border-radius:100px;padding:1px 8px;color:#fff;font-size:13px;vertical-align:middle}
+    .followup-alerts-action{background:#c9a36b;border:1px solid #d5b27d;border-radius:9px;color:#1c1916;padding:9px 12px;font-weight:750;font-size:11px;white-space:nowrap;cursor:pointer}
+    .followup-alert-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .followup-alert-card{display:grid;justify-items:start;gap:3px;padding:12px 14px;text-align:left;min-width:0;border-radius:11px;border:1px solid #735b3d;background:#332a20;color:#f3e7d6;cursor:pointer}
+    .followup-alert-card:hover,.followup-alert-card:focus-visible{outline:2px solid #e8c48c;outline-offset:1px}
+    .followup-alert-card .alert-label{font-size:10px;font-weight:800;letter-spacing:.1em}
+    .followup-alert-card strong{font-size:29px;line-height:1.1;color:#fff}
+    .followup-alert-card>span:not(.alert-label){font-size:12px;font-weight:750}
+    .followup-alert-card small{font-size:10px;color:#d1c6b9}
+    .followup-alert-card.warning{background:#302a20;border-color:#907347}.followup-alert-card.warning .alert-label{color:#f3c779}
+    .followup-alert-card.urgent{background:#3d281d;border-color:#b06b37}.followup-alert-card.urgent .alert-label{color:#ffb16d}
+    .followup-alert-card.critical{background:#452325;border-color:#b95b57}.followup-alert-card.critical .alert-label{color:#ff9990}
+    .followup-alert-card.is-clear{background:#222622;border-color:#465d48}.followup-alert-card.is-clear .alert-label{color:#99c7a0}
+    .followup-alert-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:11px;color:#c6bdb0;font-size:11px}
+    .followup-alert-quicklist{display:flex;gap:7px;flex-wrap:wrap}
+    .followup-quicklink{border:1px solid #6c5940;background:#2f2a25;color:#f0d4a5;border-radius:99px;padding:5px 9px;font-size:10px;cursor:pointer;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    @media(max-width:740px){.followup-alerts{padding:12px}.followup-alerts-heading{align-items:flex-start;flex-direction:column}.followup-alert-grid{grid-template-columns:1fr 1fr 1fr;gap:5px}.followup-alert-card{padding:9px 7px}.followup-alert-card .alert-label{font-size:8px}.followup-alert-card strong{font-size:23px}.followup-alert-card>span:not(.alert-label){font-size:10px}.followup-alert-card small{font-size:9px}.followup-alerts-action{width:100%}}
   </style>
 </head>
 <body>
@@ -280,6 +303,15 @@
         <article class="kpi-card"><span>Fechamentos possíveis</span><strong id="kpi-negotiations">—</strong><small>Em negociação</small></article>
         <article class="kpi-card kpi-highlight"><span>Vendas concluídas</span><strong id="kpi-won">—</strong><small>Quantidade registrada</small></article>
       </div>
+      <section class="followup-alerts" id="followup-alerts" aria-labelledby="followup-alerts-title">
+        <div class="followup-alerts-heading"><div><span class="eyebrow">ACOMPANHAMENTO PRIORITÁRIO</span><h2 id="followup-alerts-title">Follow-ups para revisar <span id="followup-total" class="followup-total">0</span></h2><p>Contatos sem movimentação recente. Confira o histórico antes de retomar o atendimento.</p></div><button type="button" id="open-followup-alerts" class="followup-alerts-action">Ver todos os follow-ups ↗</button></div>
+        <div class="followup-alert-grid">
+          <button type="button" class="followup-alert-card warning" data-followup-alert="24"><span class="alert-label">◷ ATENÇÃO</span><strong id="followup-home-24">0</strong><span>24 horas a 3 dias</span><small>Sem movimentação registrada</small></button>
+          <button type="button" class="followup-alert-card urgent" data-followup-alert="72"><span class="alert-label">⚑ PRIORIDADE</span><strong id="followup-home-72">0</strong><span>3 a 7 dias</span><small>Revisar oportunidade</small></button>
+          <button type="button" class="followup-alert-card critical" data-followup-alert="168"><span class="alert-label">● ALTA PRIORIDADE</span><strong id="followup-home-168">0</strong><span>Mais de 7 dias</span><small>Verificar possível recuperação</small></button>
+        </div>
+        <div class="followup-alert-footer"><span id="followup-alert-summary" role="status">Verificando sua carteira...</span><div id="followup-alert-quicklist" class="followup-alert-quicklist"></div></div>
+      </section>
       <div class="overview-actions"><strong>Central de conversas</strong><span>WhatsApp conectado · atualizações automáticas</span><button id="view-all-conversations" type="button">Ver todas as conversas ↗</button></div>
     </section>
     <div class="layout">
@@ -420,6 +452,40 @@ function navigateCRM(view){
 }
 function inactivityHours(lead){return lead.last_message_at?Math.max(0,(Date.now()-Date.parse(lead.last_message_at))/3600000):Infinity}
 function isUnread(lead){return Boolean(lead.last_message_at&&(!lead.last_read_at||Date.parse(lead.last_message_at)>Date.parse(lead.last_read_at)))}
+
+function followupAlertGroups(){
+  const active=leads.filter(l=>!['ganho','perdido'].includes(l.stage)&&l.last_message_at&&Number.isFinite(Date.parse(l.last_message_at)));
+  const groups={24:[],72:[],168:[]};
+  for(const lead of active){
+    const hours=inactivityHours(lead);
+    if(hours>=168)groups[168].push(lead);
+    else if(hours>=72)groups[72].push(lead);
+    else if(hours>=24)groups[24].push(lead);
+  }
+  for(const group of Object.values(groups))group.sort((a,b)=>inactivityHours(b)-inactivityHours(a));
+  return groups;
+}
+function renderFollowupAlerts(groups){
+  const total=groups[24].length+groups[72].length+groups[168].length;
+  el('followup-total').textContent=total;
+  for(const [hours,id] of [[24,'followup-home-24'],[72,'followup-home-72'],[168,'followup-home-168']]){
+    el(id).textContent=groups[hours].length;
+    const card=document.querySelector('[data-followup-alert="'+hours+'"]');
+    if(card)card.classList.toggle('is-clear',groups[hours].length===0);
+  }
+  el('followup-alert-summary').textContent=total?total+' contato(s) para revisão, classificados pela última movimentação.':'Nenhum contato com movimentação antiga nas faixas de 24h, 3 ou 7 dias.';
+  const top=[...groups[168],...groups[72],...groups[24]].slice(0,3);
+  const links=top.map(lead=>{
+    const button=document.createElement('button');button.type='button';button.className='followup-quicklink';
+    button.textContent=(lead.display_name||'Cliente')+' · '+Math.floor(inactivityHours(lead)/24)+'d';
+    button.addEventListener('click',()=>{navigateCRM('conversas');openLead(lead)});
+    return button;
+  });
+  el('followup-alert-quicklist').replaceChildren(...links);
+}
+document.querySelectorAll('[data-followup-alert]').forEach(button=>button.addEventListener('click',()=>navigateCRM('followup')));
+el('open-followup-alerts').addEventListener('click',()=>navigateCRM('followup'));
+
 function renderBusinessPanels(){
   const total=leads.length;
   const stageCount=stage=>leads.filter(l=>l.stage===stage).length;
@@ -432,11 +498,11 @@ function renderBusinessPanels(){
   el('result-total').textContent=total;
   el('result-won').textContent=won;
   el('result-conversion').textContent=total?(100*won/total).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%':'—';
-  const active=leads.filter(l=>!['ganho','perdido'].includes(l.stage));
+  const groups=followupAlertGroups();
+  renderFollowupAlerts(groups);
   for(const [hours,containerId,countId] of [[24,'fu-24','fu-24-count'],[72,'fu-3','fu-3-count'],[168,'fu-7','fu-7-count']]){
     // Faixas exclusivas: 24h–3d, 3d–7d e 7d+.
-    const max=hours===24?72:hours===72?168:Infinity;
-    const matches=active.filter(l=>inactivityHours(l)>=hours&&inactivityHours(l)<max).sort((a,b)=>inactivityHours(b)-inactivityHours(a));
+    const matches=groups[hours];
     el(countId).textContent=matches.length;
     const nodes=matches.map(l=>{
       const b=document.createElement('button');b.type='button';b.className='followup-item';
