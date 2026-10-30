@@ -38,6 +38,21 @@
     .contact-search::placeholder{color:#9296a5}
     .contact-search:focus{border-color:#e06570;box-shadow:0 0 0 2px rgba(219,48,60,.15)}
     .small-note{color:var(--muted);font-size:13px;margin:6px 0 0}
+    .field{display:grid;gap:6px;margin:10px 0}
+    .field label{font-size:12px;font-weight:700;color:var(--muted)}
+    .field select,.field textarea{display:block;width:100%;border-radius:9px;border:1px solid var(--line);background:#10121a;color:var(--text);padding:11px 12px;font:inherit}
+    .field textarea{resize:vertical;min-height:74px;max-height:220px}
+    .field select:focus,.field textarea:focus{outline:2px solid #f16c76;outline-offset:1px}
+    .panel-button,.action-link{background:#b12b36;color:#fff;border:0;padding:10px 15px;border-radius:9px;font-weight:700;cursor:pointer}
+    .panel-button:hover,.action-link:hover{background:#cb3c46;color:#fff;text-decoration:none}
+    .panel-button:disabled{opacity:.5;cursor:wait}
+    .action-link{display:inline-flex;align-items:center;margin-top:9px}
+    .contact-tools{border-top:1px solid var(--line);margin:0 0 16px;padding-top:12px}
+    .contact-tools[hidden]{display:none}
+    .media-label{font-size:12px;font-weight:700;color:#ffadb1;letter-spacing:.025em}
+    .stage-count{font-size:12px;color:var(--muted);margin-left:4px}
+    .message:not(:empty){max-width:830px}
+    [hidden]{display:none!important}
     .box-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:15px}
     h2{font-size:18px;line-height:1.35;letter-spacing:-.025em;margin:0}
     .read-only{color:var(--muted);font-size:11px;border:1px solid var(--line);padding:4px 8px;border-radius:7px;white-space:nowrap}
@@ -81,6 +96,13 @@
         <div class="box-head"><h2>Meus contatos</h2></div>
         <label for="search" class="small-note" style="margin:0 0 6px">Buscar contato</label>
         <input id="search" class="contact-search" type="search" placeholder="Nome ou telefone" autocomplete="off">
+        <label for="filter-stage" class="small-note" style="display:block;margin:0 0 6px">Filtrar etapa</label>
+        <select id="filter-stage" class="contact-search" aria-label="Filtrar contatos por etapa">
+          <option value="">Todas as etapas</option>
+          <option value="novo">Novo contato</option><option value="em_atendimento">Em atendimento</option>
+          <option value="proposta">Proposta enviada</option><option value="negociacao">Negociação</option>
+          <option value="ganho">Venda concluída</option><option value="perdido">Não convertido</option>
+        </select>
         <div id="leads"></div>
         <p id="empty-search" class="small-note" hidden>Nenhum contato encontrado.</p>
       </section>
@@ -89,6 +111,24 @@
           <h2 id="title">Conversa</h2>
           <span class="read-only">Somente leitura</span>
         </div>
+        <section class="contact-tools" id="contact-tools" hidden>
+          <div class="field">
+            <label for="lead-stage">Etapa de atendimento</label>
+            <select id="lead-stage">
+              <option value="novo">Novo contato</option><option value="em_atendimento">Em atendimento</option>
+              <option value="proposta">Proposta enviada</option><option value="negociacao">Negociação</option>
+              <option value="ganho">Venda concluída</option><option value="perdido">Não convertido</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="lead-notes">Observações comerciais (visíveis somente ao consultor)</label>
+            <textarea id="lead-notes" maxlength="2000" placeholder="Ex.: procurou sofá de 3 lugares, retorno na segunda-feira"></textarea>
+          </div>
+          <button id="save-notes" type="button" class="panel-button">Salvar observações</button>
+          <p class="small-note" id="action-status" role="status"></p>
+          <a id="reply-whatsapp" class="action-link" target="_blank" rel="noopener noreferrer" href="#">Responder pelo WhatsApp</a>
+          <p class="small-note">O envio de respostas ainda acontece pelo WhatsApp; o CRM está preparado para a próxima etapa.</p>
+        </section>
         <div id="messages" aria-live="polite">Selecione um contato para ler as mensagens.</div>
       </section>
     </div>
@@ -98,7 +138,8 @@ const SBURL='https://mjtphztvjnfjlhtxtwjz.supabase.co', KEY='sb_publishable_tu2x
 const storage={getItem(k){try{return(localStorage.getItem('cb_keep_login_v1')==='false'?sessionStorage:localStorage).getItem(k)}catch{return null}},setItem(k,v){try{(localStorage.getItem('cb_keep_login_v1')==='false'?sessionStorage:localStorage).setItem(k,v)}catch{}},removeItem(k){localStorage.removeItem(k);sessionStorage.removeItem(k)}};
 const sb=supabase.createClient(SBURL,KEY,{auth:{persistSession:true,storage}});
 const REFRESH_MS=15000;
-let leads=[],selected=null,leadSignature='',renderedMessages=[],loading=false,messageRequest=0;
+const STAGE_LABELS={novo:'Novo contato',em_atendimento:'Em atendimento',proposta:'Proposta enviada',negociacao:'Negociação',ganho:'Venda concluída',perdido:'Não convertido'};
+let leads=[],selected=null,leadSignature='',renderedMessages=[],loading=false,messageRequest=0,selectedLeadId=null;
 const el=id=>document.getElementById(id);
 function node(tag,text){const e=document.createElement(tag);e.textContent=text;return e}
 function setSync(text){
@@ -114,6 +155,8 @@ function syncSelection(){
 function clearInbox(){
   leads=[];selected=null;leadSignature='';renderedMessages=[];messageRequest++;
   el('leads').replaceChildren();
+  el('contact-tools').hidden=true;
+  selectedLeadId=null;
   el('empty-search').hidden=true;
   el('title').textContent='Conversa';
   el('messages').textContent='Selecione um contato.';
@@ -122,7 +165,10 @@ function applyContactFilter(){
   const query=(el('search').value||'').trim().toLocaleLowerCase('pt-BR');
   let matching=0;
   for(const button of el('leads').querySelectorAll('button')){
-    const matches=!query||button.textContent.toLocaleLowerCase('pt-BR').includes(query);
+    const lead=leads.find(l=>l.id===button.dataset.leadId);
+    const stage=el('filter-stage').value;
+    const matches=(!query||button.textContent.toLocaleLowerCase('pt-BR').includes(query)) &&
+      (!stage||lead?.stage===stage);
     button.hidden=!matches;
     if(matches)matching++;
   }
@@ -130,12 +176,15 @@ function applyContactFilter(){
   el('empty-search').textContent=leads.length===0?'': 'Nenhum contato corresponde à busca.';
 }
 function renderLeads(next){
-  const signature=JSON.stringify(next.map(l=>[l.id,l.display_name,l.phone,l.stage]));
+  const signature=JSON.stringify(next.map(l=>[l.id,l.display_name,l.phone,l.stage,l.last_message_at]));
   leads=next;
-  if(signature===leadSignature)return;
+  if(signature===leadSignature){
+    // Notas podem ser atualizadas sem reconstruir a lista; preserve edições ainda não salvas.
+    return;
+  }
   leadSignature=signature;
   const buttons=leads.map(l=>{
-    const b=node('button',(l.display_name||'Cliente')+' • '+l.phone);
+    const b=node('button',(l.display_name||'Cliente')+' • '+l.phone+'\n'+(STAGE_LABELS[l.stage]||l.stage));
     b.className='lead';
     b.dataset.leadId=l.id;
     b.setAttribute('aria-pressed',String(selected===l.id));
@@ -149,15 +198,20 @@ async function refreshMessages(lead,manual=false){
   const request=++messageRequest;
   try{
     const {data,error}=await sb.from('crm_pilot_messages')
-      .select('id,direction,kind,body,event_at').eq('lead_id',lead.id)
+      .select('id,direction,kind,body,media_name,event_at').eq('lead_id',lead.id)
       .order('event_at',{ascending:false}).limit(200);
     if(request!==messageRequest || selected!==lead.id)return;
     if(error)throw error;
     // Consulta as 200 mensagens mais recentes e exibe em ordem cronológica.
+    const MEDIA_NAMES={image:'📷 Imagem recebida',audio:'🎤 Áudio recebido',video:'🎬 Vídeo recebido',document:'📄 Documento recebido',sticker:'Figurinha recebida',location:'📍 Localização recebida',unknown:'Mensagem com formato não identificado'};
     const rows=(data||[]).slice().reverse().map(m=>({
       id:m.id,
       text:(m.direction==='entrada'?'Cliente':'Consultor')+' • '+
-        new Date(m.event_at).toLocaleString('pt-BR')+'\n'+(m.body||'['+m.kind+']')
+        new Date(m.event_at).toLocaleString('pt-BR')+'\n'+
+        (m.kind==='text'?(m.body||'Mensagem sem texto'):
+          (MEDIA_NAMES[m.kind]||'Mensagem '+m.kind)+
+          (m.media_name?' • '+m.media_name:'')+
+          (m.body?'\n'+m.body:'\nArquivo disponível no WhatsApp'))
     }));
     if(!rows.length){
       if(renderedMessages.length || el('messages').textContent!=='Nenhuma mensagem registrada.'){
@@ -187,12 +241,47 @@ async function refreshMessages(lead,manual=false){
     return false;
   }
 }
+function showLeadTools(lead){
+  selectedLeadId=lead.id;
+  el('contact-tools').hidden=false;
+  el('lead-stage').value=lead.stage||'novo';
+  el('lead-notes').value=lead.notes||'';
+  el('action-status').textContent='';
+  const digits=(lead.phone||'').replace(/\\D/g,'');
+  if(/^\\d{10,15}$/.test(digits)){
+    el('reply-whatsapp').href='https://wa.me/'+digits;
+    el('reply-whatsapp').hidden=false;
+  }else{
+    el('reply-whatsapp').hidden=true;
+  }
+}
+async function updateLeadField(field,value){
+  if(!selected)return;
+  const id=selected;
+  const buttons=[el('save-notes'),el('lead-stage')];
+  buttons.forEach(b=>b.disabled=true);
+  el('action-status').textContent='Salvando...';
+  try{
+    const {data,error}=await sb.from('crm_pilot_leads').update({[field]:value})
+      .eq('id',id).select('id,stage,notes').single();
+    if(error)throw error;
+    if(!data || selected!==id)return;
+    const current=leads.find(l=>l.id===id);
+    if(current){current.stage=data.stage;current.notes=data.notes}
+    leadSignature='';
+    renderLeads(leads.slice());
+    el('action-status').textContent='Alteração salva.';
+  }catch(error){
+    el('action-status').textContent='Não foi possível salvar: '+error.message;
+  }finally{buttons.forEach(b=>b.disabled=false)}
+}
 async function openLead(lead){
   if(selected!==lead.id){
     selected=lead.id;renderedMessages=[];
     el('title').textContent=lead.display_name||lead.phone;
     el('messages').textContent='Carregando...';
     syncSelection();
+    showLeadTools(lead);
   }
   await refreshMessages(lead,true);
 }
@@ -210,8 +299,8 @@ async function load(){
       return;
     }
     const {data,error}=await sb.from('crm_pilot_leads')
-      .select('id,display_name,phone,stage').eq('owner_consultant_id',user.id)
-      .order('created_at',{ascending:false}).limit(100);
+      .select('id,display_name,phone,stage,notes,last_message_at,last_read_at').eq('owner_consultant_id',user.id)
+      .order('last_message_at',{ascending:false,nullsFirst:false}).limit(100);
     if(error)throw error;
     renderLeads(data||[]);
     el('status').textContent=leads.length+' contato(s) atribuído(s) à sua conta.';
@@ -223,6 +312,7 @@ async function load(){
       }
       else{
         selected=null;messageRequest++;renderedMessages=[];
+        el('contact-tools').hidden=true;
         el('title').textContent='Conversa';
         el('messages').textContent='Selecione um contato.';
       }
@@ -237,6 +327,9 @@ async function load(){
   }
 }
 el('search').addEventListener('input',applyContactFilter);
+el('filter-stage').addEventListener('change',applyContactFilter);
+el('lead-stage').addEventListener('change',()=>updateLeadField('stage',el('lead-stage').value));
+el('save-notes').addEventListener('click',()=>updateLeadField('notes',el('lead-notes').value.trim()));
 setInterval(()=>{if(!document.hidden)load()},REFRESH_MS);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
 window.addEventListener('focus',()=>{if(!document.hidden)load()});
