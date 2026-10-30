@@ -86,34 +86,35 @@ module.exports=async function handler(req,res){
     if(media.file_length>MAX_BYTES)return response(res,413,{error:'media_too_large'});
     const mime=safeType(media.media_type,media.mime_type);
     if(!mime)return response(res,415,{error:'media_format_not_supported'});
-    // Campos recebidos no webhook original, preservando os nomes documentados.
-    // Não incluir propriedades opcionais nulas na requisição para evitar rejeição de validação.
-    const reqBody={
+    // O webhook usa "mimetype". O endpoint de download do provedor pode validar
+    // esse campo de forma diferente do envio de mensagens ("mime_type").
+    // Tentar ambos os contratos, somente para erro 400 e no máximo uma repetição.
+    const common={
       direct_path:meta.direct_path,
       media_key:meta.media_key,
-      mime_type:media.mime_type,
       type:msg.kind,
       ...(Number.isSafeInteger(media.file_length)&&media.file_length>=0?{file_length:media.file_length}:{}),
       ...(typeof meta.file_sha256==='string'&&meta.file_sha256?{file_sha256:meta.file_sha256}:{}),
       ...(typeof meta.file_enc_sha256==='string'&&meta.file_enc_sha256?{file_enc_sha256:meta.file_enc_sha256}:{}),
       ...(typeof meta.url==='string'&&meta.url.startsWith('https://')?{url:meta.url}:{})
     };
-    const z=await fetch('https://zappy.api.br/v1/instances/'+encodeURIComponent(cfg.instance)+'/media/download',{
-      method:'POST',headers:{Authorization:'Bearer '+cfg.zappyKey,'Content-Type':'application/json'},
-      body:JSON.stringify(reqBody),signal:AbortSignal.timeout(14000)
-    });
+    const downloadUrl='https://zappy.api.br/v1/instances/'+encodeURIComponent(cfg.instance)+'/media/download';
+    const downloadHeaders={Authorization:'Bearer '+cfg.zappyKey,'Content-Type':'application/json'};
+    async function download(payload){
+      return fetch(downloadUrl,{
+        method:'POST',headers:downloadHeaders,body:JSON.stringify(payload),
+        signal:AbortSignal.timeout(14000)
+      });
+    }
+    let z=await download({...common,mimetype:media.mime_type});
+    if(z.status===400){
+      // Compatibilidade com versões que esperam mime_type sem parâmetros de codec.
+      z=await download({...common,mime_type:mime});
+    }
     if(!z.ok){
-      // Classificar somente o nome de campos de validação conhecidos; jamais registrar
-      // o corpo bruto do provedor, que poderia refletir segredos da mensagem.
-      let validationField='unknown';
-      if(z.status===400){
-        const body=(await z.text()).slice(0,1024);
-        for(const field of ['file_length','mimetype','mime_type','type','url','direct_path','media_key','file_sha256','file_enc_sha256']){
-          if(new RegExp('\\b'+field+'\\b','i').test(body)){validationField=field;break}
-        }
-      }
-      console.error('crm_media_provider_failure',{status:z.status,kind:msg.kind,validationField});
-      return response(res,502,{error:'provider_download_unavailable',provider_status:z.status,validation_field:validationField});
+      // Não registrar corpo do provedor, URLs, chaves, telefones ou dados do cliente.
+      console.error('crm_media_provider_failure',{status:z.status,kind:msg.kind,contract:'mimetype_then_mime_type'});
+      return response(res,502,{error:'provider_download_unavailable',provider_status:z.status});
     }
     const len=Number(z.headers.get('content-length')||'0');
     if(len>Math.ceil(MAX_BYTES*4/3)+2048)return response(res,413,{error:'media_too_large'});
@@ -132,6 +133,14 @@ module.exports=async function handler(req,res){
     }
     res.setHeader('Content-Type',mime);
     res.setHeader('Content-Disposition','inline');
+    // A Vercel limita respostas convencionais a 4,5 MB. Vídeos maiores
+    // precisam sair em chunks (stream), sem expor a mídia a URLs públicas.
+    if(content.length>4*1024*1024){
+      res.setHeader('X-Content-Type-Options','nosniff');
+      res.status(200);
+      for(let i=0;i<content.length;i+=64*1024)res.write(content.subarray(i,i+64*1024));
+      return res.end();
+    }
     res.setHeader('Content-Length',String(content.length));
     return res.status(200).end(content);
   }catch(error){
