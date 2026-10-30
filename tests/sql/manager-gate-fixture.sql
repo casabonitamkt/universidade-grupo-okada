@@ -112,6 +112,11 @@ from a cross join b cross join (values
  ('f2f2f2f2-f2f2-4f2f-8f2f-f2f2f2f2f2f2'::uuid,'F2-D34-A01')
 ) as v(id,code);
 
+-- Rubrica realista da aula F2, cinco competencias valendo 0 a 2 pontos.
+update public.lessons set content=jsonb_set(content,'{manager_practical_rubric}',
+ '{"criteria":["comparacao por ambiente","respeito ao projeto","confirmado versus pendente","alcada comercial","proximo passo"],"minimum_score":8,"points_per_criterion":2}'::jsonb)
+where code='F2-D34-A01';
+
 -- Legado preexistente, que a migracao nao pode alterar.
 insert into public.lesson_progress(user_id,lesson_id,status,started_at,completed_at)
 values('11111111-1111-4111-8111-111111111111',
