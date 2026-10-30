@@ -42,10 +42,14 @@ function harness(){
       const q={filter:null,
         select(){return this},
         eq(column,value){this.filter={column,value};return this},
-        order(){return this},
-        limit(){requests.push({table,filter:this.filter});
+        order(column,options){this.orderColumn=column;this.ascending=options?.ascending!==false;return this},
+        limit(max){requests.push({table,filter:this.filter});
           if(table==='crm_pilot_leads')return Promise.resolve({data:leads.map(l=>({...l})),error:null});
-          if(table==='crm_pilot_messages')return Promise.resolve({data:(messages[this.filter.value]||[]).map(m=>({...m})),error:null});
+          if(table==='crm_pilot_messages'){
+            const items=(messages[this.filter.value]||[]).map(m=>({...m}));
+            items.sort((a,b)=>(this.ascending?1:-1)*(new Date(a.event_at)-new Date(b.event_at)));
+            return Promise.resolve({data:items.slice(0,max),error:null});
+          }
           throw new Error('Tabela não esperada: '+table);
         }};
       return q;
