@@ -122,3 +122,17 @@ test('POST autenticado salva mensagem mesmo quando PostgREST responde 201 sem co
     }
   }
 });
+
+test('mídia mantém legenda e nome do documento sem dados de download',()=>{
+  const event=clone();
+  event.payload.message.type='document';
+  event.payload.message.caption='Orçamento da sala';
+  event.payload.message.filename='orcamento.pdf';
+  event.payload.message.direct_path='/v/private/path';
+  event.payload.message.media_key='secret-should-not-be-stored';
+  delete event.payload.message.text;
+  const value=normalizeEvent(event,instance);
+  assert.equal(value.body,'Orçamento da sala');
+  assert.equal(value.mediaName,'orcamento.pdf');
+  assert.equal(JSON.stringify(value).includes('secret-should-not-be-stored'),false);
+});
