@@ -298,3 +298,42 @@ test('seleção de contato atualiza sugestão sem enviar mensagem',async()=>{
   assert.match(h.elements.get('suggestion-text').textContent,/Olá! Sou seu consultor da Casa Bonita/);
   assert.equal(h.elements.get('suggestion-copy').disabled,false);
 });
+
+test('follow-ups aparecem em destaque na primeira tela com cores e navegação',()=>{
+  assert.match(html,/id="followup-alerts"/);
+  assert.match(html,/id="followup-home-24"/);
+  assert.match(html,/id="followup-home-72"/);
+  assert.match(html,/id="followup-home-168"/);
+  assert.match(html,/class="followup-alert-card warning"/);
+  assert.match(html,/class="followup-alert-card urgent"/);
+  assert.match(html,/class="followup-alert-card critical"/);
+  assert.match(html,/id="open-followup-alerts"/);
+  assert.ok(html.indexOf('id="followup-alerts"')<html.indexOf('class="overview-actions"'),'Alertas devem ficar acima da central de conversas');
+});
+test('alertas classificam contatos por inatividade sem inventar pendências',async()=>{
+  const h=harness();await settle();
+  const ago=days=>new Date(Date.now()-days*86400000).toISOString();
+  h.leads[0].last_message_at=ago(2);
+  h.leads.push(
+    {id:'lead-2',display_name:'Cliente 4 dias',phone:'5544999992222',stage:'proposta',last_message_at:ago(4)},
+    {id:'lead-3',display_name:'Cliente 9 dias',phone:'5544999993333',stage:'negociacao',last_message_at:ago(9)},
+    {id:'lead-4',display_name:'Venda encerrada',phone:'5544999994444',stage:'ganho',last_message_at:ago(15)},
+    {id:'lead-5',display_name:'Sem mensagem',phone:'5544999995555',stage:'novo'}
+  );
+  h.intervals[0].cb();await settle();
+  assert.equal(h.elements.get('followup-home-24').textContent,'1');
+  assert.equal(h.elements.get('followup-home-72').textContent,'1');
+  assert.equal(h.elements.get('followup-home-168').textContent,'1');
+  assert.equal(h.elements.get('followup-total').textContent,'3');
+  assert.equal(h.elements.get('fu-24-count').textContent,'1');
+  assert.equal(h.elements.get('fu-3-count').textContent,'1');
+  assert.equal(h.elements.get('fu-7-count').textContent,'1');
+  assert.equal(h.elements.get('followup-alert-quicklist').children.length,3);
+  assert.match(h.elements.get('followup-alert-quicklist').children[0].textContent,/Cliente 9 dias/);
+});
+test('contatos sem mensagem ou encerrados não geram falsos alertas de follow-up',async()=>{
+  const h=harness();await settle();
+  assert.equal(h.elements.get('followup-total').textContent,'0');
+  assert.equal(h.elements.get('followup-home-168').textContent,'0');
+  assert.match(h.elements.get('followup-alert-summary').textContent,/Nenhum contato/);
+});
