@@ -26,7 +26,7 @@ function harness(){
     append(...children){this.children.push(...children)}
     querySelectorAll(tag){return this.children.filter(c=>c.tagName===tag.toUpperCase())}
   }
-  const elements=new Map(['status','sync','sync-light','search','empty-search','leads','title','messages'].map(id=>[id,new Element('div')]));
+  const elements=new Map(['status','sync','sync-light','search','filter-stage','empty-search','contact-tools','lead-stage','lead-notes','save-notes','action-status','reply-whatsapp','leads','title','messages'].map(id=>[id,new Element('div')]));
   const document={
     hidden:false,
     getElementById:id=>elements.get(id),
@@ -41,8 +41,17 @@ function harness(){
     auth:{getUser:async()=>({data:{user:{id:'thiago-test'}},error:null})},
     from:table=>{
       const q={filter:null,
+        updated:null,
         select(){return this},
         eq(column,value){this.filter={column,value};return this},
+        update(data){this.updated=data;return this},
+        async single(){
+          if(table!=='crm_pilot_leads'||!this.updated)throw Error('Unexpected single()');
+          const lead=leads.find(l=>l.id===this.filter.value);
+          if(!lead)return {data:null,error:{message:'Contato não encontrado'}};
+          Object.assign(lead,this.updated);
+          return {data:{id:lead.id,stage:lead.stage,notes:lead.notes||''},error:null};
+        },
         order(column,options){this.orderColumn=column;this.ascending=options?.ascending!==false;return this},
         limit(max){requests.push({table,filter:this.filter});
           if(table==='crm_pilot_leads')return Promise.resolve({data:leads.map(l=>({...l})),error:null});
@@ -141,4 +150,42 @@ test('layout desktop duas colunas e celular uma coluna, sem botões manuais',()=
   assert.match(html,/class="box contacts-box"/);
   assert.match(html,/class="box conversation-box"/);
   assert.ok(!html.includes('id="reload"'));
+});
+
+
+test('etapa e observações são gravadas somente no contato selecionado',async()=>{
+  const h=harness();await settle();
+  h.elements.get('leads').children[0].onclick();await settle();
+  const stage=h.elements.get('lead-stage');
+  stage.value='proposta';
+  await stage.listeners.change();await settle();
+  assert.equal(h.leads[0].stage,'proposta');
+  const notes=h.elements.get('lead-notes');
+  notes.value='Retornar ao cliente sobre o orçamento';
+  await h.elements.get('save-notes').listeners.click();await settle();
+  assert.equal(h.leads[0].notes,'Retornar ao cliente sobre o orçamento');
+  assert.match(h.elements.get('action-status').textContent,/salva/);
+  assert.equal(h.elements.get('contact-tools').hidden,false);
+});
+
+test('filtra por etapa sem perder a conversa selecionada',async()=>{
+  const h=harness();await settle();
+  h.leads.push({id:'lead-2',display_name:'Cliente Proposta',phone:'5544999992222',stage:'proposta'});
+  h.intervals[0].cb();await settle();
+  h.elements.get('leads').children[0].onclick();await settle();
+  const filter=h.elements.get('filter-stage');
+  filter.value='proposta';filter.listeners.change();
+  assert.equal(h.elements.get('leads').children[0].hidden,true);
+  assert.equal(h.elements.get('leads').children[1].hidden,false);
+  assert.equal(h.elements.get('contact-tools').hidden,false);
+});
+
+test('legendas de mídia são apresentadas sem chaves de mídia no navegador',async()=>{
+  const h=harness();await settle();
+  h.messages['lead-1']=[{id:'media-1',direction:'entrada',kind:'image',body:'Foto do sofá',media_name:'sofa.jpg',event_at:'2026-10-30T13:00:00Z'}];
+  h.elements.get('leads').children[0].onclick();await settle();
+  const item=h.elements.get('messages').children[0].textContent;
+  assert.match(item,/Imagem recebida/);
+  assert.match(item,/Foto do sofá/);
+  assert.match(item,/sofa.jpg/);
 });
