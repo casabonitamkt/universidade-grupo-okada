@@ -254,15 +254,15 @@ test('botão de tela cheia acessível e reversível, sem acionamento automático
 });
 
 
-test('Universidade apresenta CRM no menu lateral e no menu móvel, com navegação no mesmo domínio',()=>{
+test('Universidade apresenta CRM em ambos os modos, preservando Master e consultor',()=>{
   const university=fs.readFileSync(require('node:path').join(__dirname,'..','index.html'),'utf8');
-  assert.match(university,/items\.splice\(1,0,\{id:'crm',icon:'▣',label:isCrmMaster\(\)\?'CRM · Master':'CRM · Atendimentos'\}\)/);
-  assert.match(university,/\{id:'crm',icon:'▣',label:isCrmMaster\(\)\?'CRM · Master':'CRM · Atendimentos'\}/);
-  assert.match(university,/if\(id==='crm'\)\{window\.location\.assign\(isCrmMaster\(\)\?'\/crm-master\.html':'\/crm-piloto\.html'\);return\}/);
+  assert.match(university,/items\\.splice\\(1,0,\\{id:'crm',icon:'▣',label:'CRM · Atendimentos'\\}\\)/);
+  assert.match(university,/\\{id:'crm',icon:'▣',label:isCrmMaster\\(\\)\\?'CRM · Master':'CRM · Atendimentos'\\}/);
+  assert.match(university,/isCrmMaster\\(\\)\\&\\&\\$\\('modeSwitch'\\)\\?\\.dataset\\.mode!=='consult'\\?'\\/crm-master\\.html':'\\/crm-piloto\\.html'/);
   assert.match(university,/id="nav" class="nav"/);
   assert.match(university,/id="mobileNav" class="mobileNav"/);
   assert.match(university,/id="crmHomeShortcut"/);
-  assert.match(university,/id="openCrmFromHome" onclick="showSec\('crm'\)"/);
+  assert.match(university,/id="openCrmFromHome" onclick="showSec\\('crm'\\)"/);
   assert.match(university,/ABRIR MEU CRM/);
 });
 
