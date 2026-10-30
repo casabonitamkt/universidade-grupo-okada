@@ -202,7 +202,8 @@ function disposeMedia(){
   mediaUrls.clear();
 }
 function queueMedia(job){
-  mediaQueue.push(job);
+  // Priorizar as mensagens recém-chegadas na lista de downloads.
+  mediaQueue.unshift(job);
   pumpMedia();
 }
 function pumpMedia(){
