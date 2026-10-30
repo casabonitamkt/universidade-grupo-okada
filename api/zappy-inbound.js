@@ -22,11 +22,15 @@ function normalizeEvent(event, expectedInstance) {
   const sender = [m.sender_pn, m.from].find(x => typeof x === 'string' && /^\d{10,15}@s\.whatsapp\.net$/.test(x));
   if (!sender || (typeof m.from === 'string' && m.from.endsWith('@g.us'))) return null;
   const kind = typeof m.type === 'string' ? m.type.slice(0, 32) : 'unknown';
-  const body = kind === 'text' && typeof m.text === 'string' ? m.text.slice(0, 10000) : '';
+  // Legendas e nome do documento não contêm os segredos de download da mídia.
+  // Nunca salvar em campos acessíveis no navegador media_key, direct_path ou URLs privadas.
+  const body = kind === 'text' && typeof m.text === 'string' ? m.text.slice(0, 10000)
+    : typeof m.caption === 'string' ? m.caption.slice(0, 2000) : '';
+  const mediaName = typeof m.filename === 'string' ? m.filename.slice(0, 180) : null;
   const timestamp = Date.parse(m.timestamp || '');
   return {
     phone: sender.split('@')[0], name: typeof m.push_name === 'string' ? m.push_name.slice(0, 100) : 'Cliente',
-    messageId: m.id, instanceId: p.instance_id, kind, body,
+    messageId: m.id, instanceId: p.instance_id, kind, body, mediaName,
     eventAt: Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : new Date().toISOString()
   };
 }
@@ -101,7 +105,7 @@ async function persist(message, config) {
       body: JSON.stringify({
         lead_id: leadId, source: 'zapi', instance_id: message.instanceId,
         external_message_id: message.messageId, direction: 'entrada',
-        kind: message.kind, body: message.body, event_at: message.eventAt
+        kind: message.kind, body: message.body, media_name: message.mediaName, event_at: message.eventAt
       })
     }, config);
   } catch (error) {
