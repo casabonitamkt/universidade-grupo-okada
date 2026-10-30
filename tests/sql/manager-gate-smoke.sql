@@ -98,6 +98,8 @@ $sql$,'Fase 2 exige Marco 30 concluido');
 
 -- Um registro pre-migracao completed sem decisao de gestor NAO autoriza F2.
 -- Este perfil ficticio possui progresso do Marco 30, mas nenhuma prova aprovada.
+-- Verificacao de fixture sob postgres: RLS do consultor nao pode ler a decisao privada.
+reset role;
 do $forged_progress$
 begin
   if not exists (
@@ -113,6 +115,7 @@ begin
   ) then raise exception 'Fixture de marco falso possui decisao gerencial'; end if;
 end
 $forged_progress$;
+set role authenticated;
 select set_config('app.test_uid','99999999-9999-4999-8999-999999999999',false);
 select public.test_expect_error($sql$
  select public.training_exam_questions(
