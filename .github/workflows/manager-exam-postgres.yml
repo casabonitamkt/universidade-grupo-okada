@@ -159,7 +159,7 @@ jobs:
       - name: Ensaiar merge da branch com main mais recente apenas no runner
         run: |
           git fetch origin main
-          git merge --no-commit --no-ff origin/main
+          git -c user.name='CI Merge Check' -c user.email='ci-merge-check@example.invalid' merge --no-commit --no-ff origin/main
           if test -n "$(git diff --name-only --diff-filter=U)"; then
             echo "Conflito de integracao com main; manter PR DRAFT"
             exit 1
