@@ -9,8 +9,8 @@ const inst='7f611f42-990f-4c6c-9493-e182de3c759a';
 const json=(status,data)=>({ok:status>=200&&status<300,status,
  headers:{get:k=>k==='content-type'?'application/json':null},
  json:async()=>data});
-const res=()=>({code:200,headers:{},body:null,setHeader(k,v){this.headers[k]=v;return this},
- status(n){this.code=n;return this},json(v){this.body=v;return this},end(v){this.body=v;return this}});
+const res=()=>({code:200,headers:{},body:null,chunks:[],setHeader(k,v){this.headers[k]=v;return this},
+ status(n){this.code=n;return this},json(v){this.body=v;return this},write(v){this.chunks.push(Buffer.from(v));return true},end(v){this.body=v||Buffer.concat(this.chunks);return this}});
 function setup(options={}){
  const vars={SUPABASE_URL:'https://unit.invalid',SUPABASE_SERVICE_ROLE_KEY:'unit-service',
  ZAPPY_INSTANCE_ID:inst,ZAPPY_API_KEY:'unit-api-key'};
@@ -21,10 +21,10 @@ function setup(options={}){
  globalThis.fetch=async(url,args={})=>{
   const u=String(url);
   if(u.endsWith('/auth/v1/user'))return json(200,{id:options.user||owner});
-  if(u.includes('crm_pilot_messages?'))return json(200,[{id:mid,lead_id:lead,kind:'image',instance_id:inst}]);
+  if(u.includes('crm_pilot_messages?'))return json(200,[{id:mid,lead_id:lead,kind:options.kind||'image',instance_id:inst}]);
   if(u.includes('crm_pilot_leads?'))return json(200,[{id:lead,owner_consultant_id:options.leadOwner||owner}]);
   if(u.includes('crm_pilot_media?'))return json(200,[{
-   media_type:'image',mime_type:'image/png',file_length:9,
+   media_type:options.kind||'image',mime_type:options.mime||'image/png',file_length:options.fileLength||9,
    download_metadata:{direct_path:'/v/abc',media_key:'private-unit-key',file_sha256:'hash',file_enc_sha256:'hash2'}
   }]);
   if(u.includes('/media/download')){
@@ -32,12 +32,14 @@ function setup(options={}){
    assert.equal(args.headers.Authorization,'Bearer unit-api-key');
    const request=JSON.parse(args.body);
    assert.equal(request.media_key,'private-unit-key');
-   assert.equal(request.type,'image');
-   assert.equal(request.file_length,9);
-   assert.equal(request.mime_type,'image/png');
-   assert.equal(Object.hasOwn(request,'mimetype'),false);
+   assert.equal(request.type,options.kind||'image');
+   assert.equal(request.file_length,options.fileLength||9);
    assert.equal(request.file_sha256,'hash');
-   return json(200,{data:Buffer.from('image-binary').toString('base64')});
+   if(options.failFirst&&downloads===1){assert.equal(request.mimetype,options.mime||'image/png');return json(400,{error:'invalid_mimetype'})}
+   if(options.failFirst){assert.equal(request.mime_type,(options.mime||'image/png').split(';')[0]);assert.equal(Object.hasOwn(request,'mimetype'),false)}
+   else {assert.equal(request.mimetype,options.mime||'image/png');assert.equal(Object.hasOwn(request,'mime_type'),false)}
+   const bytes=options.bytes||Buffer.from('image-binary');
+   return json(200,{data:bytes.toString('base64')});
   }
   throw Error('unexpected endpoint '+u);
  };
@@ -72,4 +74,20 @@ test('aceita somente formatos seguros para pré-visualização',()=>{
  assert.equal(handler.safeType('image','image/jpeg'),'image/jpeg');
  assert.equal(handler.safeType('audio','audio/ogg; codecs=opus'),'audio/ogg');
  assert.equal(handler.safeType('document','text/html'),null);
+});
+
+test('quando provedor rejeita mimetype, tenta uma vez com mime_type normalizado',async()=>{
+ const h=setup({failFirst:true,mime:'audio/ogg; codecs=opus',kind:'audio'});
+ try{const x=res();await handler(req(),x);assert.equal(x.code,200);assert.equal(x.headers['Content-Type'],'audio/ogg');assert.equal(h.downloads,2)}
+ finally{h.restore()}
+});
+test('vídeo maior que 4MB é transmitido em partes sem limite de resposta convencional',async()=>{
+ const bytes=Buffer.alloc(5*1024*1024,0x5a);
+ const h=setup({kind:'video',mime:'video/mp4',fileLength:bytes.length,bytes});
+ try{const x=res();await handler(req(),x);assert.equal(x.code,200);assert.equal(x.headers['Content-Type'],'video/mp4');
+ assert.equal(x.headers['Content-Length'],undefined);
+ assert.ok(x.chunks.length>20);
+ assert.deepEqual(x.body,bytes);
+ assert.equal(h.downloads,1);
+ }finally{h.restore()}
 });
