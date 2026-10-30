@@ -18,7 +18,7 @@ function harness(){
   const documentListeners={};
   const windowListeners={};
   class Element {
-    constructor(tag){this.isConnected=true;this.tagName=tag.toUpperCase();this.children=[];this.dataset={};this.attrs={};this.className='';this.onclick=null;this._text='';this.listeners={};this.hidden=false;this.value=''}
+    constructor(tag){this.isConnected=true;this.tagName=tag.toUpperCase();this.children=[];this.dataset={};this.attrs={};this.className='';this.onclick=null;this._text='';this.listeners={};this.hidden=false;this.value='';this.style={};this.classList={toggle(){},add(){},remove(){}}}
     set textContent(value){this._text=String(value);this.children=[]}
     get textContent(){return this._text+this.children.map(c=>c.textContent).join('')}
     setAttribute(name,value){this.attrs[name]=value}
@@ -30,7 +30,9 @@ function harness(){
   const elements=new Map(['status','sync','sync-light','search','filter-stage','empty-search','contact-tools','lead-stage','lead-notes','save-notes','action-status','reply-whatsapp','send-panel','send-content','send-button','send-status','leads','title','messages'].map(id=>[id,new Element('div')]));
   const document={
     hidden:false,
-    getElementById:id=>elements.get(id),
+    getElementById:id=>{if(!elements.has(id))elements.set(id,new Element('div'));return elements.get(id)},
+    querySelectorAll:()=>[],
+    querySelector:()=>new Element('div'),
     createElement:tag=>new Element(tag),
     addEventListener:(type,handler)=>{documentListeners[type]=handler}
   };
@@ -72,7 +74,7 @@ function harness(){
       mediaCalls.push(String(path));return {ok:true,blob:async()=>({size:64})};
     }return {json:async()=>({enabled:false})}},
     setInterval:(cb,ms)=>{intervals.push({cb,ms});return 1},
-    console,Date};
+    console,Date,setTimeout:(cb)=>{cb();return 1}};
   vm.runInNewContext(js,context,{filename:'crm-piloto.html'});
   return {elements,leads,messages,requests,intervals,document,documentListeners,windowListeners,mediaCalls};
 }
@@ -259,4 +261,37 @@ test('Universidade apresenta CRM no menu lateral e no menu móvel, com navegaç�
   assert.match(university,/if\(id==='crm'\)\{window\.location\.assign\('\/crm-piloto\.html'\);return\}/);
   assert.match(university,/id="nav" class="nav"/);
   assert.match(university,/id="mobileNav" class="mobileNav"/);
+});
+
+test('CRM premium oferece menu, visão geral, follow-up e resultados sem dados fictícios',()=>{
+  for(const view of ['inicio','conversas','leads','clientes','propostas','followup','resultados']){
+    assert.match(html,new RegExp('data-crm-view="'+view+'"'));
+  }
+  assert.match(html,/id="overview"/);
+  assert.match(html,/id="followup-panel"/);
+  assert.match(html,/id="results-panel"/);
+  assert.match(html,/id="suggestion-copy"/);
+  assert.match(html,/CRM de Vendas/);
+  assert.match(html,/CASA BONITA \| SIERRA/);
+  assert.match(html,/Conversão por valor/);
+  assert.match(html,/Aguardando integração de propostas e vendas/);
+  assert.match(html,/\.crm-sidebar\{position:fixed/);
+});
+test('indicadores premium derivam de contatos reais, não números de exemplo',async()=>{
+  const h=harness();await settle();
+  assert.equal(h.elements.get('result-total').textContent,'1');
+  assert.equal(h.elements.get('kpi-active').textContent,'1');
+  assert.equal(h.elements.get('kpi-won').textContent,'0');
+  assert.equal(h.elements.get('result-conversion').textContent,'0%');
+  h.leads.push({id:'lead-2',display_name:'Cliente Dois',phone:'5544999992222',stage:'ganho'});
+  h.intervals[0].cb();await settle();
+  assert.equal(h.elements.get('result-total').textContent,'2');
+  assert.equal(h.elements.get('kpi-won').textContent,'1');
+  assert.equal(h.elements.get('result-conversion').textContent,'50%');
+});
+test('seleção de contato atualiza sugestão sem enviar mensagem',async()=>{
+  const h=harness();await settle();
+  h.elements.get('leads').children[0].onclick();await settle();
+  assert.match(h.elements.get('suggestion-text').textContent,/Olá, Cliente Um!/);
+  assert.equal(h.elements.get('suggestion-copy').disabled,false);
 });
