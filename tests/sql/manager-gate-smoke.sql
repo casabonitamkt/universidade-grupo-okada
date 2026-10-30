@@ -98,6 +98,21 @@ $sql$,'Fase 2 exige Marco 30 concluido');
 
 -- Um registro pre-migracao completed sem decisao de gestor NAO autoriza F2.
 -- Este perfil ficticio possui progresso do Marco 30, mas nenhuma prova aprovada.
+do $forged_progress$
+begin
+  if not exists (
+    select 1 from public.lesson_progress
+    where user_id='99999999-9999-4999-8999-999999999999'
+      and lesson_id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+      and status='completed'
+  ) then raise exception 'Fixture de progresso legado ausente'; end if;
+  if exists (
+    select 1 from training_private.exam_decisions
+    where user_id='99999999-9999-4999-8999-999999999999'
+      and lesson_id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+  ) then raise exception 'Fixture de marco falso possui decisao gerencial'; end if;
+end
+$forged_progress$;
 select set_config('app.test_uid','99999999-9999-4999-8999-999999999999',false);
 select public.test_expect_error($sql$
  select public.training_exam_questions(
