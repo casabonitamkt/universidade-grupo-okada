@@ -13,11 +13,12 @@ function harness(){
   const leads=[{id:'lead-1',display_name:'Cliente Um',phone:'5544999991111',stage:'novo'}];
   const messages={'lead-1':[{id:'msg-1',direction:'entrada',kind:'text',body:'Mensagem original',event_at:'2026-10-30T12:00:00Z'}]};
   const requests=[];
+  const mediaCalls=[];
   const intervals=[];
   const documentListeners={};
   const windowListeners={};
   class Element {
-    constructor(tag){this.tagName=tag.toUpperCase();this.children=[];this.dataset={};this.attrs={};this.className='';this.onclick=null;this._text='';this.listeners={};this.hidden=false;this.value=''}
+    constructor(tag){this.isConnected=true;this.tagName=tag.toUpperCase();this.children=[];this.dataset={};this.attrs={};this.className='';this.onclick=null;this._text='';this.listeners={};this.hidden=false;this.value=''}
     set textContent(value){this._text=String(value);this.children=[]}
     get textContent(){return this._text+this.children.map(c=>c.textContent).join('')}
     setAttribute(name,value){this.attrs[name]=value}
@@ -38,7 +39,7 @@ function harness(){
   const localStorage={getItem:()=>null,removeItem:()=>{}};
   const sessionStorage={getItem:()=>null,removeItem:()=>{}};
   const supabase={createClient:()=>({
-    auth:{getUser:async()=>({data:{user:{id:'thiago-test'}},error:null})},
+    auth:{getUser:async()=>({data:{user:{id:'thiago-test'}},error:null}),getSession:async()=>({data:{session:{access_token:'unit-token'}},error:null})},
     from:table=>{
       const q={filter:null,
         updated:null,
@@ -66,10 +67,14 @@ function harness(){
     }
   })};
   const context={supabase,document,window,navigator,localStorage,sessionStorage,
+    URL:{createObjectURL:()=> 'blob:media-test',revokeObjectURL:()=>{}},
+    fetch:async(path)=>{if(String(path).startsWith('/api/crm-media?')){
+      mediaCalls.push(String(path));return {ok:true,blob:async()=>({size:64})};
+    }return {json:async()=>({enabled:false})}},
     setInterval:(cb,ms)=>{intervals.push({cb,ms});return 1},
     console,Date};
   vm.runInNewContext(js,context,{filename:'crm-piloto.html'});
-  return {elements,leads,messages,requests,intervals,document,documentListeners,windowListeners};
+  return {elements,leads,messages,requests,intervals,document,documentListeners,windowListeners,mediaCalls};
 }
 const settle=()=>new Promise(resolve=>setImmediate(resolve));
 
@@ -208,4 +213,26 @@ test('legendas de mídia são apresentadas sem chaves de mídia no navegador',as
   assert.match(item,/Imagem recebida/);
   assert.match(item,/Foto do sofá/);
   assert.match(item,/sofa.jpg/);
+});
+
+test('imagem e áudio aparecem automaticamente ao chegar, sem clicar em abrir',async()=>{
+  const h=harness();await settle();
+  h.elements.get('leads').children[0].onclick();await settle();
+  h.messages['lead-1'].push(
+    {id:'media-img',direction:'entrada',kind:'image',body:'',event_at:'2026-10-30T12:02:00Z'},
+    {id:'media-audio',direction:'entrada',kind:'audio',body:'',event_at:'2026-10-30T12:03:00Z'}
+  );
+  h.intervals[0].cb();
+  for(let i=0;i<5;i++)await settle();
+  const items=h.elements.get('messages').children;
+  assert.equal(items.length,3);
+  assert.ok(items[1].children.some(n=>n.tagName==='IMG'),'Foto deve ficar visível na conversa');
+  const audio=items[2].children.find(n=>n.tagName==='AUDIO');
+  assert.ok(audio,'Áudio deve aparecer sem clique');
+  assert.equal(audio.controls,true,'Áudio precisa ter controle de reprodução');
+  assert.equal(h.mediaCalls.length,2,'Cada mídia deve ser baixada uma vez');
+  const image=items[1].children.find(n=>n.tagName==='IMG');
+  h.intervals[0].cb();await settle();
+  assert.equal(h.mediaCalls.length,2,'Atualização não deve baixar a mesma mídia novamente');
+  assert.equal(h.elements.get('messages').children[1].children.find(n=>n.tagName==='IMG'),image);
 });
