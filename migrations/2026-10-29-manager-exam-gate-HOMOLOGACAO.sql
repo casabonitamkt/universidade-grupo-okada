@@ -175,6 +175,13 @@ begin
    where l.id=p_lesson_id and l.is_published and m.is_published) then
    raise exception 'Aula nao publicada';
  end if;
+ if exists(select 1 from public.lessons where id=p_lesson_id and code like 'F2-D%')
+   and not exists(select 1 from public.lesson_progress lp
+     join public.lessons marco on marco.id=lp.lesson_id
+     where lp.user_id=auth.uid() and marco.code='F1-D30-A01'
+       and lp.status='completed') then
+   raise exception 'Fase 2 exige Marco 30 concluido';
+ end if;
  if p_stage='b' and not exists(
    select 1 from public.submissions s
    join training_private.exam_banks eb on eb.lesson_id=s.lesson_id
@@ -292,7 +299,7 @@ declare
   v_content jsonb; v_published boolean; v_module_published boolean;
   v_payload jsonb; v_grade jsonb; v_prior public.submissions%rowtype;
   v_decision training_private.exam_decisions%rowtype;
-  v_bank jsonb; v_min integer;
+  v_bank jsonb; v_min integer; v_code text;
 begin
   if tg_op='DELETE' then
     if old.submission_type in ('lesson_exam_a','lesson_exam_b') then
@@ -309,12 +316,19 @@ begin
       or new.reviewed_at is not null or new.file_url is not null then
       raise exception 'Prova deve ser enviada pelo proprio consultor, pendente e sem revisao';
     end if;
-    select l.content,l.is_published,m.is_published
-      into v_content,v_published,v_module_published
+    select l.content,l.is_published,m.is_published,l.code
+      into v_content,v_published,v_module_published,v_code
       from public.lessons l join public.modules m on m.id=l.module_id
       where l.id=new.lesson_id;
     if not found or not v_published or not v_module_published then
       raise exception 'Aula de prova nao publicada';
+    end if;
+    if v_code like 'F2-D%' and not exists(
+      select 1 from public.lesson_progress lp
+      join public.lessons marco on marco.id=lp.lesson_id
+      where lp.user_id=new.user_id and marco.code='F1-D30-A01'
+        and lp.status='completed') then
+      raise exception 'Fase 2 exige Marco 30 concluido';
     end if;
     -- Serializa com rotacao do banco; impede corrida entre INSERT e UPDATE.
     perform 1 from public.lessons where id=new.lesson_id for share;
@@ -503,6 +517,13 @@ begin
     join public.modules m on m.id=l.module_id
     where l.id=v_submission.lesson_id and l.is_published and m.is_published;
   if not found then raise exception 'Aula ainda nao publicada'; end if;
+  if v_code like 'F2-D%' and not exists(
+    select 1 from public.lesson_progress lp
+    join public.lessons marco on marco.id=lp.lesson_id
+    where lp.user_id=v_submission.user_id and marco.code='F1-D30-A01'
+      and lp.status='completed') then
+    raise exception 'Fase 2 exige Marco 30 concluido';
+  end if;
   if (select count(*) from public.submissions
       where user_id=v_submission.user_id and lesson_id=v_submission.lesson_id
         and submission_type=v_submission.submission_type) <> 1 then
