@@ -143,13 +143,33 @@ test('busca contatos por nome sem alterar a conversa aberta',async()=>{
   assert.equal(h.elements.get('messages').children[0],selected);
 });
 
-test('layout desktop duas colunas e celular uma coluna, sem botões manuais',()=>{
-  assert.match(html,/grid-template-columns:minmax\(285px,350px\) minmax\(0,1fr\)/);
+test('layout desktop em três colunas e adaptação ao celular',()=>{
+  assert.match(html,/grid-template-columns:minmax\(230px,25%\) minmax\(350px,1fr\) minmax\(240px,24%\)/);
   assert.match(html,/@media\(max-width:740px\)/);
-  assert.match(html,/\.layout\{grid-template-columns:minmax\(0,1fr\)/);
+  assert.match(html,/\.layout\{display:flex;flex-direction:column/);
   assert.match(html,/class="box contacts-box"/);
   assert.match(html,/class="box conversation-box"/);
+  assert.match(html,/class="box details-box"/);
   assert.ok(!html.includes('id="reload"'));
+});
+test('bolhas à esquerda para cliente e à direita para consultor',async()=>{
+  const h=harness();await settle();
+  h.messages['lead-1'].push({id:'msg-out',direction:'saida',kind:'text',body:'Retorno ao cliente',event_at:'2026-10-30T12:01:00Z'});
+  h.elements.get('leads').children[0].onclick();await settle();
+  const bubbles=h.elements.get('messages').children;
+  assert.match(bubbles[0].className,/from-client/);
+  assert.match(bubbles[1].className,/from-consultant/);
+  assert.match(bubbles[1].textContent,/Retorno ao cliente/);
+});
+test('tecla Enter envia e Shift+Enter preserva quebra de linha',async()=>{
+  const h=harness();await settle();
+  const cb=h.elements.get('send-content').listeners.keydown;
+  assert.equal(typeof cb,'function');
+  let prevented=false;
+  cb({key:'Enter',shiftKey:true,isComposing:false,preventDefault(){prevented=true}});
+  assert.equal(prevented,false);
+  cb({key:'Enter',shiftKey:false,isComposing:false,preventDefault(){prevented=true}});
+  assert.equal(prevented,true);
 });
 
 
