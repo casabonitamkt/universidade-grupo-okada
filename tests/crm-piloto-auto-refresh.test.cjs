@@ -261,6 +261,9 @@ test('Universidade apresenta CRM no menu lateral e no menu móvel, com navegaç�
   assert.match(university,/if\(id==='crm'\)\{window\.location\.assign\(isCrmMaster\(\)\?'\/crm-master\.html':'\/crm-piloto\.html'\);return\}/);
   assert.match(university,/id="nav" class="nav"/);
   assert.match(university,/id="mobileNav" class="mobileNav"/);
+  assert.match(university,/id="crmHomeShortcut"/);
+  assert.match(university,/id="openCrmFromHome" onclick="showSec\('crm'\)"/);
+  assert.match(university,/ABRIR MEU CRM/);
 });
 
 test('CRM premium oferece menu, visão geral, follow-up e resultados sem dados fictícios',()=>{
