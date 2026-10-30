@@ -159,6 +159,27 @@ create trigger training_public_exam_keys_guard
 before insert or update of content on public.lessons
 for each row execute function training_private.reject_public_exam_keys();
 
+-- A Fase 2 depende de uma APROVACAO GERENCIAL real do Marco 30,
+-- nao apenas de status=completed (que poderia ser um registro pre-migracao).
+-- Requer a decisao privada, submissao aprovada e timestamp de conclusao coerente.
+create or replace function training_private.has_approved_milestone30(p_user uuid)
+returns boolean language sql stable security definer
+set search_path=pg_catalog,public,training_private
+as $milestone$
+  select exists(
+    select 1 from public.lesson_progress lp
+    join public.lessons l on l.id=lp.lesson_id and l.code='F1-D30-A01'
+    join training_private.exam_decisions d
+      on d.user_id=lp.user_id and d.lesson_id=lp.lesson_id and d.decision='approved'
+    join public.submissions s
+      on s.id=d.submission_id and s.user_id=lp.user_id
+      and s.lesson_id=lp.lesson_id and s.status='approved'
+      and s.submission_type in ('lesson_exam_a','lesson_exam_b')
+    where lp.user_id=p_user and lp.status='completed'
+      and lp.completed_at=d.reviewed_at
+  );
+$milestone$;
+
 -- Nao existe rota PostgREST publica para exam_banks.
 -- O RPC entrega apenas enunciado e alternativas, nunca indice correto ou erro critico.
 create or replace function public.training_exam_questions(p_lesson_id uuid,p_stage text)
@@ -176,10 +197,7 @@ begin
    raise exception 'Aula nao publicada';
  end if;
  if exists(select 1 from public.lessons where id=p_lesson_id and code like 'F2-D%')
-   and not exists(select 1 from public.lesson_progress lp
-     join public.lessons marco on marco.id=lp.lesson_id
-     where lp.user_id=auth.uid() and marco.code='F1-D30-A01'
-       and lp.status='completed') then
+   and not training_private.has_approved_milestone30(auth.uid()) then
    raise exception 'Fase 2 exige Marco 30 concluido';
  end if;
  if p_stage='b' and not exists(
@@ -323,11 +341,7 @@ begin
     if not found or not v_published or not v_module_published then
       raise exception 'Aula de prova nao publicada';
     end if;
-    if v_code like 'F2-D%' and not exists(
-      select 1 from public.lesson_progress lp
-      join public.lessons marco on marco.id=lp.lesson_id
-      where lp.user_id=new.user_id and marco.code='F1-D30-A01'
-        and lp.status='completed') then
+    if v_code like 'F2-D%' and not training_private.has_approved_milestone30(new.user_id) then
       raise exception 'Fase 2 exige Marco 30 concluido';
     end if;
     -- Serializa com rotacao do banco; impede corrida entre INSERT e UPDATE.
@@ -517,11 +531,7 @@ begin
     join public.modules m on m.id=l.module_id
     where l.id=v_submission.lesson_id and l.is_published and m.is_published;
   if not found then raise exception 'Aula ainda nao publicada'; end if;
-  if v_code like 'F2-D%' and not exists(
-    select 1 from public.lesson_progress lp
-    join public.lessons marco on marco.id=lp.lesson_id
-    where lp.user_id=v_submission.user_id and marco.code='F1-D30-A01'
-      and lp.status='completed') then
+  if v_code like 'F2-D%' and not training_private.has_approved_milestone30(v_submission.user_id) then
     raise exception 'Fase 2 exige Marco 30 concluido';
   end if;
   if (select count(*) from public.submissions
