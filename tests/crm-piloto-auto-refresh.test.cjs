@@ -209,3 +209,18 @@ test('legendas de mídia são apresentadas sem chaves de mídia no navegador',as
   assert.match(item,/Foto do sofá/);
   assert.match(item,/sofa.jpg/);
 });
+
+
+test('CRM ocupa largura do notebook e mantém painéis sem largura mínima excessiva',()=>{
+  assert.match(html,/\.header-inner,main\{width:100%;max-width:100%;margin:0\}/);
+  assert.match(html,/\.layout\{width:100%;grid-template-columns:minmax\(205px,23%\) minmax\(0,1fr\) minmax\(220px,23%\)/);
+  assert.match(html,/@media\(max-width:1100px\)/);
+  assert.match(html,/@media\(max-width:740px\)/);
+});
+test('botão de tela cheia acessível e reversível, sem acionamento automático',()=>{
+  assert.match(html,/id="fullscreen-toggle"[^>]+aria-label="Expandir CRM em tela cheia"/);
+  assert.match(html,/fullscreenToggle\.addEventListener\('click',async\(\)=>/);
+  assert.match(html,/document\.documentElement\.requestFullscreen\(\)/);
+  assert.match(html,/document\.exitFullscreen\(\)/);
+  assert.match(html,/document\.addEventListener\('fullscreenchange'/);
+});
