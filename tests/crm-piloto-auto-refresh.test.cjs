@@ -17,15 +17,16 @@ function harness(){
   const documentListeners={};
   const windowListeners={};
   class Element {
-    constructor(tag){this.tagName=tag.toUpperCase();this.children=[];this.dataset={};this.attrs={};this.className='';this.onclick=null;this._text=''}
+    constructor(tag){this.tagName=tag.toUpperCase();this.children=[];this.dataset={};this.attrs={};this.className='';this.onclick=null;this._text='';this.listeners={};this.hidden=false;this.value=''}
     set textContent(value){this._text=String(value);this.children=[]}
     get textContent(){return this._text+this.children.map(c=>c.textContent).join('')}
     setAttribute(name,value){this.attrs[name]=value}
+    addEventListener(type,cb){this.listeners[type]=cb}
     replaceChildren(...children){this._text='';this.children=children}
     append(...children){this.children.push(...children)}
     querySelectorAll(tag){return this.children.filter(c=>c.tagName===tag.toUpperCase())}
   }
-  const elements=new Map(['status','sync','reload','leads','title','messages'].map(id=>[id,new Element('div')]));
+  const elements=new Map(['status','sync','sync-light','search','empty-search','leads','title','messages'].map(id=>[id,new Element('div')]));
   const document={
     hidden:false,
     getElementById:id=>elements.get(id),
@@ -107,9 +108,37 @@ test('pausa atualização com aba oculta e retoma quando ela volta ao primeiro p
   assert.ok(h.requests.length>before);
 });
 
-test('botão manual permanece disponível para checagem imediata',async()=>{
+test('atualiza automaticamente sem exibir botão manual',async()=>{
   const h=harness();await settle();
+  assert.ok(!html.includes('id="reload"'));
   const before=h.requests.length;
-  h.elements.get('reload').onclick();await settle();
+  h.intervals[0].cb();await settle();
   assert.ok(h.requests.length>before);
+});
+
+test('busca contatos por nome sem alterar a conversa aberta',async()=>{
+  const h=harness();await settle();
+  h.leads.push({id:'lead-2',display_name:'Outra Pessoa',phone:'5544999992222',stage:'novo'});
+  h.intervals[0].cb();await settle();
+  h.elements.get('leads').children[0].onclick();await settle();
+  const selected=h.elements.get('messages').children[0];
+  const search=h.elements.get('search');
+  search.value='outra';search.listeners.input();
+  assert.equal(h.elements.get('leads').children[0].hidden,true);
+  assert.equal(h.elements.get('leads').children[1].hidden,false);
+  assert.equal(h.elements.get('empty-search').hidden,true);
+  search.value='inexistente';search.listeners.input();
+  assert.equal(h.elements.get('empty-search').hidden,false);
+  search.value='';search.listeners.input();
+  assert.equal(h.elements.get('leads').children[0].hidden,false);
+  assert.equal(h.elements.get('messages').children[0],selected);
+});
+
+test('layout desktop duas colunas e celular uma coluna, sem botões manuais',()=>{
+  assert.match(html,/grid-template-columns:minmax\(285px,350px\) minmax\(0,1fr\)/);
+  assert.match(html,/@media\(max-width:740px\)/);
+  assert.match(html,/\.layout\{grid-template-columns:minmax\(0,1fr\)/);
+  assert.match(html,/class="box contacts-box"/);
+  assert.match(html,/class="box conversation-box"/);
+  assert.ok(!html.includes('id="reload"'));
 });
