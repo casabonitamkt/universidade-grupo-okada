@@ -26,7 +26,7 @@ function harness(){
     append(...children){this.children.push(...children)}
     querySelectorAll(tag){return this.children.filter(c=>c.tagName===tag.toUpperCase())}
   }
-  const elements=new Map(['status','sync','sync-light','search','filter-stage','empty-search','contact-tools','lead-stage','lead-notes','save-notes','action-status','reply-whatsapp','leads','title','messages'].map(id=>[id,new Element('div')]));
+  const elements=new Map(['status','sync','sync-light','search','filter-stage','empty-search','contact-tools','lead-stage','lead-notes','save-notes','action-status','reply-whatsapp','send-panel','send-content','send-button','send-status','leads','title','messages'].map(id=>[id,new Element('div')]));
   const document={
     hidden:false,
     getElementById:id=>elements.get(id),
