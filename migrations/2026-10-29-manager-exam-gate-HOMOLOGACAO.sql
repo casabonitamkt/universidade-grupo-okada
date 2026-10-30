@@ -479,6 +479,8 @@ declare
   v_bank jsonb; v_min integer; v_code text;
   v_case jsonb; v_case_score integer; v_case_min integer;
   v_case_type text; v_practice_min integer:=10;
+  v_rubric jsonb; v_rubric_count integer; v_criterion jsonb;
+  v_criterion_score integer; v_score_sum integer;
   v_seen_project boolean:=false; v_seen_piece boolean:=false;
   v_practice_cases jsonb:=coalesce(p_practice_cases,'[]'::jsonb);
 begin
@@ -599,9 +601,40 @@ begin
        or length(btrim(coalesce(v_case->>'evidence',''))) < 80 then
       raise exception 'Pratica F2 exige nota valida, evidencia e zero erro critico';
     end if;
+    -- Rubrica real da aula: cinco competencias observadas, cada uma 0..2.
+    -- O total vem das competencias, nunca de uma nota livre no navegador.
+    v_rubric:=coalesce(v_content->'manager_practical_rubric',v_content->'practice_rubric');
+    v_rubric_count:=0;
+    if jsonb_typeof(v_rubric)='array' then
+      v_rubric_count:=jsonb_array_length(v_rubric);
+    elsif jsonb_typeof(v_rubric)='object' then
+      if jsonb_typeof(v_rubric->'criteria')='array' then
+        v_rubric_count:=jsonb_array_length(v_rubric->'criteria');
+      else
+        select count(*) into v_rubric_count from jsonb_each(v_rubric) as r(k,val)
+          where val='2'::jsonb;
+      end if;
+    end if;
+    if v_rubric_count<>5 then
+      raise exception 'Rubrica pratica F2 incompleta: cinco criterios sao obrigatorios';
+    end if;
+    if jsonb_typeof(v_case->'criteria_scores') is distinct from 'array'
+       or jsonb_array_length(v_case->'criteria_scores')<>5 then
+      raise exception 'Rubrica pratica F2 exige cinco notas individuais';
+    end if;
+    v_score_sum:=0;
+    for v_criterion in select value from jsonb_array_elements(v_case->'criteria_scores') loop
+      if jsonb_typeof(v_criterion) is distinct from 'number'
+         or v_criterion::text not in ('0','1','2') then
+        raise exception 'Cada criterio pratico F2 deve receber 0, 1 ou 2 pontos';
+      end if;
+      v_criterion_score:=(v_criterion::text)::integer;
+      v_score_sum:=v_score_sum+v_criterion_score;
+    end loop;
     v_case_score:=(v_case->>'score')::integer;
-    if v_case_score < 8 or p_practice_score <> v_case_score then
-      raise exception 'Nota pratica F2 abaixo de 8 ou inconsistente';
+    if v_case_score<>v_score_sum or p_practice_score<>v_score_sum
+       or v_score_sum<8 then
+      raise exception 'Nota pratica F2 deve somar os cinco criterios e atingir 8';
     end if;
   end if;
   if p_decision='approve' and (
