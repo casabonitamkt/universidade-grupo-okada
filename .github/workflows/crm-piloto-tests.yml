@@ -1,0 +1,18 @@
+name: CRM piloto automatic refresh tests
+on:
+  pull_request:
+    paths:
+      - 'crm-piloto.html'
+      - 'tests/crm-piloto-auto-refresh.test.cjs'
+      - '.github/workflows/crm-piloto-tests.yml'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/crm-piloto-auto-refresh.test.cjs
