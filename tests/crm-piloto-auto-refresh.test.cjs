@@ -236,3 +236,27 @@ test('imagem e áudio aparecem automaticamente ao chegar, sem clicar em abrir',a
   assert.equal(h.mediaCalls.length,2,'Atualização não deve baixar a mesma mídia novamente');
   assert.equal(h.elements.get('messages').children[1].children.find(n=>n.tagName==='IMG'),image);
 });
+
+test('CRM ocupa largura do notebook e mantém painéis sem largura mínima excessiva',()=>{
+  assert.match(html,/\.header-inner,main\{width:100%;max-width:100%;margin:0\}/);
+  assert.match(html,/\.layout\{width:100%;grid-template-columns:minmax\(205px,23%\) minmax\(0,1fr\) minmax\(220px,23%\)/);
+  assert.match(html,/@media\(max-width:1100px\)/);
+  assert.match(html,/@media\(max-width:740px\)/);
+});
+test('botão de tela cheia acessível e reversível, sem acionamento automático',()=>{
+  assert.match(html,/id="fullscreen-toggle"[^>]+aria-label="Expandir CRM em tela cheia"/);
+  assert.match(html,/fullscreenToggle\.addEventListener\('click',async\(\)=>/);
+  assert.match(html,/document\.documentElement\.requestFullscreen\(\)/);
+  assert.match(html,/document\.exitFullscreen\(\)/);
+  assert.match(html,/document\.addEventListener\('fullscreenchange'/);
+});
+
+
+test('Universidade apresenta CRM no menu lateral e no menu móvel, com navegação no mesmo domínio',()=>{
+  const university=fs.readFileSync(require('node:path').join(__dirname,'..','index.html'),'utf8');
+  assert.match(university,/items\.splice\(1,0,\{id:'crm',icon:'▣',label:'CRM · Atendimentos'\}\)/);
+  assert.match(university,/\{id:'crm',icon:'▣',label:'CRM · Atendimentos'\}/);
+  assert.match(university,/if\(id==='crm'\)\{window\.location\.assign\('\/crm-piloto\.html'\);return\}/);
+  assert.match(university,/id="nav" class="nav"/);
+  assert.match(university,/id="mobileNav" class="mobileNav"/);
+});

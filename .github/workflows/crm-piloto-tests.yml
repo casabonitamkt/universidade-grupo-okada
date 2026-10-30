@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'crm-piloto.html'
+      - 'index.html'
       - 'tests/crm-piloto-auto-refresh.test.cjs'
       - '.github/workflows/crm-piloto-tests.yml'
 permissions:

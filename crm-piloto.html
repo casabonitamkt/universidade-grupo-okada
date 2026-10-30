@@ -100,6 +100,53 @@
     .composer{margin-top:8px;padding-top:10px;flex-shrink:0}.composer textarea{min-height:62px;max-height:130px}.composer button{margin:5px 0}.conversation-box .box-head{flex-shrink:0}
     @media(max-width:1100px){.layout{grid-template-columns:minmax(215px,30%) minmax(0,1fr);height:calc(100dvh - 165px)}.details-box{grid-column:1/-1;min-height:auto}.details-box .contact-tools{display:grid;grid-template-columns:1fr 1fr;column-gap:14px}.details-box .box-head{margin-bottom:4px}.details-box .contact-summary{margin-bottom:5px}}
     @media(max-width:740px){.header-inner{padding:12px 14px}main{padding:10px 10px 22px}.layout{display:flex;flex-direction:column;height:auto;min-height:0;gap:10px}.contacts-box{min-height:180px;max-height:310px}.conversation-box{min-height:520px;height:min(75dvh,750px)}.details-box{min-height:auto}.details-box .contact-tools{display:block}#leads{overflow-y:auto}#messages{overflow-y:auto;min-height:200px}.message{max-width:88%}.box{padding:12px}.sync-panel{margin-bottom:9px}}
+    /* CRM notebook/full-screen: ocupar viewport sem cortar colunas. */
+    :root{--brand:#b9965c;--brand-dark:#54442d;--positive:#65c996}
+    .topbar{background:linear-gradient(120deg,#17191e,#25221f);border-bottom:2px solid #b9965c}
+    .brand{color:#e8c78d}
+    a{color:#e8c78d}
+    .lead[aria-pressed="true"]{background:#393329;border-color:#b9965c;box-shadow:inset 3px 0 0 #e8c78d}
+    .lead-new,.panel-button,.composer button{background:#866839}
+    .panel-button:hover,.composer button:hover{background:#a48149}
+    .action-link{background:#866839}
+    .action-link:hover{background:#a48149}
+    .contact-search:focus{border-color:#caa971;box-shadow:0 0 0 2px #b9965c33}
+    .message.from-consultant{background:#39342c;border-color:#66563c}
+    body{width:100%;overflow-x:hidden}
+    .header-inner,main{width:100%;max-width:100%;margin:0}
+    .header-inner{padding:9px clamp(10px,1.3vw,22px)}
+    .back{margin-bottom:3px}
+    main{padding:9px clamp(8px,1vw,18px) 12px}
+    .sync-panel{margin-bottom:8px;padding:7px 12px}
+    .layout{width:100%;grid-template-columns:minmax(205px,23%) minmax(0,1fr) minmax(220px,23%);height:calc(100dvh - 166px);min-height:380px;gap:9px}
+    .layout > *{min-width:0;min-height:0}
+    #leads,#messages{min-height:0}
+    .box{padding:clamp(9px,1vw,14px)}
+    .head-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .fullscreen-toggle{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid #b9965c;background:#25231f;color:#f1dbb6;border-radius:9px;padding:8px 12px;cursor:pointer;font-weight:650;font-size:12px}
+    .fullscreen-toggle:hover,.fullscreen-toggle:focus-visible{background:#3b3327;outline-color:#e8c78d}
+    :fullscreen .layout{height:calc(100dvh - 152px)}
+    @media(max-width:1100px){
+      .layout{grid-template-columns:minmax(200px,31%) minmax(0,1fr);height:auto;min-height:0}
+      .contacts-box,.conversation-box{height:calc(100dvh - 172px);min-height:380px}
+      .details-box{grid-column:1/-1}
+      #leads,#messages{min-height:0}
+    }
+    @media(max-width:740px){
+      .head-actions{width:100%;justify-content:space-between}
+      .fullscreen-toggle{padding:7px 10px}
+      .layout{display:flex;flex-direction:column;height:auto;min-height:0}
+      .contacts-box{height:auto;min-height:180px;max-height:310px}
+      .conversation-box{height:min(75dvh,750px);min-height:480px}
+      .details-box{min-height:0}
+      main{padding:9px 10px 22px}
+    }
+    @media(max-height:650px) and (min-width:1101px){
+      .layout{min-height:340px;height:calc(100dvh - 154px)}
+      .header-inner{padding-top:5px;padding-bottom:5px}
+      .box-head{margin-bottom:8px}
+      .subtitle{display:none}
+    }
   </style>
 </head>
 <body>
@@ -112,7 +159,7 @@
           <h1>Caixa de entrada</h1>
           <p class="subtitle">Central de atendimento • mensagens em tempo real</p>
         </div>
-        <span class="auto-tag"><span class="sync-light" aria-hidden="true"></span>Atualização automática</span>
+        <div class="head-actions"><span class="auto-tag"><span class="sync-light" aria-hidden="true"></span>Atualização automática</span><button id="fullscreen-toggle" class="fullscreen-toggle" type="button" aria-label="Expandir CRM em tela cheia" aria-pressed="false">⛶ Tela cheia</button></div>
       </div>
     </div>
   </header>
@@ -185,6 +232,30 @@ const STAGE_LABELS={novo:'Novo contato',em_atendimento:'Em atendimento',proposta
 let leads=[],selected=null,leadSignature='',renderedMessages=[],loading=false,messageRequest=0,selectedLeadId=null;
 const previewCache=new Map();
 const el=id=>document.getElementById(id);
+const fullscreenToggle=el('fullscreen-toggle');
+if(fullscreenToggle){
+  fullscreenToggle.addEventListener('click',async()=>{
+    try{
+      if(document.fullscreenElement){
+        if(document.exitFullscreen)await document.exitFullscreen();
+      }else if(document.documentElement?.requestFullscreen){
+        await document.documentElement.requestFullscreen();
+      }else{
+        fullscreenToggle.title='Seu navegador não oferece tela cheia por este botão. Use F11 no notebook.';
+      }
+    }catch{
+      fullscreenToggle.title='Não foi possível expandir pelo navegador. Experimente F11 no notebook.';
+    }
+  });
+  document.addEventListener('fullscreenchange',()=>{
+    const active=Boolean(document.fullscreenElement);
+    fullscreenToggle.textContent=active?'⛶ Sair da tela cheia':'⛶ Tela cheia';
+    fullscreenToggle.setAttribute('aria-pressed',String(active));
+    fullscreenToggle.setAttribute('aria-label',active?'Sair da tela cheia':'Expandir CRM em tela cheia');
+  });
+}
+
+
 function node(tag,text){const e=document.createElement(tag);e.textContent=text;return e}
 function setSync(text){
   el('sync').textContent=text;
