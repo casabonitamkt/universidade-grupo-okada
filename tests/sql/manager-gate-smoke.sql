@@ -454,7 +454,8 @@ declare n integer;
 begin
  select count(*) into n from public.lesson_progress where status='completed';
  -- Quatro conclusoes originais + uma aula legada com exam_required=false.
- if n<>6 then raise exception 'Conclusoes esperadas 6, obtidas %',n; end if;
+ -- 6 conclusoes legitimas + 1 registro falso pre-migracao usado no teste negativo.
+  if n<>7 then raise exception 'Conclusoes esperadas 7 (inclui legado falso), obtidas %',n; end if;
  select count(*) into n from training_private.exam_decisions;
  if n<>5 then raise exception 'Auditorias gerenciais esperadas 5, obtidas %',n; end if;
  select count(*) into n from public.submissions where status='approved';
