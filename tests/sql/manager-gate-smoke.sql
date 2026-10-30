@@ -285,6 +285,15 @@ select public.test_expect_error($sql$
  where lesson_id='44444444-4444-4444-8444-444444444444'
 $sql$,'imutavel');
 
+-- Nao permitir que um consultor mova uma conclusao de exame para aula legada.
+-- Sem checar a aula ANTERIOR, o gate via apenas a nova aula sem prova e aceitava.
+select public.test_expect_error($sql$
+ update public.lesson_progress
+ set lesson_id='cccccccc-cccc-4ccc-8ccc-cccccccccccc'
+ where lesson_id='44444444-4444-4444-8444-444444444444'
+   and user_id='11111111-1111-4111-8111-111111111111'
+$sql$,'Identidade de progresso de prova imutavel');
+
 -- Marco 30: servidor exige duas simulacoes distintas, ambas >=8 e sem erro critico.
 set role authenticated;
 select set_config('app.test_uid','11111111-1111-4111-8111-111111111111',false);
