@@ -83,7 +83,8 @@ grant execute on function public.is_admin() to authenticated;
 
 insert into public.profiles(id,full_name,role) values
 ('11111111-1111-4111-8111-111111111111','Consultor ficticio','consultant'),
-('22222222-2222-4222-8222-222222222222','Gestor ficticio','admin');
+('22222222-2222-4222-8222-222222222222','Gestor ficticio','admin'),
+('99999999-9999-4999-8999-999999999999','Consultor com marco falsamente concluido antes da migracao','consultant');
 insert into public.modules(id,code,is_published)
 values('55555555-5555-4555-8555-555555555555','TESTE',true);
 insert into public.lessons(id,module_id,code,content,is_published) values
@@ -127,3 +128,9 @@ update public.lessons
 set content=jsonb_set(content,'{milestone}',
  '{"day":30,"criteria":{"practice_project_min":8,"practice_piece_min":8,"critical_errors_allowed":0}}'::jsonb)
 where code='F1-D30-A01';
+
+-- Simula dado legado indevido existente ANTES da migracao: status completed
+-- do Marco 30 sem prova, sem decisao do gestor. Nunca deve liberar F2.
+insert into public.lesson_progress(user_id,lesson_id,status,started_at,completed_at)
+values('99999999-9999-4999-8999-999999999999',
+       'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','completed',now(),now());
