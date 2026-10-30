@@ -247,8 +247,8 @@ function showLeadTools(lead){
   el('lead-stage').value=lead.stage||'novo';
   el('lead-notes').value=lead.notes||'';
   el('action-status').textContent='';
-  const digits=(lead.phone||'').replace(/\\D/g,'');
-  if(/^\\d{10,15}$/.test(digits)){
+  const digits=(lead.phone||'').replace(/\D/g,'');
+  if(/^\d{10,15}$/.test(digits)){
     el('reply-whatsapp').href='https://wa.me/'+digits;
     el('reply-whatsapp').hidden=false;
   }else{
