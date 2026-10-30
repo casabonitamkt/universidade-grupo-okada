@@ -664,6 +664,7 @@ function clearInbox(){
   el('title').textContent='Conversa';
   el('messages').textContent='Selecione um contato.';
   previewCache.clear();
+  renderBusinessPanels();updateSuggestion();
   const summary=el('contact-summary');if(summary)summary.textContent='Selecione um contato para ver seus dados.';
 }
 function applyContactFilter(){
@@ -816,6 +817,7 @@ async function openLead(lead){
     el('messages').textContent='Carregando...';
     syncSelection();
     showLeadTools(lead);
+    updateSuggestion();
   }
   await refreshMessages(lead,true);
 }
