@@ -136,3 +136,24 @@ test('mídia mantém legenda e nome do documento sem dados de download',()=>{
   assert.equal(value.mediaName,'orcamento.pdf');
   assert.equal(JSON.stringify(value).includes('secret-should-not-be-stored'),false);
 });
+
+
+test('captura metadados privados de imagem recebida sem incluir em campos visíveis do CRM',()=>{
+  const event=clone();
+  event.payload.message.type='image';
+  event.payload.message.caption='Foto sala';
+  event.payload.message.mimetype='image/jpeg';
+  event.payload.message.file_length=1024;
+  event.payload.message.direct_path='/v/t62-private/';
+  event.payload.message.media_key='unit-test-private-key';
+  event.payload.message.file_sha256='unit-test-hash';
+  delete event.payload.message.text;
+  const value=normalizeEvent(event,instance);
+  assert.equal(value.kind,'image');
+  assert.equal(value.body,'Foto sala');
+  assert.equal(value.mediaDownload.direct_path,'/v/t62-private/');
+  assert.equal(value.mediaDownload.media_key,'unit-test-private-key');
+  assert.equal(value.mimeType,'image/jpeg');
+  assert.equal(value.mediaLength,1024);
+  assert.ok(!value.body.includes('unit-test-private-key'));
+});
