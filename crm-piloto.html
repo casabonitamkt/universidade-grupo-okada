@@ -1,4 +1,87 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CRM • Caixa de entrada | Casa Bonita</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><style>body{margin:0;background:#0c0c10;color:#f6f6f7;font:15px system-ui,sans-serif}header{background:#17171e;padding:22px;border-bottom:2px solid #be1e24}main{max-width:1100px;margin:24px auto;padding:0 16px}.box{border:1px solid #383842;border-radius:14px;padding:18px;background:#19191f}.layout{display:grid;grid-template-columns:320px 1fr;gap:16px}button{background:#be1e24;color:white;border:0;padding:12px;border-radius:9px;cursor:pointer}button:focus-visible{outline:3px solid white}.lead{display:block;width:100%;text-align:left;margin:7px 0;background:#292930}.lead[aria-pressed=true]{background:#782329}.mut{color:#b8b8c2}.message{border:1px solid #393943;border-radius:10px;padding:12px;margin:10px 0;white-space:pre-wrap;overflow-wrap:anywhere}a{color:#ff9a9e}#status{min-height:25px}#sync{font-size:13px;margin:12px 0 0;line-height:1.4}@media(max-width:700px){.layout{grid-template-columns:1fr}}</style></head><body><header><strong>CASA BONITA • CRM PILOTO</strong><p>Caixa de entrada — somente leitura</p><a href="/">← Voltar à Universidade</a></header><main><p id="status" role="status">Verificando acesso...</p><div class="layout"><section class="box"><h2>Meus contatos</h2><button id="reload">Atualizar agora</button><p id="sync" class="mut">Atualização automática a cada 15 segundos, enquanto esta tela estiver aberta.</p><div id="leads"></div></section><section class="box"><h2 id="title">Conversa</h2><div id="messages" aria-live="polite">Selecione um contato.</div></section></div></main><script>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#11131b">
+  <title>CRM | Casa Bonita — Caixa de entrada</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{color-scheme:dark;--background:#0c0d13;--surface:#181a23;--surface-2:#232631;--line:#343745;--text:#f7f7f9;--muted:#b4b6c4;--brand:#db303c;--brand-dark:#882630;--positive:#4fd08c}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:var(--background);color:var(--text);font:15px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
+    button{font:inherit}
+    a{color:#ffadb1;text-decoration:none}
+    a:hover{text-decoration:underline}
+    .topbar{background:linear-gradient(130deg,#20181f 0%,#14151e 70%);border-bottom:3px solid var(--brand)}
+    .header-inner{max-width:1160px;margin:auto;padding:22px 24px 25px}
+    .back{font-size:13px;color:var(--muted);display:inline-block;margin-bottom:20px}
+    .head-row{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+    .brand{font-size:12px;font-weight:750;letter-spacing:.13em;text-transform:uppercase;color:#ff929a}
+    h1{margin:3px 0;font-size:clamp(24px,4vw,32px);line-height:1.25;letter-spacing:-.03em}
+    .subtitle{margin:5px 0 0;color:var(--muted);font-size:14px}
+    .auto-tag{display:inline-flex;align-items:center;gap:9px;border:1px solid #355748;background:#172a26;color:#acf4ca;border-radius:999px;padding:8px 13px;font-size:13px;font-weight:650}
+    .sync-light{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--positive);flex-shrink:0}
+    .sync-error{background:#ffc16c}
+    main{max-width:1160px;margin:0 auto;padding:22px 24px 54px}
+    .sync-panel{display:flex;align-items:flex-start;gap:12px;padding:14px 17px;border:1px solid var(--line);background:#151721;border-radius:14px;margin-bottom:18px}
+    .sync-panel .sync-light{margin-top:7px}
+    #status{margin:0;font-weight:650}
+    #sync{color:var(--muted);font-size:12px;margin:3px 0 0;line-height:1.55;overflow-wrap:anywhere}
+    .layout{display:grid;grid-template-columns:minmax(260px,350px) minmax(0,1fr);gap:18px;align-items:start}
+    .box{border:1px solid var(--line);border-radius:16px;background:var(--surface);min-width:0;padding:19px}
+    .box-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:15px}
+    h2{font-size:18px;line-height:1.35;letter-spacing:-.025em;margin:0}
+    .read-only{color:var(--muted);font-size:11px;border:1px solid var(--line);padding:4px 8px;border-radius:7px;white-space:nowrap}
+    #leads{display:flex;flex-direction:column;gap:8px}
+    .lead{display:block;width:100%;padding:13px 15px;text-align:left;border:1px solid transparent;border-radius:10px;background:var(--surface-2);color:var(--text);cursor:pointer;overflow-wrap:anywhere}
+    .lead:hover{background:#303340}
+    .lead[aria-pressed="true"]{background:var(--brand-dark);border-color:#ec4955;box-shadow:inset 3px 0 0 #ff8c92}
+    .lead:focus-visible{outline:3px solid #fa8d94;outline-offset:2px}
+    #messages{min-height:145px;color:var(--muted)}
+    .message{border:1px solid #353845;border-radius:12px;padding:13px 15px;margin:0 0 10px;background:#20222c;color:var(--text);white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55}
+    .message:last-child{margin-bottom:0}
+    @media(max-width:740px){.header-inner{padding:18px 18px 22px}.back{margin-bottom:15px}main{padding:15px 14px 35px}.layout{grid-template-columns:minmax(0,1fr);gap:14px}.box{padding:17px}.sync-panel{padding:13px 14px}.auto-tag{font-size:12px}}
+    @media(prefers-reduced-motion:no-preference){.lead{transition:background-color .15s,border-color .15s}}
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="header-inner">
+      <a class="back" href="/">← Voltar à Universidade</a>
+      <div class="head-row">
+        <div>
+          <div class="brand">Casa Bonita • CRM piloto</div>
+          <h1>Caixa de entrada</h1>
+          <p class="subtitle">Conversas do WhatsApp • somente leitura</p>
+        </div>
+        <span class="auto-tag"><span class="sync-light" aria-hidden="true"></span>Atualização automática</span>
+      </div>
+    </div>
+  </header>
+  <main>
+    <section class="sync-panel" aria-label="Status de sincronização">
+      <span class="sync-light" id="sync-light" aria-hidden="true"></span>
+      <div>
+        <p id="status" role="status">Verificando acesso...</p>
+        <p id="sync" aria-live="off">Sincronização a cada 15 segundos enquanto esta página estiver aberta.</p>
+      </div>
+    </section>
+    <div class="layout">
+      <section class="box">
+        <div class="box-head"><h2>Meus contatos</h2></div>
+        <div id="leads"></div>
+      </section>
+      <section class="box">
+        <div class="box-head">
+          <h2 id="title">Conversa</h2>
+          <span class="read-only">Somente leitura</span>
+        </div>
+        <div id="messages" aria-live="polite">Selecione um contato para ler as mensagens.</div>
+      </section>
+    </div>
+  </main>
+  <script>
 const SBURL='https://mjtphztvjnfjlhtxtwjz.supabase.co', KEY='sb_publishable_tu2xBCVGLQyPyddMT-poMQ_BFRx2nmx';
 const storage={getItem(k){try{return(localStorage.getItem('cb_keep_login_v1')==='false'?sessionStorage:localStorage).getItem(k)}catch{return null}},setItem(k,v){try{(localStorage.getItem('cb_keep_login_v1')==='false'?sessionStorage:localStorage).setItem(k,v)}catch{}},removeItem(k){localStorage.removeItem(k);sessionStorage.removeItem(k)}};
 const sb=supabase.createClient(SBURL,KEY,{auth:{persistSession:true,storage}});
@@ -6,7 +89,11 @@ const REFRESH_MS=15000;
 let leads=[],selected=null,leadSignature='',renderedMessages=[],loading=false,messageRequest=0;
 const el=id=>document.getElementById(id);
 function node(tag,text){const e=document.createElement(tag);e.textContent=text;return e}
-function setSync(text){el('sync').textContent=text}
+function setSync(text){
+  el('sync').textContent=text;
+  el('sync-light').className=/^(Falha|Sem internet|Atualização automática pausada)/.test(text)
+    ? 'sync-light sync-error' : 'sync-light';
+}
 function syncSelection(){
   for(const button of el('leads').querySelectorAll('button')) {
     button.setAttribute('aria-pressed',String(button.dataset.leadId===selected));
@@ -84,12 +171,11 @@ async function openLead(lead){
   }
   await refreshMessages(lead,true);
 }
-async function load(manual=false){
+async function load(){
   // Evita requisições sobrepostas e pausa consultas em segundo plano.
-  if(loading||(!manual&&document.hidden))return;
+  if(loading||document.hidden)return;
   if(navigator.onLine===false){setSync('Sem internet. Atualizaremos quando a conexão voltar.');return}
   loading=true;
-  if(manual)setSync('Atualizando agora...');
   try{
     const {data:{user},error:authError}=await sb.auth.getUser();
     if(authError||!user){
@@ -125,10 +211,9 @@ async function load(manual=false){
     loading=false;
   }
 }
-el('reload').onclick=()=>load(true);
 setInterval(()=>{if(!document.hidden)load()},REFRESH_MS);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
 window.addEventListener('focus',()=>{if(!document.hidden)load()});
 window.addEventListener('online',()=>load());
-load(true);
+load();
 </script></body></html>
