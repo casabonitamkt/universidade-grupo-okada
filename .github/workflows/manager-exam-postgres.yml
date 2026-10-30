@@ -181,7 +181,7 @@ jobs:
           const home=readFileSync('index.html','utf8');
           const master=readFileSync('crm-master.html','utf8');
           const piloto=readFileSync('crm-piloto.html','utf8');
-          assert.match(home,/isCrmMaster\(\)\?'\/crm-master\.html':'\/crm-piloto\.html'/,'Atalho CRM precisa preservar as duas rotas');
+          assert.ok(home.includes("isCrmMaster()&&$('modeSwitch')?.dataset.mode!=='consult'?'/crm-master.html':'/crm-piloto.html'"), 'CRM Master deve abrir apenas no modo administrativo; consultor deve abrir o piloto');
           assert.match(master,/\/api\/crm-master/,'Painel gerencial sem endpoint de leitura');
           assert.match(piloto,/\/api\/crm/,'Painel consultor sem endpoint CRM');
           assert.match(piloto,/sem geração por IA e sem envio automático/i,'Nao declarar IA ativa sem pipeline homologado');
