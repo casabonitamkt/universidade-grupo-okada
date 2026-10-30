@@ -1,0 +1,21 @@
+name: CRM secure outbound tests
+on:
+  pull_request:
+    paths:
+      - 'api/crm-send-text.js'
+      - 'tests/crm-send-text.test.cjs'
+      - 'crm-piloto.html'
+      - '.github/workflows/crm-send-tests.yml'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check api/crm-send-text.js
+      - run: node --test tests/crm-send-text.test.cjs
+      - run: node --test tests/crm-piloto-auto-refresh.test.cjs
