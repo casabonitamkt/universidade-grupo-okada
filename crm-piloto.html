@@ -192,24 +192,35 @@ function setSync(text){
     ? 'sync-light sync-error' : 'sync-light';
 }
 const mediaUrls=new Map();
+const mediaQueue=[];
+let mediaActive=0,mediaGeneration=0;
+const MEDIA_PARALLEL=2;
 function disposeMedia(){
+  mediaGeneration++;
+  mediaQueue.length=0;
   for(const url of mediaUrls.values())URL.revokeObjectURL(url);
   mediaUrls.clear();
 }
-function mimeExtension(kind){
-  return kind==='document'?'documento':kind;
+function queueMedia(job){
+  mediaQueue.push(job);
+  pumpMedia();
 }
-async function viewMedia(messageId,kind,button,container){
-  if(!selected || !messageId)return;
+function pumpMedia(){
+  while(mediaActive<MEDIA_PARALLEL && mediaQueue.length){
+    const job=mediaQueue.shift();
+    mediaActive++;
+    Promise.resolve().then(job).catch(()=>{}).finally(()=>{mediaActive--;pumpMedia()});
+  }
+}
+async function viewMedia(messageId,kind,button,container,generation=mediaGeneration,leadId=selected){
+  if(!leadId || !messageId || selected!==leadId || generation!==mediaGeneration)return;
   if(mediaUrls.has(messageId)){
-    const url=mediaUrls.get(messageId);
-    const media=createMediaElement(kind,url);
-    container.append(media);
+    container.append(createMediaElement(kind,mediaUrls.get(messageId)));
     button.hidden=true;
     return;
   }
   button.disabled=true;
-  button.textContent='Abrindo arquivo...';
+  button.textContent='Carregando mídia...';
   try{
     const {data:{session},error}=await sb.auth.getSession();
     if(error||!session?.access_token)throw new Error('Entre na Universidade novamente.');
@@ -218,42 +229,39 @@ async function viewMedia(messageId,kind,button,container){
     });
     if(!response.ok){
       const data=await response.json().catch(()=>({}));
-      if(data.error==='media_not_available')throw new Error('Esta mídia ainda não possui dados suficientes para abrir.');
-      if(data.error==='media_format_not_supported')throw new Error('Formato não compatível com o visualizador.');
-      if(data.error==='provider_download_unavailable')throw new Error(
-        data.provider_status===401||data.provider_status===403
-          ?'A Zappy não autorizou o download (código '+data.provider_status+').'
-          :data.provider_status===400
-            ?'A Zappy rejeitou a solicitação da mídia (código 400).'
-            :'Falha ao buscar a mídia na Zappy (código '+(data.provider_status||'indisponível')+').'
-      );
-      if(data.error==='provider_response_unrecognized')throw new Error('A Zappy retornou um formato de arquivo inesperado.');
-      if(response.status===401)throw new Error('Sessão expirada. Entre novamente no CRM.');
-      throw new Error('Não foi possível abrir o arquivo agora (código '+response.status+').');
+      if(data.error==='media_not_available')throw new Error('Arquivo antigo sem dados para abrir.');
+      if(data.error==='media_format_not_supported')throw new Error('Formato não compatível.');
+      if(data.error==='provider_download_unavailable')throw new Error('A Zappy não disponibilizou esta mídia.');
+      if(data.error==='provider_response_unrecognized')throw new Error('Arquivo em formato inesperado.');
+      if(response.status===401)throw new Error('Sessão expirada. Entre novamente.');
+      throw new Error('Não foi possível carregar a mídia (código '+response.status+').');
     }
     const blob=await response.blob();
     if(!blob.size)throw new Error('Arquivo vazio.');
+    if(selected!==leadId || generation!==mediaGeneration)return;
     const url=URL.createObjectURL(blob);
     mediaUrls.set(messageId,url);
-    if(!button.isConnected)return;
+    // Se a atualização das conversas substituiu um elemento antigo, não o reintroduz.
+    if(button.isConnected===false)return;
     container.append(createMediaElement(kind,url));
     button.hidden=true;
   }catch(error){
-    if(button.isConnected){
+    if(button.isConnected!==false && selected===leadId && generation===mediaGeneration){
       const errorEl=node('p',error.message);errorEl.className='media-error';
       container.append(errorEl);
       button.textContent='Tentar abrir novamente';
+      button.hidden=false;
     }
   }finally{button.disabled=false}
 }
 function createMediaElement(kind,url){
   if(kind==='image'||kind==='sticker'){
-    const img=document.createElement('img');img.src=url;img.alt='Imagem recebida';img.className='media-preview';img.loading='lazy';return img;
+    const img=document.createElement('img');img.src=url;img.alt='Imagem recebida';img.className='media-preview';img.loading='eager';return img;
   }
   if(kind==='audio'||kind==='video'){
-    const elMedia=document.createElement(kind);
-    elMedia.src=url;elMedia.controls=true;elMedia.preload='metadata';
-    elMedia.className='media-preview';return elMedia;
+    const element=document.createElement(kind);
+    element.src=url;element.controls=true;element.preload='metadata';
+    element.className='media-preview';return element;
   }
   const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';
   a.className='media-link';a.textContent='Abrir documento';return a;
@@ -263,10 +271,19 @@ function renderMessage(row){
   const head=node('div',(row.direction==='saida'?'Consultor':'Cliente')+' • '+row.time);head.className='message-head';
   const body=node('div',row.content);body.className='message-body';div.append(head,body);
   if(row.mediaKind){
-    const button=node('button','Abrir '+(row.mediaKind==='image'?'foto':row.mediaKind==='audio'?'áudio':row.mediaKind==='video'?'vídeo':row.mediaKind==='document'?'documento':'figurinha'));
+    const kind=row.mediaKind;
+    const autoDisplay=['image','audio','video','sticker'].includes(kind);
+    const button=node('button',autoDisplay?'Carregando mídia...':'Abrir documento');
     button.className='media-open';button.type='button';
-    button.onclick=()=>viewMedia(row.id,row.mediaKind,button,div);
+    const generation=mediaGeneration,leadId=selected;
+    button.onclick=()=>viewMedia(row.id,kind,button,div,generation,leadId);
     div.append(button);
+    // Fotos, áudios e vídeos são entregues assim que chegam à conversa.
+    // Duas requisições simultâneas no máximo para não travar o CRM.
+    if(autoDisplay){
+      button.disabled=true;
+      queueMedia(()=>viewMedia(row.id,kind,button,div,generation,leadId));
+    }
   }
   return div;
 }
