@@ -112,3 +112,13 @@ test('F2 sem rubrica homologada nao envia aprovacao',async()=>{
  await ctx.managerReviewExam('e1','approve');
  assert.equal(calls.filter(x=>x[0]==='rpc').length,0);
 });
+
+
+test('gate gerencial preserva CRM Master e atalho do consultor na integracao com main',()=>{
+ assert.match(html,/function isCrmMaster\(\)/,'Roteamento gerencial CRM ausente');
+ assert.match(html,/window\.location\.assign\(isCrmMaster\(\)\?'\/crm-master\.html':'\/crm-piloto\.html'\)/,'Rotas separadas CRM ausentes');
+ assert.match(html,/id=\"crmHomeShortcut\"/,'Atalho CRM na tela inicial ausente');
+ assert.match(html,/id=\"openCrmFromHome\"/,'Botao abrir CRM ausente');
+ assert.match(html,/function requiresLessonAssessment\(l\)/,'Gate de aulas ausente');
+ assert.match(html,/sb\.rpc\('training_exam_questions'/,'Provas seguras ausentes');
+});
