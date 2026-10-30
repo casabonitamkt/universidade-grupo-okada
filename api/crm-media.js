@@ -91,7 +91,7 @@ module.exports=async function handler(req,res){
     const reqBody={
       direct_path:meta.direct_path,
       media_key:meta.media_key,
-      mimetype:media.mime_type,
+      mime_type:media.mime_type,
       type:msg.kind,
       ...(Number.isSafeInteger(media.file_length)&&media.file_length>=0?{file_length:media.file_length}:{}),
       ...(typeof meta.file_sha256==='string'&&meta.file_sha256?{file_sha256:meta.file_sha256}:{}),
