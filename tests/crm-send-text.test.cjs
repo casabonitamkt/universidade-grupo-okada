@@ -149,13 +149,14 @@ test('não envia texto vazio ou sem identificador de requisição',async()=>{
   }finally{s.restore()}
 });
 
-test('modo de homologação bloqueia destinatário diferente sem chamar Zappy',async()=>{
-  const s=setup({CRM_SEND_TEST_ONLY_PHONE:'554497713832'});
-  try{
-    const x=res();await handler(s.makeReq(),x);
-    assert.equal(x.code,403);
-    assert.equal(x.body.error,'test_recipient_only');
-    assert.equal(s.counts.apiPosts,0);
-    assert.equal(s.counts.outboxPosts,0);
-  }finally{s.restore()}
+
+test('autorizado envia mesmo com variável antiga de teste presente',async()=>{
+  const t=setup({CRM_SEND_TEST_ONLY_PHONE:'554497713832'});
+  try{const r=res();await handler(t.makeReq(),r);assert.equal(r.code,200);assert.equal(t.counts.apiPosts,1)}
+  finally{t.restore()}
+});
+test('domínio oficial personalizado pode enviar',async()=>{
+  const t=setup();
+  try{const req=t.makeReq();req.headers.origin='https://universidade.lojacasabonitamoveis.com.br';const r=res();await handler(req,r);assert.equal(r.code,200)}
+  finally{t.restore()}
 });

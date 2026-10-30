@@ -2,7 +2,7 @@
 // Saída de texto CRM -> Zappy. Desativada até configurar ZAPPY_API_KEY e ZAPPY_SEND_ENABLED=true.
 // Nenhuma credencial da Zappy chega ao navegador. Requisições duplicadas nunca são reenviadas.
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const ORIGIN='https://universidade-grupo-okada.vercel.app';
+const ALLOWED_ORIGINS=new Set(['https://universidade-grupo-okada.vercel.app','https://universidade.lojacasabonitamoveis.com.br']);
 const MAX_CHARS=4000;
 
 async function storage(url,serviceKey,path,options={}){
@@ -42,7 +42,7 @@ module.exports=async function handler(req,res){
   if(req.method==='GET')return res.status(200).json({enabled:enabled(process.env)});
   if(req.method!=='POST')return res.status(405).json({error:'method_not_allowed'});
   const origin=req.headers.origin;
-  if(origin&&origin!==ORIGIN)return res.status(403).json({error:'origin_not_allowed'});
+  if(origin&&!ALLOWED_ORIGINS.has(origin))return res.status(403).json({error:'origin_not_allowed'});
   if(!enabled(process.env))return res.status(503).json({error:'sending_disabled'});
 
   const cfg={
@@ -81,12 +81,6 @@ module.exports=async function handler(req,res){
   if(!lead||lead.owner_consultant_id!==userId||lead.source!=='zapi'
      ||!/^[0-9]{10,15}$/.test(lead.phone||''))
     return res.status(403).json({error:'contact_not_allowed'});
-  // Homologação controlada: durante o primeiro teste apenas o telefone autorizado recebe.
-  // A configuração pode ser removida após o teste; não deixar enviar aos demais contatos.
-  const allowedTestPhone=process.env.CRM_SEND_TEST_ONLY_PHONE;
-  if(allowedTestPhone && lead.phone!==allowedTestPhone)
-    return res.status(403).json({error:'test_recipient_only'});
-
   let outbox;
   try{
     const inserted=await storage(cfg.db,cfg.service,'crm_pilot_outbox',{
