@@ -292,6 +292,6 @@ test('indicadores premium derivam de contatos reais, não números de exemplo',a
 test('seleção de contato atualiza sugestão sem enviar mensagem',async()=>{
   const h=harness();await settle();
   h.elements.get('leads').children[0].onclick();await settle();
-  assert.match(h.elements.get('suggestion-text').textContent,/Olá, Cliente Um!/);
+  assert.match(h.elements.get('suggestion-text').textContent,/Olá! Sou seu consultor da Casa Bonita/);
   assert.equal(h.elements.get('suggestion-copy').disabled,false);
 });
