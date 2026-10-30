@@ -125,6 +125,13 @@ r=await api('/lesson_progress?select=status,completed_at&lesson_id=eq.'+exam);
 const progress=ok(r,'Consultor consulta conclusao');
 assert.equal(progress[0].status,'completed');
 assert.ok(progress[0].completed_at);
+// Bypass negativo: trocar o lesson_id de uma conclusao de prova por uma aula
+// legada sem progresso anterior nao pode escapar do trigger transacional.
+blocked(await api('/lesson_progress?lesson_id=eq.'+exam,'PATCH',{
+ lesson_id:'dddddddd-dddd-4ddd-8ddd-dddddddddddd'
+}),'Nao mover conclusao de prova para aula legada');
+r=await api('/lesson_progress?select=status&lesson_id=eq.'+exam);
+assert.equal(ok(r,'Conclusao de prova preservada apos tentativa de troca')[0].status,'completed');
 r=await api('/lesson_progress?lesson_id=eq.'+exam,'DELETE',undefined);
 assert.ok(r.status<300||r.status===403,'DELETE inesperado: '+r.status);
 r=await api('/lesson_progress?select=status&lesson_id=eq.'+exam);
