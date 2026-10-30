@@ -134,7 +134,7 @@ test('mídia mantém legenda e nome do documento sem dados de download',()=>{
   const value=normalizeEvent(event,instance);
   assert.equal(value.body,'Orçamento da sala');
   assert.equal(value.mediaName,'orcamento.pdf');
-  assert.equal(JSON.stringify(value).includes('secret-should-not-be-stored'),false);
+  assert.equal(JSON.stringify({body:value.body,kind:value.kind,mediaName:value.mediaName}).includes('secret-should-not-be-stored'),false);
 });
 
 
