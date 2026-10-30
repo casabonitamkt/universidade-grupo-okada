@@ -159,6 +159,14 @@ assert.equal(ok(r,'Gestor aprova reteste B').completed,true);
 r=await api('/lesson_progress?select=status&lesson_id=eq.'+retest);
 assert.equal(ok(r,'Conclusao apos B')[0].status,'completed');
 
+// A Fase 2 deve estar bloqueada ate o Marco 30 ser aprovado pelo gestor.
+blocked(await rpc('training_exam_questions',{p_lesson_id:f2day34,p_stage:'a'}),
+ 'Questões F2 bloqueadas antes do Marco 30');
+blocked(await api('/submissions','POST',{
+ user_id:consultant,lesson_id:f2day34,submission_type:'lesson_exam_a',status:'pending',
+ text_content:aBody()
+}), 'Envio F2 bloqueado antes do Marco 30');
+
 // Marco 30: duas simulacoes, notas individuais, evidencias e erro critico.
 r=await api('/submissions','POST',{user_id:consultant,lesson_id:milestone,submission_type:'lesson_exam_a',status:'pending',text_content:aBody()});
 const markA=ok(r,'Enviar prova A do Marco 30',201)[0];
