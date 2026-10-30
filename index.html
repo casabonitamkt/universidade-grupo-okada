@@ -304,6 +304,14 @@ function auditLessonExamSubmission(s,l){
  const mismatch=Number(saved.preview_score)!==grade.score||Number(saved.preview_critical_errors)!==grade.critical||saved.preview_passed!==grade.passed;
  return{valid:true,reason:'',score:grade.score,critical:grade.critical,passed:grade.passed,previewMismatch:mismatch};
 }
+function f2RubricCriteria(content){
+ const rubric=content?.manager_practical_rubric??content?.practice_rubric;
+ let names=[];
+ if(Array.isArray(rubric))names=rubric.map(x=>Array.isArray(x)?x[0]:x);
+ else if(Array.isArray(rubric?.criteria))names=rubric.criteria;
+ else if(rubric&&typeof rubric==='object')names=Object.entries(rubric).filter(([k,v])=>v===2).map(([k])=>k.replace(/_/g,' '));
+ return names.length===5&&names.every(x=>typeof x==='string'&&x.trim())?names:[];
+}
 function renderPendingLessonExams(){
  const attempts=(cache.su||[]).filter(s=>s.submission_type==='lesson_exam_a'||s.submission_type==='lesson_exam_b').slice(0,25);
  if(!attempts.length)return '<div class="card"><h3>Provas de aulas novas</h3><p class="mut">Nenhuma prova recebida até o momento.</p></div>';
@@ -314,11 +322,15 @@ function renderPendingLessonExams(){
   const canReview=s.status==='pending'||s.status==='needs_revision';
   const milestone=l?.code==='F1-D30-A01';
   const observed=!!l?.code?.startsWith('F2-D');
+  const f2criteria=observed?f2RubricCriteria(l?.content):[];
   let practiceFields=milestone?['project','piece'].map(kind=>{
    const label=kind==='project'?'Projeto completo':'Peça avulsa';
    return '<label><b>Simulação '+label+' — nota individual (0 a 10)</b></label><input class="input" type="number" min="0" max="10" step="1" id="exam-case-'+kind+'-score-'+s.id+'" placeholder="0 a 10"><label style="display:block;margin:6px 0"><input type="checkbox" id="exam-case-'+kind+'-critical-'+s.id+'"> Ocorreu erro crítico (impede aprovação)</label><textarea id="exam-case-'+kind+'-evidence-'+s.id+'" rows="3" placeholder="Descreva pelo menos duas evidências observáveis desta simulação (mínimo 80 caracteres)."></textarea>';
   }).join(''):'<label for="exam-practice-'+s.id+'"><b>Nota prática observada pelo gestor (0 a 10)</b></label><input class="input" type="number" min="0" max="10" step="1" id="exam-practice-'+s.id+'" placeholder="0 a 10">';
-  if(observed)practiceFields+='<label style="display:block;margin:6px 0"><input type="checkbox" id="exam-observed-critical-'+s.id+'"> Houve erro crítico na prática (impede aprovação)</label><textarea id="exam-observed-evidence-'+s.id+'" rows="3" placeholder="Descreva as evidências observáveis da prática (mínimo 80 caracteres)."></textarea>';
+  if(observed){
+   practiceFields=f2criteria.length===5?'<p><b>Rubrica observada — 5 competências de 0 a 2 pontos (total mínimo 8/10)</b></p>'+f2criteria.map((name,i)=>'<label for="exam-f2-criterion-'+i+'-'+s.id+'">'+esc(name)+' (0–2)</label><input class="input" type="number" min="0" max="2" step="1" id="exam-f2-criterion-'+i+'-'+s.id+'" placeholder="0 a 2">').join(''):'<p class="mut">Rubrica de cinco competências não homologada. Aprovação bloqueada até revisão editorial.</p>';
+   practiceFields+='<label style="display:block;margin:6px 0"><input type="checkbox" id="exam-observed-critical-'+s.id+'"> Houve erro crítico na prática (impede aprovação)</label><textarea id="exam-observed-evidence-'+s.id+'" rows="3" placeholder="Descreva as evidências observáveis da prática (mínimo 80 caracteres)."></textarea>';
+  }
   const actions=canReview?'<div class="feature" style="margin-top:10px"><button class="btn ghost tiny" onclick="checkExamGrade(\''+s.id+'\')">Conferir prova no servidor</button><p id="exam-grade-'+s.id+'" class="mut">Nota ainda não consultada.</p>'+practiceFields+'<label style="display:block;margin:10px 0"><input type="checkbox" id="exam-verified-'+s.id+'"> Confirmei pessoalmente a prática e as evidências</label><label for="exam-feedback-'+s.id+'"><b>Justificativa do gestor (mínimo 20 caracteres)</b></label><textarea id="exam-feedback-'+s.id+'" rows="3" placeholder="Registre observações, condutas, erros e orientação ao consultor."></textarea><button class="btn tiny" onclick="managerReviewExam(\''+s.id+'\',\'approve\')">Validar teoria, aprovar prática e concluir</button> <button class="btn ghost tiny" onclick="managerReviewExam(\''+s.id+'\',\'needs_revision\')">Solicitar reforço</button><p class="mut">O servidor recusará qualquer aprovação sem teoria válida e prática aprovada. Marco 30: duas simulações. Aulas F2: evidência observada e zero erro crítico.</p></div>':'';
   return '<div class="feature" style="margin-top:10px"><b>'+esc(p?.full_name||'Consultor')+' · '+esc(l?.code||'Aula')+' · '+(s.submission_type==='lesson_exam_b'?'Reteste B':'Prova A')+'</b><p class="mut">Recebido em '+esc(new Date(s.submitted_at).toLocaleString('pt-BR'))+' · '+esc(s.status||'pendente')+'</p><p><b>Prática:</b> '+esc(data.evidence||'Ver registro da prova A')+'</p><p><b>Revisão:</b> '+esc(data.review||'Não aplicável')+'</p>'+actions+'</div>';
  }).join('')+'</div>';
@@ -347,13 +359,19 @@ async function managerReviewExam(id,decision){
    evidence:($('exam-case-'+kind+'-evidence-'+id)?.value||'').trim()};
  }):[];
  const raw=$('exam-practice-'+id)?.value;
- const score=milestone?(practiceCases.every(c=>Number.isInteger(c.score))?Math.min(...practiceCases.map(c=>c.score)):0):Number(raw);
- if(observed)practiceCases.push({case:'observed',score,
+ const f2criteria=observed?f2RubricCriteria(lesson?.content):[];
+ const criteriaScores=observed?f2criteria.map((_,i)=>{
+  const v=$('exam-f2-criterion-'+i+'-'+id)?.value;
+  return v===''||v===undefined?null:Number(v);
+ }):[];
+ const score=milestone?(practiceCases.every(c=>Number.isInteger(c.score))?Math.min(...practiceCases.map(c=>c.score)):0):observed?criteriaScores.reduce((a,b)=>a+(Number.isInteger(b)?b:0),0):Number(raw);
+ if(observed)practiceCases.push({case:'observed',score,criteria_scores:criteriaScores,
   critical_error:!!$('exam-observed-critical-'+id)?.checked,
   evidence:($('exam-observed-evidence-'+id)?.value||'').trim()});
  const verified=!!$('exam-verified-'+id)?.checked;
  const feedback=($('exam-feedback-'+id)?.value||'').trim();
- if(!milestone&&(raw===''||!Number.isInteger(score)||score<0||score>10))return toast('Informe nota prática de 0 a 10.');
+ if(!milestone&&!observed&&(raw===''||!Number.isInteger(score)||score<0||score>10))return toast('Informe nota prática de 0 a 10.');
+ if(observed&&decision==='approve'&&(criteriaScores.length!==5||criteriaScores.some(x=>!Number.isInteger(x)||x<0||x>2)))return toast('Aprovação F2 exige cinco notas individuais entre 0 e 2.');
  if(milestone&&decision==='approve'&&practiceCases.some(c=>!Number.isInteger(c.score)||c.score<8||c.score>10||c.critical_error||c.evidence.length<80))return toast('Marco 30 exige duas simulações: notas >=8, zero erro crítico e evidências detalhadas em cada caso.');
  if(observed&&decision==='approve'&&(!Number.isInteger(score)||score<8||score>10||practiceCases[0].critical_error||practiceCases[0].evidence.length<80))return toast('Aula F2 exige nota >=8, zero erro crítico e evidências observáveis (mínimo 80 caracteres).');
  if(feedback.length<20)return toast('Registre justificativa com pelo menos 20 caracteres.');
