@@ -6,7 +6,7 @@
 
 - Supabase `mjtphztvjnfjlhtxtwjz`: **66 aulas**, **57 publicadas**, **9 ocultas**; **68** conclusões de aulas totais, **42** submissões, **0** provas A/B, **8** certificações no catálogo. `training_private` ainda não existe.
 - `F1-D30-A01` está oculto, com módulo oculto e zero linhas de progresso. D34–D41 também ocultos; D41 ainda sem `body` e `mission`.
-- RLS ativa em `profiles`, `lessons`, `modules`, `submissions`, `lesson_progress` e `certifications`. O trigger **já existente** `trg_protect_profile_privileged_fields` protege alterações de `role` e `graduation`; o guard adicional do PR46 é defesa em profundidade, **não** uma correção de uma escalada de papel ainda presente na produção.
+- O banco real possui **5 contas em `auth.users`** e **0 buckets/0 objetos em Storage** no momento da leitura. As cinco contas devem sobreviver ao teste de restauração; ausência atual de arquivos em Storage não dispensa nova conferência antes do rollout.\n- RLS ativa em `profiles`, `lessons`, `modules`, `submissions`, `lesson_progress` e `certifications`. O trigger **já existente** `trg_protect_profile_privileged_fields` protege alterações de `role` e `graduation`; o guard adicional do PR46 é defesa em profundidade, **não** uma correção de uma escalada de papel ainda presente na produção.
 - Vercel produção **READY** no SHA `b099c31bcc6c35bd0c7c1c215ed0513951939c0c`, sem o gate do PR46; Preview PR46 `f5a070e6755d553943f5f2db246b9c053a734b63` READY, com CI aprovado no mesmo SHA.
 - Nenhuma migração nem publicação de aula foi feita nesta auditoria.
 
@@ -43,7 +43,7 @@ select
  (select count(*) from public.lesson_progress where status='completed') completed_total,
  (select count(*) from public.submissions) submissions_total,
  (select count(*) from public.submissions where submission_type in ('lesson_exam_a','lesson_exam_b')) exam_ab,
- (select count(*) from public.certifications) certifications_catalog,
+ (select count(*) from public.certifications) certifications_catalog,\n (select count(*) from auth.users) auth_users,\n (select count(*) from storage.buckets) storage_buckets,\n (select count(*) from storage.objects) storage_objects,
  (select count(*) from information_schema.schemata where schema_name='training_private') private_schema;
 ```
 
