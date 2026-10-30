@@ -86,19 +86,34 @@ module.exports=async function handler(req,res){
     if(media.file_length>MAX_BYTES)return response(res,413,{error:'media_too_large'});
     const mime=safeType(media.media_type,media.mime_type);
     if(!mime)return response(res,415,{error:'media_format_not_supported'});
+    // Campos recebidos no webhook original, preservando os nomes documentados.
+    // Não incluir propriedades opcionais nulas na requisição para evitar rejeição de validação.
     const reqBody={
-      direct_path:meta.direct_path,media_key:meta.media_key,
-      file_sha256:meta.file_sha256,file_enc_sha256:meta.file_enc_sha256,
-      mimetype:media.mime_type
+      direct_path:meta.direct_path,
+      media_key:meta.media_key,
+      mimetype:media.mime_type,
+      type:msg.kind,
+      ...(Number.isSafeInteger(media.file_length)&&media.file_length>=0?{file_length:media.file_length}:{}),
+      ...(typeof meta.file_sha256==='string'&&meta.file_sha256?{file_sha256:meta.file_sha256}:{}),
+      ...(typeof meta.file_enc_sha256==='string'&&meta.file_enc_sha256?{file_enc_sha256:meta.file_enc_sha256}:{}),
+      ...(typeof meta.url==='string'&&meta.url.startsWith('https://')?{url:meta.url}:{})
     };
     const z=await fetch('https://zappy.api.br/v1/instances/'+encodeURIComponent(cfg.instance)+'/media/download',{
       method:'POST',headers:{Authorization:'Bearer '+cfg.zappyKey,'Content-Type':'application/json'},
       body:JSON.stringify(reqBody),signal:AbortSignal.timeout(14000)
     });
     if(!z.ok){
-      // Não registrar URL, corpo, chave ou metadados de mídia nos logs.
-      console.error('crm_media_provider_failure',{status:z.status,kind:msg.kind});
-      return response(res,502,{error:'provider_download_unavailable',provider_status:z.status});
+      // Classificar somente o nome de campos de validação conhecidos; jamais registrar
+      // o corpo bruto do provedor, que poderia refletir segredos da mensagem.
+      let validationField='unknown';
+      if(z.status===400){
+        const body=(await z.text()).slice(0,1024);
+        for(const field of ['file_length','mimetype','mime_type','type','url','direct_path','media_key','file_sha256','file_enc_sha256']){
+          if(new RegExp('\\b'+field+'\\b','i').test(body)){validationField=field;break}
+        }
+      }
+      console.error('crm_media_provider_failure',{status:z.status,kind:msg.kind,validationField});
+      return response(res,502,{error:'provider_download_unavailable',provider_status:z.status,validation_field:validationField});
     }
     const len=Number(z.headers.get('content-length')||'0');
     if(len>Math.ceil(MAX_BYTES*4/3)+2048)return response(res,413,{error:'media_too_large'});
