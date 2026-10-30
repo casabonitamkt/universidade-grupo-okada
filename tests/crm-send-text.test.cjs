@@ -119,7 +119,7 @@ test('pedido repetido não pode gerar segunda mensagem na Zappy',async()=>{
       if(path.includes('crm_pilot_leads?'))
         return response(200,[{id:leadId,phone:'5544999999999',source:'zapi',owner_consultant_id:owner}]);
       if(path.endsWith('crm_pilot_outbox')&&options.method==='POST')return response(409,{});
-      if(path.includes('crm_pilot_outbox?')&&options.method==='GET')
+      if(path.includes('crm_pilot_outbox?')&&(!options.method||options.method==='GET'))
         return response(200,[{status:'sent',lead_id:leadId}]);
       throw Error('Zappy nao pode ser chamado com idempotencia duplicada');
     });
