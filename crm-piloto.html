@@ -65,6 +65,13 @@
     #messages{min-height:145px;color:var(--muted)}
     .message{border:1px solid #353845;border-radius:12px;padding:13px 15px;margin:0 0 10px;background:#20222c;color:var(--text);white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55}
     .message:last-child{margin-bottom:0}
+    .media-open{display:block;margin:9px 0 4px;border:1px solid #a7525a;background:#542630;color:#fff;border-radius:8px;padding:8px 12px;cursor:pointer;font:inherit;font-size:13px}
+    .media-open:disabled{opacity:.5;cursor:wait}
+    .media-preview{max-width:100%;max-height:360px;display:block;margin:9px 0;border-radius:8px;object-fit:contain}
+    audio.media-preview{width:min(100%,380px);height:54px}
+    video.media-preview{width:min(100%,580px)}
+    .media-link{display:inline-block;margin:7px 0;color:#ffadb1;text-decoration:underline}
+    .media-error{font-size:13px;color:#ffc16c;margin:5px 0}
     .composer{border-top:1px solid var(--line);margin-top:18px;padding-top:16px}
     .composer[hidden]{display:none}
     .composer textarea{width:100%;min-height:94px;max-height:250px;resize:vertical;background:#10121a;color:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;font:inherit}
@@ -159,6 +166,74 @@ function setSync(text){
   el('sync-light').className=/^(Falha|Sem internet|Atualização automática pausada)/.test(text)
     ? 'sync-light sync-error' : 'sync-light';
 }
+const mediaUrls=new Map();
+function disposeMedia(){
+  for(const url of mediaUrls.values())URL.revokeObjectURL(url);
+  mediaUrls.clear();
+}
+function mimeExtension(kind){
+  return kind==='document'?'documento':kind;
+}
+async function viewMedia(messageId,kind,button,container){
+  if(!selected || !messageId)return;
+  if(mediaUrls.has(messageId)){
+    const url=mediaUrls.get(messageId);
+    const media=createMediaElement(kind,url);
+    container.append(media);
+    button.hidden=true;
+    return;
+  }
+  button.disabled=true;
+  button.textContent='Abrindo arquivo...';
+  try{
+    const {data:{session},error}=await sb.auth.getSession();
+    if(error||!session?.access_token)throw new Error('Entre na Universidade novamente.');
+    const response=await fetch('/api/crm-media?message_id='+encodeURIComponent(messageId),{
+      headers:{Authorization:'Bearer '+session.access_token},cache:'no-store'
+    });
+    if(!response.ok){
+      const data=await response.json().catch(()=>({}));
+      if(data.error==='media_not_available')throw new Error('Arquivo antigo indisponível para download.');
+      if(data.error==='media_format_not_supported')throw new Error('Formato indisponível no visualizador.');
+      throw new Error('Não foi possível abrir o arquivo agora.');
+    }
+    const blob=await response.blob();
+    if(!blob.size)throw new Error('Arquivo vazio.');
+    const url=URL.createObjectURL(blob);
+    mediaUrls.set(messageId,url);
+    if(!button.isConnected)return;
+    container.append(createMediaElement(kind,url));
+    button.hidden=true;
+  }catch(error){
+    if(button.isConnected){
+      const errorEl=node('p',error.message);errorEl.className='media-error';
+      container.append(errorEl);
+      button.textContent='Tentar abrir novamente';
+    }
+  }finally{button.disabled=false}
+}
+function createMediaElement(kind,url){
+  if(kind==='image'||kind==='sticker'){
+    const img=document.createElement('img');img.src=url;img.alt='Imagem recebida';img.className='media-preview';img.loading='lazy';return img;
+  }
+  if(kind==='audio'||kind==='video'){
+    const elMedia=document.createElement(kind);
+    elMedia.src=url;elMedia.controls=true;elMedia.preload='metadata';
+    elMedia.className='media-preview';return elMedia;
+  }
+  const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';
+  a.className='media-link';a.textContent='Abrir documento';return a;
+}
+function renderMessage(row){
+  const div=node('div',row.text);div.className='message';
+  if(row.mediaKind){
+    const button=node('button','Abrir '+(row.mediaKind==='image'?'foto':row.mediaKind==='audio'?'áudio':row.mediaKind==='video'?'vídeo':row.mediaKind==='document'?'documento':'figurinha'));
+    button.className='media-open';button.type='button';
+    button.onclick=()=>viewMedia(row.id,row.mediaKind,button,div);
+    div.append(button);
+  }
+  return div;
+}
 function syncSelection(){
   for(const button of el('leads').querySelectorAll('button')) {
     button.setAttribute('aria-pressed',String(button.dataset.leadId===selected));
@@ -226,6 +301,7 @@ async function sendMessage(){
   }
 }
 function clearInbox(){
+  disposeMedia();
   leads=[];selected=null;leadSignature='';renderedMessages=[];messageRequest++;
   el('leads').replaceChildren();
   el('contact-tools').hidden=true;
@@ -280,6 +356,7 @@ async function refreshMessages(lead,manual=false){
     const MEDIA_NAMES={image:'📷 Imagem recebida',audio:'🎤 Áudio recebido',video:'🎬 Vídeo recebido',document:'📄 Documento recebido',sticker:'Figurinha recebida',location:'📍 Localização recebida',unknown:'Mensagem com formato não identificado'};
     const rows=(data||[]).slice().reverse().map(m=>({
       id:m.id,
+      mediaKind:['image','audio','video','document','sticker'].includes(m.kind)?m.kind:null,
       text:(m.direction==='entrada'?'Cliente':'Consultor')+' • '+
         new Date(m.event_at).toLocaleString('pt-BR')+'\n'+
         (m.kind==='text'?(m.body||'Mensagem sem texto'):
@@ -298,12 +375,10 @@ async function refreshMessages(lead,manual=false){
         renderedMessages.every((old,i)=>rows[i].id===old.id&&rows[i].text===old.text);
       if(isAppend){
         for(const row of rows.slice(renderedMessages.length)){
-          const div=node('div',row.text);div.className='message';el('messages').append(div);
+          el('messages').append(renderMessage(row));
         }
       }else if(JSON.stringify(rows)!==JSON.stringify(renderedMessages)){
-        el('messages').replaceChildren(...rows.map(row=>{
-          const div=node('div',row.text);div.className='message';return div;
-        }));
+        el('messages').replaceChildren(...rows.map(renderMessage));
       }
     }
     renderedMessages=rows;
@@ -352,6 +427,7 @@ async function updateLeadField(field,value){
 }
 async function openLead(lead){
   if(selected!==lead.id){
+    disposeMedia();
     selected=lead.id;renderedMessages=[];
     el('title').textContent=lead.display_name||lead.phone;
     el('messages').textContent='Carregando...';
@@ -386,6 +462,7 @@ async function load(){
         if(!success)return;
       }
       else{
+        disposeMedia();
         selected=null;messageRequest++;renderedMessages=[];
         el('contact-tools').hidden=true;
         el('send-panel').hidden=true;
@@ -402,6 +479,7 @@ async function load(){
     loading=false;
   }
 }
+window.addEventListener('pagehide',disposeMedia);
 el('send-button').addEventListener('click',sendMessage);
 el('search').addEventListener('input',applyContactFilter);
 el('filter-stage').addEventListener('change',applyContactFilter);

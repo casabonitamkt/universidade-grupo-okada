@@ -1,0 +1,21 @@
+name: CRM media viewer security tests
+on:
+  pull_request:
+    paths:
+      - 'api/crm-media.js'
+      - 'tests/crm-media.test.cjs'
+      - 'crm-piloto.html'
+      - '.github/workflows/crm-media-tests.yml'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check api/crm-media.js
+      - run: node --test tests/crm-media.test.cjs
+      - run: node --test tests/crm-piloto-auto-refresh.test.cjs
