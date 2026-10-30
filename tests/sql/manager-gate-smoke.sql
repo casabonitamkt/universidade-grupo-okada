@@ -82,6 +82,20 @@ for each row execute function public.protect_profile_privileged_fields();
 set role authenticated;
 select set_config('app.test_uid','11111111-1111-4111-8111-111111111111',false);
 
+-- Gate pedagogico transacional: fase 2 nao abre antes do Marco 30.
+-- A checagem nao pode depender apenas da interface ou da ordem de publicacao.
+select public.test_expect_error($sql$
+ select public.training_exam_questions(
+ 'f2f2f2f2-f2f2-4f2f-8f2f-f2f2f2f2f2f2','a')
+$sql$,'Fase 2 exige Marco 30 concluido');
+select public.test_expect_error($sql$
+ insert into public.submissions(user_id,lesson_id,submission_type,text_content,status)
+ values('11111111-1111-4111-8111-111111111111',
+ 'f2f2f2f2-f2f2-4f2f-8f2f-f2f2f2f2f2f2','lesson_exam_a',
+ '{"version":1,"stage":"a","requires_manager_validation":true,"answers":[0,0,0,0,0,0,0,0,0,0],"evidence":"Pratica ficticia detalhada para testar bloqueio de fase sem marco de trinta dias concluido."}',
+ 'pending')
+$sql$,'Fase 2 exige Marco 30 concluido');
+
 -- RLS profiles_self_update nao pode permitir autoconceder role=admin.
 select public.test_expect_error($sql$
  update public.profiles set role='admin'
