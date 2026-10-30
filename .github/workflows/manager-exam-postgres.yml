@@ -170,3 +170,19 @@ jobs:
             tests/manager-transactional-ui.test.mjs \
             tests/trilha-real-exam-pilot.test.mjs \
             tests/trilha-90-dias-gate-painel-real.test.mjs
+      - name: Validar rotas reais do CRM no merge ensaiado (sem publicar)
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {existsSync,readFileSync} from 'node:fs';
+          for (const page of ['crm-master.html','crm-piloto.html']) {
+            assert.ok(existsSync(page), 'Rota CRM aponta para pagina ausente: '+page);
+          }
+          const home=readFileSync('index.html','utf8');
+          const master=readFileSync('crm-master.html','utf8');
+          const piloto=readFileSync('crm-piloto.html','utf8');
+          assert.match(home,/isCrmMaster\(\)\?'\/crm-master\.html':'\/crm-piloto\.html'/,'Atalho CRM precisa preservar as duas rotas');
+          assert.match(master,/\/api\/crm-master/,'Painel gerencial sem endpoint de leitura');
+          assert.match(piloto,/\/api\/crm/,'Painel consultor sem endpoint CRM');
+          assert.match(piloto,/sem geração por IA e sem envio automático/i,'Nao declarar IA ativa sem pipeline homologado');
+          NODE
