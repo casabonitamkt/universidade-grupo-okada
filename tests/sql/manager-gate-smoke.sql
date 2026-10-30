@@ -351,12 +351,25 @@ select public.test_expect_error($sql$
  select public.training_review_exam(
  'f2f2f2f2-2222-4222-8222-f2f2f2f2f2f2','approve',9,true,
  'Nota pratica inconsistente.',
- '[{"case":"observed","score":8,"critical_error":false,"evidence":"Pratica observada com medidas, circulacao, investimento e prazo alinhados com o cliente."}]'::jsonb)
+ '[{"case":"observed","score":8,"criteria_scores":[2,2,2,2,0],"critical_error":false,"evidence":"Pratica observada com medidas, circulacao, investimento e prazo alinhados com o cliente."}]'::jsonb)
 $sql$,'Nota pratica F2');
+-- Uma nota geral sem rubrica e notas acima de 2 nao podem aprovar.
+select public.test_expect_error($sql$
+ select public.training_review_exam(
+ 'f2f2f2f2-2222-4222-8222-f2f2f2f2f2f2','approve',9,true,
+ 'Cinco notas individuais ausentes.',
+ '[{"case":"observed","score":9,"critical_error":false,"evidence":"Pratica observada com medidas, circulacao, investimento e prazo alinhados com o cliente."}]'::jsonb)
+$sql$,'Rubrica pratica F2 exige cinco notas');
+select public.test_expect_error($sql$
+ select public.training_review_exam(
+ 'f2f2f2f2-2222-4222-8222-f2f2f2f2f2f2','approve',9,true,
+ 'Uma competencia nao pode exceder dois pontos.',
+ '[{"case":"observed","score":9,"criteria_scores":[3,2,2,1,1],"critical_error":false,"evidence":"Pratica observada com medidas, circulacao, investimento e prazo alinhados com o cliente."}]'::jsonb)
+$sql$,'Cada criterio pratico F2');
 select public.training_review_exam(
  'f2f2f2f2-2222-4222-8222-f2f2f2f2f2f2','approve',9,true,
  'Pratica observada com evidencia e sem erros criticos.',
- '[{"case":"observed","score":9,"critical_error":false,"evidence":"Pratica observada com medidas, circulacao, investimento e prazo alinhados com o cliente."}]'::jsonb
+ '[{"case":"observed","score":9,"criteria_scores":[2,2,2,2,1],"critical_error":false,"evidence":"Pratica observada com medidas, circulacao, investimento e prazo alinhados com o cliente."}]'::jsonb
 );
 
 reset role;
