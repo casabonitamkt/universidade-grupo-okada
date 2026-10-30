@@ -402,7 +402,7 @@ returns trigger language plpgsql security definer
 set search_path = pg_catalog, public, training_private
 as $fn$
 declare
-  v_content jsonb; v_exam boolean;
+  v_content jsonb; v_exam boolean; v_old_exam boolean:=false;
   v_decision training_private.exam_decisions%rowtype;
   v_user uuid; v_lesson uuid;
 begin
@@ -418,6 +418,18 @@ begin
   -- deve preservar o fluxo legado sem prova, inclusive conclusoes existentes.
   v_exam := coalesce((v_content->>'exam_required')::boolean,false)
     or exists(select 1 from training_private.exam_banks where lesson_id=v_lesson);
+  -- Impede mover uma linha de prova (inclusive concluida) para aula legada:
+  -- avaliar tambem a identidade ANTERIOR antes de aceitar UPDATE.
+  if tg_op='UPDATE' and (new.lesson_id is distinct from old.lesson_id
+       or new.user_id is distinct from old.user_id) then
+    select coalesce((l.content->>'exam_required')::boolean,false)
+      into v_old_exam from public.lessons l where l.id=old.lesson_id;
+    v_old_exam:=coalesce(v_old_exam,false)
+      or exists(select 1 from training_private.exam_banks where lesson_id=old.lesson_id);
+    if v_old_exam or coalesce(v_exam,false) then
+      raise exception 'Identidade de progresso de prova imutavel';
+    end if;
+  end if;
   if not coalesce(v_exam,false) then
     if tg_op='DELETE' then return old; else return new; end if;
   end if;
