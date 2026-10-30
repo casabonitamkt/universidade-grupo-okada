@@ -81,12 +81,6 @@ module.exports=async function handler(req,res){
   if(!lead||lead.owner_consultant_id!==userId||lead.source!=='zapi'
      ||!/^[0-9]{10,15}$/.test(lead.phone||''))
     return res.status(403).json({error:'contact_not_allowed'});
-  // Homologação controlada: durante o primeiro teste apenas o telefone autorizado recebe.
-  // A configuração pode ser removida após o teste; não deixar enviar aos demais contatos.
-  const allowedTestPhone=process.env.CRM_SEND_TEST_ONLY_PHONE;
-  if(allowedTestPhone && lead.phone!==allowedTestPhone)
-    return res.status(403).json({error:'test_recipient_only'});
-
   let outbox;
   try{
     const inserted=await storage(cfg.db,cfg.service,'crm_pilot_outbox',{
