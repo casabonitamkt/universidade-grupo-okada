@@ -27,10 +27,24 @@ function normalizeEvent(event, expectedInstance) {
   const body = kind === 'text' && typeof m.text === 'string' ? m.text.slice(0, 10000)
     : typeof m.caption === 'string' ? m.caption.slice(0, 2000) : '';
   const mediaName = typeof m.filename === 'string' ? m.filename.slice(0, 180) : null;
+  let mediaDownload = null;
+  if (['image','audio','video','document','sticker'].includes(kind) &&
+      typeof m.direct_path === 'string' && m.direct_path.length <= 4096 &&
+      typeof m.media_key === 'string' && m.media_key.length <= 1024) {
+    mediaDownload = {
+      direct_path:m.direct_path,media_key:m.media_key,
+      file_sha256:typeof m.file_sha256 === 'string' ? m.file_sha256.slice(0,512) : null,
+      file_enc_sha256:typeof m.file_enc_sha256 === 'string' ? m.file_enc_sha256.slice(0,512) : null,
+      url:typeof m.url === 'string' ? m.url.slice(0,4096) : null
+    };
+  }
   const timestamp = Date.parse(m.timestamp || '');
   return {
     phone: sender.split('@')[0], name: typeof m.push_name === 'string' ? m.push_name.slice(0, 100) : 'Cliente',
-    messageId: m.id, instanceId: p.instance_id, kind, body, mediaName,
+    messageId: m.id, instanceId: p.instance_id, kind, body, mediaName, mediaDownload,
+    mimeType:typeof m.mimetype === 'string' ? m.mimetype.slice(0,128) : null,
+    mediaLength:Number.isFinite(Number(m.file_length)) && Number(m.file_length) >= 0 && Number(m.file_length) <= 52428800
+      ? Number(m.file_length) : null,
     eventAt: Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : new Date().toISOString()
   };
 }
@@ -73,6 +87,21 @@ async function findMessage(message, config) {
     select: 'id', source: 'eq.zapi', instance_id: 'eq.' + message.instanceId,
     external_message_id: 'eq.' + message.messageId, limit: '1'
   }), { method: 'GET' }, config);
+}
+async function persistMediaMetadata(message, config) {
+  if (!message.mediaDownload) return;
+  const records = await findMessage(message, config);
+  if (!records[0]?.id) throw new Error('crm_media_message_missing');
+  // Nunca expor download_metadata no frontend. RLS bloqueia anon/authenticated.
+  await supabase('crm_pilot_media?on_conflict=message_id', {
+    method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({
+      message_id: records[0].id,
+      media_type: message.kind, mime_type: message.mimeType,
+      filename: message.mediaName, file_length: message.mediaLength,
+      download_metadata: message.mediaDownload
+    })
+  }, config);
 }
 async function persist(message, config) {
   const leads = await findLead(message, config);
@@ -192,6 +221,7 @@ module.exports = async function handler(req, res) {
   }
   try {
     const result = await persist(message, config);
+    await persistMediaMetadata(message, config);
     console.info('zappy_inbound_persisted', { status: result });
     return res.status(200).json({ received: true, status: result });
   } catch (error) {
