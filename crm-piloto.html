@@ -65,6 +65,12 @@
     #messages{min-height:145px;color:var(--muted)}
     .message{border:1px solid #353845;border-radius:12px;padding:13px 15px;margin:0 0 10px;background:#20222c;color:var(--text);white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55}
     .message:last-child{margin-bottom:0}
+    .composer{border-top:1px solid var(--line);margin-top:18px;padding-top:16px}
+    .composer[hidden]{display:none}
+    .composer textarea{width:100%;min-height:94px;max-height:250px;resize:vertical;background:#10121a;color:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;font:inherit}
+    .composer button{border:none;border-radius:10px;padding:11px 15px;margin:9px 0;background:#bd2c37;color:#fff;font-weight:700;cursor:pointer}
+    .composer button:disabled{opacity:.5;cursor:wait}
+    #send-status{font-size:13px;color:var(--muted);margin:6px 0}
     @media(max-width:740px){.header-inner{padding:18px 18px 22px}.back{margin-bottom:15px}main{padding:15px 14px 35px}.layout{grid-template-columns:minmax(0,1fr);gap:14px}.box{padding:17px}.sync-panel{padding:13px 14px}.auto-tag{font-size:12px}.contacts-box,.conversation-box{min-height:auto}#leads,#messages{max-height:none;overflow:visible;min-height:0}}
     @media(prefers-reduced-motion:no-preference){.lead{transition:background-color .15s,border-color .15s}}
   </style>
@@ -130,6 +136,12 @@
           <p class="small-note">O envio de respostas ainda acontece pelo WhatsApp; o CRM está preparado para a próxima etapa.</p>
         </section>
         <div id="messages" aria-live="polite">Selecione um contato para ler as mensagens.</div>
+        <section id="send-panel" class="composer" hidden aria-label="Enviar resposta pelo CRM">
+          <label for="send-content" class="small-note" style="display:block;margin-bottom:6px">Responder ao contato selecionado</label>
+          <textarea id="send-content" maxlength="4000" placeholder="Digite a resposta ao cliente..."></textarea>
+          <button type="button" id="send-button">Enviar mensagem</button>
+          <p id="send-status" role="status">Envio direto pelo CRM — somente para o contato selecionado.</p>
+        </section>
       </section>
     </div>
   </main>
@@ -152,10 +164,72 @@ function syncSelection(){
     button.setAttribute('aria-pressed',String(button.dataset.leadId===selected));
   }
 }
+let sendingEnabled=false,sending=false,composerLeadId=null;
+async function checkSending(){
+  try{
+    const r=await fetch('/api/crm-send-text',{cache:'no-store'});
+    const d=await r.json();
+    sendingEnabled=Boolean(d.enabled);
+  }catch{sendingEnabled=false}
+  el('send-panel').hidden=!(sendingEnabled&&selected);
+}
+function prepareComposer(lead){
+  const changed=composerLeadId!==lead.id;
+  composerLeadId=lead.id;
+  if(changed){
+    el('send-content').value='';
+    el('send-status').textContent='Envio direto pelo CRM — somente para o contato selecionado.';
+  }
+  el('send-panel').hidden=!sendingEnabled;
+}
+async function sendMessage(){
+  if(sending||!sendingEnabled||!selected)return;
+  const leadId=selected;
+  const content=el('send-content').value.trim();
+  if(!content||content.length>4000){
+    el('send-status').textContent='Digite uma mensagem de até 4.000 caracteres.';return;
+  }
+  sending=true;
+  el('send-button').disabled=true;
+  el('send-status').textContent='Enviando mensagem...';
+  try{
+    const {data:{session},error}=await sb.auth.getSession();
+    if(error||!session?.access_token)throw Error('Sessão expirada. Faça login novamente.');
+    const requestId=crypto.randomUUID();
+    const response=await fetch('/api/crm-send-text',{
+      method:'POST',
+      headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},
+      body:JSON.stringify({lead_id:leadId,request_id:requestId,content})
+    });
+    const result=await response.json();
+    if(!response.ok)throw Error(result.error==='provider_rate_limited'
+      ?'Limite de envio da Zappy. Tente novamente depois.'
+      :'Não foi possível confirmar o envio. Confira a conexão da Zappy.');
+    if(selected===leadId){
+      if(result.status==='sent'){
+        el('send-content').value='';
+        el('send-status').textContent='Mensagem enviada com sucesso.';
+        const lead=leads.find(l=>l.id===leadId);
+        if(lead)await refreshMessages(lead);
+      }else{
+        el('send-status').textContent='Envio incerto. Confira no WhatsApp antes de tentar de novo.';
+        el('send-button').disabled=true;
+        return;
+      }
+    }
+  }catch(error){
+    if(selected===leadId)el('send-status').textContent=error.message;
+  }finally{
+    sending=false;
+    if(el('send-status').textContent!=='Envio incerto. Confira no WhatsApp antes de tentar de novo.')
+      el('send-button').disabled=false;
+  }
+}
 function clearInbox(){
   leads=[];selected=null;leadSignature='';renderedMessages=[];messageRequest++;
   el('leads').replaceChildren();
   el('contact-tools').hidden=true;
+  el('send-panel').hidden=true;
   selectedLeadId=null;
   el('empty-search').hidden=true;
   el('title').textContent='Conversa';
@@ -244,6 +318,7 @@ async function refreshMessages(lead,manual=false){
 function showLeadTools(lead){
   selectedLeadId=lead.id;
   el('contact-tools').hidden=false;
+  prepareComposer(lead);
   el('lead-stage').value=lead.stage||'novo';
   el('lead-notes').value=lead.notes||'';
   el('action-status').textContent='';
@@ -313,6 +388,7 @@ async function load(){
       else{
         selected=null;messageRequest++;renderedMessages=[];
         el('contact-tools').hidden=true;
+        el('send-panel').hidden=true;
         el('title').textContent='Conversa';
         el('messages').textContent='Selecione um contato.';
       }
@@ -326,6 +402,7 @@ async function load(){
     loading=false;
   }
 }
+el('send-button').addEventListener('click',sendMessage);
 el('search').addEventListener('input',applyContactFilter);
 el('filter-stage').addEventListener('change',applyContactFilter);
 el('lead-stage').addEventListener('change',()=>updateLeadField('stage',el('lead-stage').value));
@@ -335,4 +412,5 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
 window.addEventListener('focus',()=>{if(!document.hidden)load()});
 window.addEventListener('online',()=>load());
 load();
+checkSending();
 </script></body></html>
