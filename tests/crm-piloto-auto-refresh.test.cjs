@@ -256,9 +256,9 @@ test('botão de tela cheia acessível e reversível, sem acionamento automático
 
 test('Universidade apresenta CRM no menu lateral e no menu móvel, com navegação no mesmo domínio',()=>{
   const university=fs.readFileSync(require('node:path').join(__dirname,'..','index.html'),'utf8');
-  assert.match(university,/items\.splice\(1,0,\{id:'crm',icon:'▣',label:'CRM · Atendimentos'\}\)/);
-  assert.match(university,/\{id:'crm',icon:'▣',label:'CRM · Atendimentos'\}/);
-  assert.match(university,/if\(id==='crm'\)\{window\.location\.assign\('\/crm-piloto\.html'\);return\}/);
+  assert.match(university,/items\.splice\(1,0,\{id:'crm',icon:'▣',label:isCrmMaster\(\)\?'CRM · Master':'CRM · Atendimentos'\}\)/);
+  assert.match(university,/\{id:'crm',icon:'▣',label:isCrmMaster\(\)\?'CRM · Master':'CRM · Atendimentos'\}/);
+  assert.match(university,/if\(id==='crm'\)\{window\.location\.assign\(isCrmMaster\(\)\?'\/crm-master\.html':'\/crm-piloto\.html'\);return\}/);
   assert.match(university,/id="nav" class="nav"/);
   assert.match(university,/id="mobileNav" class="mobileNav"/);
 });
