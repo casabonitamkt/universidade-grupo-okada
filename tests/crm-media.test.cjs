@@ -30,7 +30,12 @@ function setup(options={}){
   if(u.includes('/media/download')){
    downloads++;
    assert.equal(args.headers.Authorization,'Bearer unit-api-key');
-   assert.equal(JSON.parse(args.body).media_key,'private-unit-key');
+   const request=JSON.parse(args.body);
+   assert.equal(request.media_key,'private-unit-key');
+   assert.equal(request.type,'image');
+   assert.equal(request.file_length,9);
+   assert.equal(request.mimetype,'image/png');
+   assert.equal(request.file_sha256,'hash');
    return json(200,{data:Buffer.from('image-binary').toString('base64')});
   }
   throw Error('unexpected endpoint '+u);
