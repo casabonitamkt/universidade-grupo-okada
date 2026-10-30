@@ -1,9 +1,134 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CRM • Caixa de entrada | Casa Bonita</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><style>body{margin:0;background:#0c0c10;color:#f6f6f7;font:15px system-ui,sans-serif}header{background:#17171e;padding:22px;border-bottom:2px solid #be1e24}main{max-width:1100px;margin:24px auto;padding:0 16px}.box{border:1px solid #383842;border-radius:14px;padding:18px;background:#19191f}.layout{display:grid;grid-template-columns:320px 1fr;gap:16px}button{background:#be1e24;color:white;border:0;padding:12px;border-radius:9px;cursor:pointer}button:focus-visible{outline:3px solid white}.lead{display:block;width:100%;text-align:left;margin:7px 0;background:#292930}.lead[aria-pressed=true]{background:#782329}.mut{color:#b8b8c2}.message{border:1px solid #393943;border-radius:10px;padding:12px;margin:10px 0;white-space:pre-wrap;overflow-wrap:anywhere}a{color:#ff9a9e}#status{min-height:25px}@media(max-width:700px){.layout{grid-template-columns:1fr}}</style></head><body><header><strong>CASA BONITA • CRM PILOTO</strong><p>Caixa de entrada — somente leitura</p><a href="/">← Voltar à Universidade</a></header><main><p id="status" role="status">Verificando acesso...</p><div class="layout"><section class="box"><h2>Meus contatos</h2><button id="reload">Atualizar mensagens</button><div id="leads"></div></section><section class="box"><h2 id="title">Conversa</h2><div id="messages" aria-live="polite">Selecione um contato.</div></section></div></main><script>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CRM • Caixa de entrada | Casa Bonita</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><style>body{margin:0;background:#0c0c10;color:#f6f6f7;font:15px system-ui,sans-serif}header{background:#17171e;padding:22px;border-bottom:2px solid #be1e24}main{max-width:1100px;margin:24px auto;padding:0 16px}.box{border:1px solid #383842;border-radius:14px;padding:18px;background:#19191f}.layout{display:grid;grid-template-columns:320px 1fr;gap:16px}button{background:#be1e24;color:white;border:0;padding:12px;border-radius:9px;cursor:pointer}button:focus-visible{outline:3px solid white}.lead{display:block;width:100%;text-align:left;margin:7px 0;background:#292930}.lead[aria-pressed=true]{background:#782329}.mut{color:#b8b8c2}.message{border:1px solid #393943;border-radius:10px;padding:12px;margin:10px 0;white-space:pre-wrap;overflow-wrap:anywhere}a{color:#ff9a9e}#status{min-height:25px}#sync{font-size:13px;margin:12px 0 0;line-height:1.4}@media(max-width:700px){.layout{grid-template-columns:1fr}}</style></head><body><header><strong>CASA BONITA • CRM PILOTO</strong><p>Caixa de entrada — somente leitura</p><a href="/">← Voltar à Universidade</a></header><main><p id="status" role="status">Verificando acesso...</p><div class="layout"><section class="box"><h2>Meus contatos</h2><button id="reload">Atualizar agora</button><p id="sync" class="mut">Atualização automática a cada 15 segundos, enquanto esta tela estiver aberta.</p><div id="leads"></div></section><section class="box"><h2 id="title">Conversa</h2><div id="messages" aria-live="polite">Selecione um contato.</div></section></div></main><script>
 const SBURL='https://mjtphztvjnfjlhtxtwjz.supabase.co', KEY='sb_publishable_tu2xBCVGLQyPyddMT-poMQ_BFRx2nmx';
 const storage={getItem(k){try{return(localStorage.getItem('cb_keep_login_v1')==='false'?sessionStorage:localStorage).getItem(k)}catch{return null}},setItem(k,v){try{(localStorage.getItem('cb_keep_login_v1')==='false'?sessionStorage:localStorage).setItem(k,v)}catch{}},removeItem(k){localStorage.removeItem(k);sessionStorage.removeItem(k)}};
-const sb=supabase.createClient(SBURL,KEY,{auth:{persistSession:true,storage}});let leads=[],selected=null;
-const el=id=>document.getElementById(id);function node(tag,text){const e=document.createElement(tag);e.textContent=text;return e}
-async function load(){el('status').textContent='Atualizando...';const {data:{user},error:authError}=await sb.auth.getUser();if(authError||!user){el('status').textContent='Entre na Universidade com sua conta e volte a esta página.';return}const {data,error}=await sb.from('crm_pilot_leads').select('id,display_name,phone,stage').eq('owner_consultant_id',user.id).order('created_at',{ascending:false}).limit(100);if(error){el('status').textContent='Não foi possível consultar os contatos: '+error.message;return}leads=data||[];el('leads').replaceChildren();for(const l of leads){const b=node('button',(l.display_name||'Cliente')+' • '+l.phone);b.className='lead';b.setAttribute('aria-pressed',String(selected===l.id));b.onclick=()=>openLead(l);el('leads').append(b)}el('status').textContent=leads.length+' contato(s) atribuído(s) à sua conta.';if(selected){const l=leads.find(x=>x.id===selected);if(l)await openLead(l);else{selected=null;el('messages').textContent='Selecione um contato.'}}}
-async function openLead(l){selected=l.id;el('title').textContent=l.display_name||l.phone;for(const b of el('leads').querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.textContent.includes(l.phone)));el('messages').textContent='Carregando...';const {data,error}=await sb.from('crm_pilot_messages').select('id,direction,kind,body,event_at').eq('lead_id',l.id).order('event_at',{ascending:true}).limit(200);if(error){el('messages').textContent='Falha ao carregar mensagens: '+error.message;return}el('messages').replaceChildren();if(!data?.length){el('messages').textContent='Nenhuma mensagem registrada.';return}for(const m of data){const d=node('div',(m.direction==='entrada'?'Cliente':'Consultor')+' • '+new Date(m.event_at).toLocaleString('pt-BR')+'\n'+(m.body||'['+m.kind+']'));d.className='message';el('messages').append(d)}}
-el('reload').onclick=load;load();
+const sb=supabase.createClient(SBURL,KEY,{auth:{persistSession:true,storage}});
+const REFRESH_MS=15000;
+let leads=[],selected=null,leadSignature='',renderedMessages=[],loading=false,messageRequest=0;
+const el=id=>document.getElementById(id);
+function node(tag,text){const e=document.createElement(tag);e.textContent=text;return e}
+function setSync(text){el('sync').textContent=text}
+function syncSelection(){
+  for(const button of el('leads').querySelectorAll('button')) {
+    button.setAttribute('aria-pressed',String(button.dataset.leadId===selected));
+  }
+}
+function clearInbox(){
+  leads=[];selected=null;leadSignature='';renderedMessages=[];messageRequest++;
+  el('leads').replaceChildren();
+  el('title').textContent='Conversa';
+  el('messages').textContent='Selecione um contato.';
+}
+function renderLeads(next){
+  const signature=JSON.stringify(next.map(l=>[l.id,l.display_name,l.phone,l.stage]));
+  leads=next;
+  if(signature===leadSignature)return;
+  leadSignature=signature;
+  const buttons=leads.map(l=>{
+    const b=node('button',(l.display_name||'Cliente')+' • '+l.phone);
+    b.className='lead';
+    b.dataset.leadId=l.id;
+    b.setAttribute('aria-pressed',String(selected===l.id));
+    b.onclick=()=>openLead(l);
+    return b;
+  });
+  el('leads').replaceChildren(...buttons);
+}
+async function refreshMessages(lead,manual=false){
+  const request=++messageRequest;
+  try{
+    const {data,error}=await sb.from('crm_pilot_messages')
+      .select('id,direction,kind,body,event_at').eq('lead_id',lead.id)
+      .order('event_at',{ascending:false}).limit(200);
+    if(request!==messageRequest || selected!==lead.id)return;
+    if(error)throw error;
+    // Consulta as 200 mensagens mais recentes e exibe em ordem cronológica.
+    const rows=(data||[]).slice().reverse().map(m=>({
+      id:m.id,
+      text:(m.direction==='entrada'?'Cliente':'Consultor')+' • '+
+        new Date(m.event_at).toLocaleString('pt-BR')+'\n'+(m.body||'['+m.kind+']')
+    }));
+    if(!rows.length){
+      if(renderedMessages.length || el('messages').textContent!=='Nenhuma mensagem registrada.'){
+        el('messages').textContent='Nenhuma mensagem registrada.';
+      }
+    }else{
+      // Mensagens idênticas não são redesenhadas. Mensagens novas são apenas acrescentadas,
+      // preservando seleção, leitura e posição de rolagem no celular.
+      const isAppend=renderedMessages.length>0&&rows.length>=renderedMessages.length&&
+        renderedMessages.every((old,i)=>rows[i].id===old.id&&rows[i].text===old.text);
+      if(isAppend){
+        for(const row of rows.slice(renderedMessages.length)){
+          const div=node('div',row.text);div.className='message';el('messages').append(div);
+        }
+      }else if(JSON.stringify(rows)!==JSON.stringify(renderedMessages)){
+        el('messages').replaceChildren(...rows.map(row=>{
+          const div=node('div',row.text);div.className='message';return div;
+        }));
+      }
+    }
+    renderedMessages=rows;
+    return true;
+  }catch(error){
+    if(request!==messageRequest||selected!==lead.id)return;
+    if(manual)el('messages').textContent='Falha ao carregar mensagens: '+error.message;
+    setSync('Falha ao consultar a conversa. A próxima atualização tentará novamente.');
+    return false;
+  }
+}
+async function openLead(lead){
+  if(selected!==lead.id){
+    selected=lead.id;renderedMessages=[];
+    el('title').textContent=lead.display_name||lead.phone;
+    el('messages').textContent='Carregando...';
+    syncSelection();
+  }
+  await refreshMessages(lead,true);
+}
+async function load(manual=false){
+  // Evita requisições sobrepostas e pausa consultas em segundo plano.
+  if(loading||(!manual&&document.hidden))return;
+  if(navigator.onLine===false){setSync('Sem internet. Atualizaremos quando a conexão voltar.');return}
+  loading=true;
+  if(manual)setSync('Atualizando agora...');
+  try{
+    const {data:{user},error:authError}=await sb.auth.getUser();
+    if(authError||!user){
+      clearInbox();
+      el('status').textContent='Entre na Universidade com sua conta e volte a esta página.';
+      setSync('Atualização automática pausada: entre na sua conta.');
+      return;
+    }
+    const {data,error}=await sb.from('crm_pilot_leads')
+      .select('id,display_name,phone,stage').eq('owner_consultant_id',user.id)
+      .order('created_at',{ascending:false}).limit(100);
+    if(error)throw error;
+    renderLeads(data||[]);
+    el('status').textContent=leads.length+' contato(s) atribuído(s) à sua conta.';
+    if(selected){
+      const current=leads.find(l=>l.id===selected);
+      if(current){
+        const success=await refreshMessages(current);
+        if(!success)return;
+      }
+      else{
+        selected=null;messageRequest++;renderedMessages=[];
+        el('title').textContent='Conversa';
+        el('messages').textContent='Selecione um contato.';
+      }
+    }
+    setSync('Atualização automática: a cada 15 segundos • Última checagem às '+
+      new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}));
+  }catch(error){
+    if(!leads.length)el('status').textContent='Não foi possível consultar os contatos.';
+    setSync('Falha na atualização: '+error.message+'. Tentaremos novamente automaticamente.');
+  }finally{
+    loading=false;
+  }
+}
+el('reload').onclick=()=>load(true);
+setInterval(()=>{if(!document.hidden)load()},REFRESH_MS);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
+window.addEventListener('focus',()=>{if(!document.hidden)load()});
+window.addEventListener('online',()=>load());
+load(true);
 </script></body></html>
