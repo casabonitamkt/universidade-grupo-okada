@@ -28,20 +28,29 @@
     .sync-panel .sync-light{margin-top:7px}
     #status{margin:0;font-weight:650}
     #sync{color:var(--muted);font-size:12px;margin:3px 0 0;line-height:1.55;overflow-wrap:anywhere}
-    .layout{display:grid;grid-template-columns:minmax(260px,350px) minmax(0,1fr);gap:18px;align-items:start}
-    .box{border:1px solid var(--line);border-radius:16px;background:var(--surface);min-width:0;padding:19px}
+    .layout{display:grid;grid-template-columns:minmax(285px,350px) minmax(0,1fr);gap:18px;align-items:stretch}
+    .box{border:1px solid var(--line);border-radius:16px;background:var(--surface);min-width:0;padding:19px;box-shadow:0 12px 38px rgba(0,0,0,.12)}
+    .contacts-box,.conversation-box{display:flex;flex-direction:column;min-height:460px}
+    #leads,#messages{overflow-y:auto;scrollbar-color:#4b4c58 transparent;scrollbar-width:thin}
+    #leads{max-height:calc(100vh - 316px);min-height:220px}
+    #messages{max-height:calc(100vh - 274px);min-height:320px}
+    .contact-search{width:100%;padding:11px 13px;margin-bottom:14px;border-radius:10px;border:1px solid var(--line);outline:none;background:#10121a;color:var(--text);font:inherit}
+    .contact-search::placeholder{color:#9296a5}
+    .contact-search:focus{border-color:#e06570;box-shadow:0 0 0 2px rgba(219,48,60,.15)}
+    .small-note{color:var(--muted);font-size:13px;margin:6px 0 0}
     .box-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:15px}
     h2{font-size:18px;line-height:1.35;letter-spacing:-.025em;margin:0}
     .read-only{color:var(--muted);font-size:11px;border:1px solid var(--line);padding:4px 8px;border-radius:7px;white-space:nowrap}
     #leads{display:flex;flex-direction:column;gap:8px}
     .lead{display:block;width:100%;padding:13px 15px;text-align:left;border:1px solid transparent;border-radius:10px;background:var(--surface-2);color:var(--text);cursor:pointer;overflow-wrap:anywhere}
+    .lead[hidden]{display:none}
     .lead:hover{background:#303340}
     .lead[aria-pressed="true"]{background:var(--brand-dark);border-color:#ec4955;box-shadow:inset 3px 0 0 #ff8c92}
     .lead:focus-visible{outline:3px solid #fa8d94;outline-offset:2px}
     #messages{min-height:145px;color:var(--muted)}
     .message{border:1px solid #353845;border-radius:12px;padding:13px 15px;margin:0 0 10px;background:#20222c;color:var(--text);white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55}
     .message:last-child{margin-bottom:0}
-    @media(max-width:740px){.header-inner{padding:18px 18px 22px}.back{margin-bottom:15px}main{padding:15px 14px 35px}.layout{grid-template-columns:minmax(0,1fr);gap:14px}.box{padding:17px}.sync-panel{padding:13px 14px}.auto-tag{font-size:12px}}
+    @media(max-width:740px){.header-inner{padding:18px 18px 22px}.back{margin-bottom:15px}main{padding:15px 14px 35px}.layout{grid-template-columns:minmax(0,1fr);gap:14px}.box{padding:17px}.sync-panel{padding:13px 14px}.auto-tag{font-size:12px}.contacts-box,.conversation-box{min-height:auto}#leads,#messages{max-height:none;overflow:visible;min-height:0}}
     @media(prefers-reduced-motion:no-preference){.lead{transition:background-color .15s,border-color .15s}}
   </style>
 </head>
@@ -68,11 +77,14 @@
       </div>
     </section>
     <div class="layout">
-      <section class="box">
+      <section class="box contacts-box" aria-label="Lista de contatos">
         <div class="box-head"><h2>Meus contatos</h2></div>
+        <label for="search" class="small-note" style="margin:0 0 6px">Buscar contato</label>
+        <input id="search" class="contact-search" type="search" placeholder="Nome ou telefone" autocomplete="off">
         <div id="leads"></div>
+        <p id="empty-search" class="small-note" hidden>Nenhum contato encontrado.</p>
       </section>
-      <section class="box">
+      <section class="box conversation-box">
         <div class="box-head">
           <h2 id="title">Conversa</h2>
           <span class="read-only">Somente leitura</span>
@@ -102,8 +114,20 @@ function syncSelection(){
 function clearInbox(){
   leads=[];selected=null;leadSignature='';renderedMessages=[];messageRequest++;
   el('leads').replaceChildren();
+  el('empty-search').hidden=true;
   el('title').textContent='Conversa';
   el('messages').textContent='Selecione um contato.';
+}
+function applyContactFilter(){
+  const query=(el('search').value||'').trim().toLocaleLowerCase('pt-BR');
+  let matching=0;
+  for(const button of el('leads').querySelectorAll('button')){
+    const matches=!query||button.textContent.toLocaleLowerCase('pt-BR').includes(query);
+    button.hidden=!matches;
+    if(matches)matching++;
+  }
+  el('empty-search').hidden=matching>0||leads.length===0;
+  el('empty-search').textContent=leads.length===0?'': 'Nenhum contato corresponde à busca.';
 }
 function renderLeads(next){
   const signature=JSON.stringify(next.map(l=>[l.id,l.display_name,l.phone,l.stage]));
@@ -119,6 +143,7 @@ function renderLeads(next){
     return b;
   });
   el('leads').replaceChildren(...buttons);
+  applyContactFilter();
 }
 async function refreshMessages(lead,manual=false){
   const request=++messageRequest;
@@ -211,6 +236,7 @@ async function load(){
     loading=false;
   }
 }
+el('search').addEventListener('input',applyContactFilter);
 setInterval(()=>{if(!document.hidden)load()},REFRESH_MS);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
 window.addEventListener('focus',()=>{if(!document.hidden)load()});
