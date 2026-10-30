@@ -38,10 +38,11 @@ async function refreshMessages(lead,manual=false){
   try{
     const {data,error}=await sb.from('crm_pilot_messages')
       .select('id,direction,kind,body,event_at').eq('lead_id',lead.id)
-      .order('event_at',{ascending:true}).limit(200);
+      .order('event_at',{ascending:false}).limit(200);
     if(request!==messageRequest || selected!==lead.id)return;
     if(error)throw error;
-    const rows=(data||[]).map(m=>({
+    // Consulta as 200 mensagens mais recentes e exibe em ordem cronológica.
+    const rows=(data||[]).slice().reverse().map(m=>({
       id:m.id,
       text:(m.direction==='entrada'?'Cliente':'Consultor')+' • '+
         new Date(m.event_at).toLocaleString('pt-BR')+'\n'+(m.body||'['+m.kind+']')
@@ -66,10 +67,12 @@ async function refreshMessages(lead,manual=false){
       }
     }
     renderedMessages=rows;
+    return true;
   }catch(error){
     if(request!==messageRequest||selected!==lead.id)return;
     if(manual)el('messages').textContent='Falha ao carregar mensagens: '+error.message;
     setSync('Falha ao consultar a conversa. A próxima atualização tentará novamente.');
+    return false;
   }
 }
 async function openLead(lead){
@@ -103,7 +106,10 @@ async function load(manual=false){
     el('status').textContent=leads.length+' contato(s) atribuído(s) à sua conta.';
     if(selected){
       const current=leads.find(l=>l.id===selected);
-      if(current)await refreshMessages(current);
+      if(current){
+        const success=await refreshMessages(current);
+        if(!success)return;
+      }
       else{
         selected=null;messageRequest++;renderedMessages=[];
         el('title').textContent='Conversa';
