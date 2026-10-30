@@ -193,9 +193,18 @@ async function viewMedia(messageId,kind,button,container){
     });
     if(!response.ok){
       const data=await response.json().catch(()=>({}));
-      if(data.error==='media_not_available')throw new Error('Arquivo antigo indisponível para download.');
-      if(data.error==='media_format_not_supported')throw new Error('Formato indisponível no visualizador.');
-      throw new Error('Não foi possível abrir o arquivo agora.');
+      if(data.error==='media_not_available')throw new Error('Esta mídia ainda não possui dados suficientes para abrir.');
+      if(data.error==='media_format_not_supported')throw new Error('Formato não compatível com o visualizador.');
+      if(data.error==='provider_download_unavailable')throw new Error(
+        data.provider_status===401||data.provider_status===403
+          ?'A Zappy não autorizou o download (código '+data.provider_status+').'
+          :data.provider_status===400
+            ?'A Zappy rejeitou a solicitação da mídia (código 400).'
+            :'Falha ao buscar a mídia na Zappy (código '+(data.provider_status||'indisponível')+').'
+      );
+      if(data.error==='provider_response_unrecognized')throw new Error('A Zappy retornou um formato de arquivo inesperado.');
+      if(response.status===401)throw new Error('Sessão expirada. Entre novamente no CRM.');
+      throw new Error('Não foi possível abrir o arquivo agora (código '+response.status+').');
     }
     const blob=await response.blob();
     if(!blob.size)throw new Error('Arquivo vazio.');
