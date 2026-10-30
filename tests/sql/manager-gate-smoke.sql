@@ -96,6 +96,22 @@ select public.test_expect_error($sql$
  'pending')
 $sql$,'Fase 2 exige Marco 30 concluido');
 
+-- Um registro pre-migracao completed sem decisao de gestor NAO autoriza F2.
+-- Este perfil ficticio possui progresso do Marco 30, mas nenhuma prova aprovada.
+select set_config('app.test_uid','99999999-9999-4999-8999-999999999999',false);
+select public.test_expect_error($sql$
+ select public.training_exam_questions(
+ 'f2f2f2f2-f2f2-4f2f-8f2f-f2f2f2f2f2f2','a')
+$sql$,'Fase 2 exige Marco 30 concluido');
+select public.test_expect_error($sql$
+ insert into public.submissions(user_id,lesson_id,submission_type,text_content,status)
+ values('99999999-9999-4999-8999-999999999999',
+ 'f2f2f2f2-f2f2-4f2f-8f2f-f2f2f2f2f2f2','lesson_exam_a',
+ '{"version":1,"stage":"a","requires_manager_validation":true,"answers":[0,0,0,0,0,0,0,0,0,0],"evidence":"A simulacao pre-migracao nao possui decisao real de gestor para o Marco 30."}',
+ 'pending')
+$sql$,'Fase 2 exige Marco 30 concluido');
+select set_config('app.test_uid','11111111-1111-4111-8111-111111111111',false);
+
 -- RLS profiles_self_update nao pode permitir autoconceder role=admin.
 select public.test_expect_error($sql$
  update public.profiles set role='admin'
