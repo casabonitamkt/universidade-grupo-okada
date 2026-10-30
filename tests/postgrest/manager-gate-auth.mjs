@@ -187,12 +187,22 @@ assert.equal(ok(r,'Conclusao Marco 30')[0].status,'completed');
 r=await api('/submissions','POST',{user_id:consultant,lesson_id:f2day34,submission_type:'lesson_exam_a',status:'pending',text_content:aBody()});
 const f2attempt=ok(r,'Enviar prova A F2-D34',201)[0];
 blocked(await review(f2attempt.id,'approve',9,true,'Sem evidencias observadas na pratica F2.'),'F2 sem evidencias');
-const observedCase={case:'observed',score:9,critical_error:false,evidence:evidence+' Medidas e uso confirmados com cliente.'};
+const observedCase={case:'observed',score:9,criteria_scores:[2,2,2,2,1],critical_error:false,evidence:evidence+' Medidas e uso confirmados com cliente.'};
 blocked(await rpc('training_review_exam',{
  p_submission_id:f2attempt.id,p_decision:'approve',p_practice_score:9,
  p_practice_approved:true,p_feedback:'Erro critico impede aprovacao F2.',
  p_practice_cases:[{...observedCase,critical_error:true}]
 },managerToken),'F2 com erro critico');
+blocked(await rpc('training_review_exam',{
+ p_submission_id:f2attempt.id,p_decision:'approve',p_practice_score:9,
+ p_practice_approved:true,p_feedback:'Rubrica F2 sem notas individuais.',
+ p_practice_cases:[{...observedCase,criteria_scores:undefined}]
+},managerToken),'F2 sem cinco notas');
+blocked(await rpc('training_review_exam',{
+ p_submission_id:f2attempt.id,p_decision:'approve',p_practice_score:9,
+ p_practice_approved:true,p_feedback:'Rubrica F2 com criterio maior que dois.',
+ p_practice_cases:[{...observedCase,criteria_scores:[3,2,2,1,1]}]
+},managerToken),'F2 com nota por criterio invalida');
 r=await rpc('training_review_exam',{
  p_submission_id:f2attempt.id,p_decision:'approve',p_practice_score:9,
  p_practice_approved:true,p_feedback:'Pratica F2 observada e validada com evidencias.',
