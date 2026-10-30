@@ -23,7 +23,10 @@ function setup(){
   sb:{rpc:async(name,args)=>{calls.push(['rpc',name,args]);return{error:null}}},
   loadAdmin:async()=>{calls.push(['refresh'])}
  };
- runInNewContext(html.slice(a,b),ctx);
+ const h=html.indexOf('function f2RubricCriteria(');
+ const hEnd=html.indexOf('function renderPendingLessonExams(',h);
+ assert.ok(h>=0&&hEnd>h,'Normalizacao da rubrica F2 ausente');
+ runInNewContext(html.slice(h,hEnd)+html.slice(a,b),ctx);
  return {ctx,calls,fields};
 }
 test('consultor nao recebe acesso ao RPC pelo painel',async()=>{
@@ -86,4 +89,26 @@ test('Marco 30 com erro critico nao envia aprovacao ao servidor',async()=>{
  await ctx.managerReviewExam('e1','approve');
  assert.equal(calls.filter(x=>x[0]==='rpc').length,0);
  assert.match(calls.at(-1)[1],/duas simulações/);
+});
+
+test('F2 exige cinco competencias de 0 a 2 e envia soma ao RPC',async()=>{
+ const {ctx,calls,fields}=setup();
+ ctx.profile.role='admin';ctx.user.id='admin';
+ ctx.cache.ls[0].code='F2-D34-A01';
+ ctx.cache.ls[0].content={manager_practical_rubric:{criteria:['comparacao','projeto','pendencias','alcada','retorno']}};
+ for(let i=0;i<5;i++)fields['exam-f2-criterion-'+i+'-e1']={value:i===4?'1':'2'};
+ fields['exam-observed-critical-e1']={checked:false};
+ fields['exam-observed-evidence-e1']={value:'Pratica observada com comparacao por ambiente, respeito ao projeto, alcada e retorno confirmado.'};
+ await ctx.managerReviewExam('e1','approve');
+ const rpc=calls.find(x=>x[0]==='rpc');
+ assert.ok(rpc,'Aprovacao com cinco notas deve chegar ao servidor');
+ assert.equal(rpc[2].p_practice_score,9);
+ assert.equal(JSON.stringify(rpc[2].p_practice_cases[0].criteria_scores),'[2,2,2,2,1]');
+});
+test('F2 sem rubrica homologada nao envia aprovacao',async()=>{
+ const {ctx,calls}=setup();
+ ctx.profile.role='admin';ctx.user.id='admin';
+ ctx.cache.ls[0].code='F2-D35-A01';
+ await ctx.managerReviewExam('e1','approve');
+ assert.equal(calls.filter(x=>x[0]==='rpc').length,0);
 });
