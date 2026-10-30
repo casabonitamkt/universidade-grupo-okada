@@ -148,3 +148,14 @@ test('não envia texto vazio ou sem identificador de requisição',async()=>{
     assert.equal(x.code,400);assert.equal(s.counts.apiPosts,0);
   }finally{s.restore()}
 });
+
+test('modo de homologação bloqueia destinatário diferente sem chamar Zappy',async()=>{
+  const s=setup({CRM_SEND_TEST_ONLY_PHONE:'554497713832'});
+  try{
+    const x=res();await handler(s.makeReq(),x);
+    assert.equal(x.code,403);
+    assert.equal(x.body.error,'test_recipient_only');
+    assert.equal(s.counts.apiPosts,0);
+    assert.equal(s.counts.outboxPosts,0);
+  }finally{s.restore()}
+});
