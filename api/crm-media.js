@@ -95,7 +95,11 @@ module.exports=async function handler(req,res){
       method:'POST',headers:{Authorization:'Bearer '+cfg.zappyKey,'Content-Type':'application/json'},
       body:JSON.stringify(reqBody),signal:AbortSignal.timeout(14000)
     });
-    if(!z.ok)return response(res,502,{error:'provider_download_unavailable'});
+    if(!z.ok){
+      // Não registrar URL, corpo, chave ou metadados de mídia nos logs.
+      console.error('crm_media_provider_failure',{status:z.status,kind:msg.kind});
+      return response(res,502,{error:'provider_download_unavailable',provider_status:z.status});
+    }
     const len=Number(z.headers.get('content-length')||'0');
     if(len>Math.ceil(MAX_BYTES*4/3)+2048)return response(res,413,{error:'media_too_large'});
     let content;
@@ -107,7 +111,10 @@ module.exports=async function handler(req,res){
       if(arr.byteLength>MAX_BYTES)return response(res,413,{error:'media_too_large'});
       content=Buffer.from(arr);
     }
-    if(!content)return response(res,502,{error:'provider_response_unrecognized'});
+    if(!content){
+      console.error('crm_media_response_unrecognized',{kind:msg.kind,contentType:z.headers.get('content-type')?.split(';',1)[0]||'unknown'});
+      return response(res,502,{error:'provider_response_unrecognized'});
+    }
     res.setHeader('Content-Type',mime);
     res.setHeader('Content-Disposition','inline');
     res.setHeader('Content-Length',String(content.length));
