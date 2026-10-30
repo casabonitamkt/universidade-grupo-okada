@@ -15,6 +15,7 @@ const retest='66666666-6666-4666-8666-666666666666';
 const exposed='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const milestone='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const strictScore='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+const f2day34='f2f2f2f2-f2f2-4f2f-8f2f-f2f2f2f2f2f2';
 const evidence='Pratica ficticia detalhada: acolhimento, diagnostico, investimento, prazo e retorno combinado.';
 
 function token(sub, role='authenticated') {
@@ -182,6 +183,22 @@ r=await rpc('training_review_exam',{
 assert.equal(ok(r,'Marco 30 aprovado com duas simulacoes').completed,true);
 r=await api('/lesson_progress?select=status&lesson_id=eq.'+milestone);
 assert.equal(ok(r,'Conclusao Marco 30')[0].status,'completed');
+
+r=await api('/submissions','POST',{user_id:consultant,lesson_id:f2day34,submission_type:'lesson_exam_a',status:'pending',text_content:aBody()});
+const f2attempt=ok(r,'Enviar prova A F2-D34',201)[0];
+blocked(await review(f2attempt.id,'approve',9,true,'Sem evidencias observadas na pratica F2.'),'F2 sem evidencias');
+const observedCase={case:'observed',score:9,critical_error:false,evidence:evidence+' Medidas e uso confirmados com cliente.'};
+blocked(await rpc('training_review_exam',{
+ p_submission_id:f2attempt.id,p_decision:'approve',p_practice_score:9,
+ p_practice_approved:true,p_feedback:'Erro critico impede aprovacao F2.',
+ p_practice_cases:[{...observedCase,critical_error:true}]
+},managerToken),'F2 com erro critico');
+r=await rpc('training_review_exam',{
+ p_submission_id:f2attempt.id,p_decision:'approve',p_practice_score:9,
+ p_practice_approved:true,p_feedback:'Pratica F2 observada e validada com evidencias.',
+ p_practice_cases:[observedCase]
+},managerToken);
+assert.equal(ok(r,'Aula F2 aprovada com evidencia').completed,true);
 
 blocked(await api('/exam_banks?select=*'),'Tabela privada nao exposta');
 blocked(await rpc('training_exam_audit',{p_submission_id:id},noAuth),'Anonimo nao acessa auditoria');

@@ -313,11 +313,13 @@ function renderPendingLessonExams(){
   const data=lessonExamSavedAnswers(s)||{};
   const canReview=s.status==='pending'||s.status==='needs_revision';
   const milestone=l?.code==='F1-D30-A01';
-  const practiceFields=milestone?['project','piece'].map(kind=>{
+  const observed=!!l?.code?.startsWith('F2-D');
+  let practiceFields=milestone?['project','piece'].map(kind=>{
    const label=kind==='project'?'Projeto completo':'Peça avulsa';
    return '<label><b>Simulação '+label+' — nota individual (0 a 10)</b></label><input class="input" type="number" min="0" max="10" step="1" id="exam-case-'+kind+'-score-'+s.id+'" placeholder="0 a 10"><label style="display:block;margin:6px 0"><input type="checkbox" id="exam-case-'+kind+'-critical-'+s.id+'"> Ocorreu erro crítico (impede aprovação)</label><textarea id="exam-case-'+kind+'-evidence-'+s.id+'" rows="3" placeholder="Descreva pelo menos duas evidências observáveis desta simulação (mínimo 80 caracteres)."></textarea>';
   }).join(''):'<label for="exam-practice-'+s.id+'"><b>Nota prática observada pelo gestor (0 a 10)</b></label><input class="input" type="number" min="0" max="10" step="1" id="exam-practice-'+s.id+'" placeholder="0 a 10">';
-  const actions=canReview?'<div class="feature" style="margin-top:10px"><button class="btn ghost tiny" onclick="checkExamGrade(\''+s.id+'\')">Conferir prova no servidor</button><p id="exam-grade-'+s.id+'" class="mut">Nota ainda não consultada.</p>'+practiceFields+'<label style="display:block;margin:10px 0"><input type="checkbox" id="exam-verified-'+s.id+'"> Confirmei pessoalmente a prática e as evidências</label><label for="exam-feedback-'+s.id+'"><b>Justificativa do gestor (mínimo 20 caracteres)</b></label><textarea id="exam-feedback-'+s.id+'" rows="3" placeholder="Registre observações, condutas, erros e orientação ao consultor."></textarea><button class="btn tiny" onclick="managerReviewExam(\''+s.id+'\',\'approve\')">Validar teoria, aprovar prática e concluir</button> <button class="btn ghost tiny" onclick="managerReviewExam(\''+s.id+'\',\'needs_revision\')">Solicitar reforço</button><p class="mut">O servidor recusará qualquer aprovação sem teoria válida e prática aprovada. No Marco 30 são obrigatórias duas simulações distintas.</p></div>':'';
+  if(observed)practiceFields+='<label style="display:block;margin:6px 0"><input type="checkbox" id="exam-observed-critical-'+s.id+'"> Houve erro crítico na prática (impede aprovação)</label><textarea id="exam-observed-evidence-'+s.id+'" rows="3" placeholder="Descreva as evidências observáveis da prática (mínimo 80 caracteres)."></textarea>';
+  const actions=canReview?'<div class="feature" style="margin-top:10px"><button class="btn ghost tiny" onclick="checkExamGrade(\''+s.id+'\')">Conferir prova no servidor</button><p id="exam-grade-'+s.id+'" class="mut">Nota ainda não consultada.</p>'+practiceFields+'<label style="display:block;margin:10px 0"><input type="checkbox" id="exam-verified-'+s.id+'"> Confirmei pessoalmente a prática e as evidências</label><label for="exam-feedback-'+s.id+'"><b>Justificativa do gestor (mínimo 20 caracteres)</b></label><textarea id="exam-feedback-'+s.id+'" rows="3" placeholder="Registre observações, condutas, erros e orientação ao consultor."></textarea><button class="btn tiny" onclick="managerReviewExam(\''+s.id+'\',\'approve\')">Validar teoria, aprovar prática e concluir</button> <button class="btn ghost tiny" onclick="managerReviewExam(\''+s.id+'\',\'needs_revision\')">Solicitar reforço</button><p class="mut">O servidor recusará qualquer aprovação sem teoria válida e prática aprovada. Marco 30: duas simulações. Aulas F2: evidência observada e zero erro crítico.</p></div>':'';
   return '<div class="feature" style="margin-top:10px"><b>'+esc(p?.full_name||'Consultor')+' · '+esc(l?.code||'Aula')+' · '+(s.submission_type==='lesson_exam_b'?'Reteste B':'Prova A')+'</b><p class="mut">Recebido em '+esc(new Date(s.submitted_at).toLocaleString('pt-BR'))+' · '+esc(s.status||'pendente')+'</p><p><b>Prática:</b> '+esc(data.evidence||'Ver registro da prova A')+'</p><p><b>Revisão:</b> '+esc(data.review||'Não aplicável')+'</p>'+actions+'</div>';
  }).join('')+'</div>';
 }
@@ -337,6 +339,7 @@ async function managerReviewExam(id,decision){
  const submission=(cache.su||[]).find(s=>s.id===id);
  const lesson=(cache.ls||[]).find(l=>l.id===submission?.lesson_id);
  const milestone=lesson?.code==='F1-D30-A01';
+ const observed=!!lesson?.code?.startsWith('F2-D');
  const practiceCases=milestone?['project','piece'].map(kind=>{
   const rawScore=$('exam-case-'+kind+'-score-'+id)?.value;
   return {case:kind,score:rawScore===''||rawScore===undefined?null:Number(rawScore),
@@ -345,16 +348,20 @@ async function managerReviewExam(id,decision){
  }):[];
  const raw=$('exam-practice-'+id)?.value;
  const score=milestone?(practiceCases.every(c=>Number.isInteger(c.score))?Math.min(...practiceCases.map(c=>c.score)):0):Number(raw);
+ if(observed)practiceCases.push({case:'observed',score,
+  critical_error:!!$('exam-observed-critical-'+id)?.checked,
+  evidence:($('exam-observed-evidence-'+id)?.value||'').trim()});
  const verified=!!$('exam-verified-'+id)?.checked;
  const feedback=($('exam-feedback-'+id)?.value||'').trim();
  if(!milestone&&(raw===''||!Number.isInteger(score)||score<0||score>10))return toast('Informe nota prática de 0 a 10.');
  if(milestone&&decision==='approve'&&practiceCases.some(c=>!Number.isInteger(c.score)||c.score<8||c.score>10||c.critical_error||c.evidence.length<80))return toast('Marco 30 exige duas simulações: notas >=8, zero erro crítico e evidências detalhadas em cada caso.');
+ if(observed&&decision==='approve'&&(!Number.isInteger(score)||score<8||score>10||practiceCases[0].critical_error||practiceCases[0].evidence.length<80))return toast('Aula F2 exige nota >=8, zero erro crítico e evidências observáveis (mínimo 80 caracteres).');
  if(feedback.length<20)return toast('Registre justificativa com pelo menos 20 caracteres.');
  if(decision==='approve'&&(!verified||score<8))return toast('Aprovação exige prática observada, validada e nota mínima 8.');
  const {error}=await sb.rpc('training_review_exam',{
   p_submission_id:id,p_decision:decision,p_practice_score:score,
   p_practice_approved:verified,p_feedback:feedback,
-  p_practice_cases:milestone&&decision==='approve'?practiceCases:[]
+  p_practice_cases:(milestone||observed)&&decision==='approve'?practiceCases:[]
  });
  if(error)return toast('Validação do servidor recusada: '+error.message);
  toast(decision==='approve'?'Prática e prova aprovadas; conclusão registrada pelo servidor.':'Reforço registrado pelo gestor.');

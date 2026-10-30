@@ -584,6 +584,73 @@ begin
       raise exception 'Marco 30 exige dois casos e nota geral igual a menor nota';
     end if;
   end if;
+  -- Aulas F2: a pratica deve ter evidencia observavel e zero erro critico.
+  -- A confirmacao generica do gestor nao basta para concluir.
+  if p_decision='approve' and v_code like 'F2-D%' then
+    if jsonb_typeof(v_practice_cases) is distinct from 'array'
+       or jsonb_array_length(v_practice_cases) <> 1 then
+      raise exception 'Aula F2 exige uma pratica observada com evidencias';
+    end if;
+    v_case:=v_practice_cases->0;
+    if jsonb_typeof(v_case) is distinct from 'object'
+       or v_case->>'case' is distinct from 'observed'
+       or jsonb_typeof(v_case->'score') is distinct from 'number'
+       or (v_case->>'score') !~ '^(10|[0-9]) is distinct from true
+    or p_practice_approved is distinct from true or p_practice_score < 8
+  ) then raise exception 'Aprovacao exige teoria 8/10 sem erro critico e pratica validada >=8'; end if;
+  v_status:=case when p_decision='approve' then 'approved'::public.submission_status
+                 else 'needs_revision'::public.submission_status end;
+  insert into training_private.exam_decisions(
+    submission_id,user_id,lesson_id,reviewer_id,decision,theory_score,
+    critical_errors,practice_score,practice_approved,practice_cases,feedback,reviewed_at
+  ) values (
+    v_submission.id,v_submission.user_id,v_submission.lesson_id,v_actor,v_status,
+    (v_grade->>'score')::smallint,(v_grade->>'critical')::smallint,
+    p_practice_score::smallint,p_practice_approved,v_practice_cases,btrim(p_feedback),clock_timestamp()
+  )
+  on conflict (submission_id) do update set
+    reviewer_id=excluded.reviewer_id,decision=excluded.decision,
+    theory_score=excluded.theory_score,critical_errors=excluded.critical_errors,
+    practice_score=excluded.practice_score,practice_approved=excluded.practice_approved,
+    practice_cases=excluded.practice_cases,feedback=excluded.feedback,reviewed_at=excluded.reviewed_at
+  where training_private.exam_decisions.decision='needs_revision'
+  returning * into v_decision;
+  if not found then raise exception 'Revisao ja encerrada'; end if;
+
+  update public.submissions set status=v_status,reviewer_id=v_actor,
+    reviewer_feedback=v_decision.feedback,reviewed_at=v_decision.reviewed_at
+    where id=v_submission.id;
+  if p_decision='approve' then
+    insert into public.lesson_progress(user_id,lesson_id,status,started_at,completed_at,updated_at)
+      values(v_submission.user_id,v_submission.lesson_id,'completed',v_decision.reviewed_at,
+        v_decision.reviewed_at,clock_timestamp())
+    on conflict (user_id,lesson_id) do update set
+      status='completed',started_at=coalesce(public.lesson_progress.started_at,excluded.started_at),
+      completed_at=excluded.completed_at,updated_at=excluded.updated_at;
+  end if;
+  return jsonb_build_object('status',v_status::text,'theory_score',v_grade->'score',
+    'critical_errors',v_grade->'critical','practice_score',p_practice_score,
+    'completed',p_decision='approve');
+end
+$fn$;
+
+revoke all on function public.training_review_exam(uuid,text,integer,boolean,text,jsonb)
+  from public,anon;
+grant execute on function public.training_review_exam(uuid,text,integer,boolean,text,jsonb)
+  to authenticated;
+revoke all on all functions in schema training_private from public,anon,authenticated;
+
+commit;
+
+       or v_case->'critical_error' is distinct from 'false'::jsonb
+       or length(btrim(coalesce(v_case->>'evidence',''))) < 80 then
+      raise exception 'Pratica F2 exige nota valida, evidencia e zero erro critico';
+    end if;
+    v_case_score:=(v_case->>'score')::integer;
+    if v_case_score < 8 or p_practice_score <> v_case_score then
+      raise exception 'Nota pratica F2 abaixo de 8 ou inconsistente';
+    end if;
+  end if;
   if p_decision='approve' and (
     (v_grade->>'passed')::boolean is distinct from true
     or p_practice_approved is distinct from true or p_practice_score < 8

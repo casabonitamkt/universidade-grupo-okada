@@ -83,7 +83,7 @@ jobs:
             -f tests/sql/manager-gate-fixture.sql \
             -f migrations/2026-10-29-manager-exam-gate-HOMOLOGACAO.sql
           psql -h localhost -U postgres -d training_gate_test -v ON_ERROR_STOP=1 \
-            -c "update public.lessons set is_published=true where code in ('EXAM-APROVA','EXAM-RETESTE','F1-D30-A01','EXAM-PASS-SCORE')"
+            -c "update public.lessons set is_published=true where code in ('EXAM-APROVA','EXAM-RETESTE','F1-D30-A01','EXAM-PASS-SCORE','F2-D34-A01')"
       - name: Subir PostgREST temporario (sem Supabase, sem custo de branch)
         run: |
           docker run --detach --name training-postgrest --network host \

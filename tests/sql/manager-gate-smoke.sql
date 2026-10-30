@@ -36,7 +36,7 @@ $strict$;
 
 -- As aulas novas so ficam visiveis DEPOIS da migracao dos gabaritos.
 update public.lessons set is_published=true
-where code in ('EXAM-APROVA','EXAM-RETESTE','F1-D30-A01','EXAM-PASS-SCORE');
+where code in ('EXAM-APROVA','EXAM-RETESTE','F1-D30-A01','EXAM-PASS-SCORE','F2-D34-A01');
 
 -- REGRESSAO: a migracao nao pode deixar futuras publicacoes vazarem
 -- gabaritos por INSERT ou UPDATE de lessons.content, nem via postgres.
@@ -324,6 +324,41 @@ select public.training_review_exam(
  '[{"case":"project","score":9,"critical_error":false,"evidence":"Evidencia detalhada do projeto: medidas e arquiteto confirmados, uso e prazo alinhados, proximo passo agendado."},{"case":"piece","score":8,"critical_error":false,"evidence":"Evidencia detalhada da peca: foto e circulacao conferidas, investimento discutido e retorno com data definida."}]'::jsonb
 );
 
+-- F2-D34: pratica sem evidencia ou com erro critico NUNCA conclui.
+select set_config('app.test_uid','11111111-1111-4111-8111-111111111111',false);
+insert into public.submissions(id,user_id,lesson_id,submission_type,text_content,status)
+values(
+ 'f2f2f2f2-2222-4222-8222-f2f2f2f2f2f2',
+ '11111111-1111-4111-8111-111111111111',
+ 'f2f2f2f2-f2f2-4f2f-8f2f-f2f2f2f2f2f2','lesson_exam_a',
+ jsonb_build_object('version',1,'stage','a','requires_manager_validation',true,
+  'answers',jsonb_build_array(0,0,0,0,0,0,0,0,0,0),
+  'evidence',repeat('Pratica ficticia observada com medidas e prazo. ',3))::text,'pending'
+);
+select set_config('app.test_uid','22222222-2222-4222-8222-222222222222',false);
+select public.test_expect_error($sql$
+ select public.training_review_exam(
+ 'f2f2f2f2-2222-4222-8222-f2f2f2f2f2f2','approve',9,true,
+ 'Sem evidencia da pratica F2.')
+$sql$,'Aula F2 exige');
+select public.test_expect_error($sql$
+ select public.training_review_exam(
+ 'f2f2f2f2-2222-4222-8222-f2f2f2f2f2f2','approve',9,true,
+ 'Erro critico observado na pratica F2.',
+ '[{"case":"observed","score":9,"critical_error":true,"evidence":"Pratica observada com medidas, circulacao, investimento e prazo alinhados com o cliente."}]'::jsonb)
+$sql$,'Pratica F2 exige');
+select public.test_expect_error($sql$
+ select public.training_review_exam(
+ 'f2f2f2f2-2222-4222-8222-f2f2f2f2f2f2','approve',9,true,
+ 'Nota pratica inconsistente.',
+ '[{"case":"observed","score":8,"critical_error":false,"evidence":"Pratica observada com medidas, circulacao, investimento e prazo alinhados com o cliente."}]'::jsonb)
+$sql$,'Nota pratica F2');
+select public.training_review_exam(
+ 'f2f2f2f2-2222-4222-8222-f2f2f2f2f2f2','approve',9,true,
+ 'Pratica observada com evidencia e sem erros criticos.',
+ '[{"case":"observed","score":9,"critical_error":false,"evidence":"Pratica observada com medidas, circulacao, investimento e prazo alinhados com o cliente."}]'::jsonb
+);
+
 reset role;
 
 -- Integridade: uma prova A/B enviada congela banco e criterio de correcao.
@@ -376,11 +411,11 @@ declare n integer;
 begin
  select count(*) into n from public.lesson_progress where status='completed';
  -- Quatro conclusoes originais + uma aula legada com exam_required=false.
- if n<>5 then raise exception 'Conclusoes esperadas 5, obtidas %',n; end if;
+ if n<>6 then raise exception 'Conclusoes esperadas 6, obtidas %',n; end if;
  select count(*) into n from training_private.exam_decisions;
- if n<>4 then raise exception 'Auditorias gerenciais esperadas 4, obtidas %',n; end if;
+ if n<>5 then raise exception 'Auditorias gerenciais esperadas 5, obtidas %',n; end if;
  select count(*) into n from public.submissions where status='approved';
- if n<>3 then raise exception 'Provas aprovadas esperadas 3, obtidas %',n; end if;
+ if n<>4 then raise exception 'Provas aprovadas esperadas 4, obtidas %',n; end if;
  if not exists(select 1 from training_private.exam_decisions
    where lesson_id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
      and jsonb_array_length(practice_cases)=2)

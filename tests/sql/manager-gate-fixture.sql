@@ -108,7 +108,8 @@ from a cross join b cross join (values
  ('66666666-6666-4666-8666-666666666666'::uuid,'EXAM-RETESTE'),
  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid,'EXAM-EXPOSTO'),
  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'::uuid,'F1-D30-A01'),
- ('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'::uuid,'EXAM-PASS-SCORE')
+ ('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'::uuid,'EXAM-PASS-SCORE'),
+ ('f2f2f2f2-f2f2-4f2f-8f2f-f2f2f2f2f2f2'::uuid,'F2-D34-A01')
 ) as v(id,code);
 
 -- Legado preexistente, que a migracao nao pode alterar.
