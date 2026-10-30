@@ -1,0 +1,217 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CRM Master | Casa Bonita e Móveis Modernos</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{color-scheme:dark;--bg:#101114;--panel:#1c1e21;--panel2:#242528;--line:#3c3933;--gold:#c9a56e;--muted:#b5afa5;--text:#f3f0e8}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+button,input,select{font:inherit}button{cursor:pointer}a{color:#e4c38d;text-decoration:none}a:hover{text-decoration:underline}
+.sidebar{position:fixed;inset:0 auto 0 0;width:230px;background:#151619;border-right:1px solid var(--line);padding:23px 13px;display:flex;flex-direction:column}
+.brand{display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--line);padding:4px 8px 24px}
+.monogram{display:grid;place-items:center;width:44px;height:44px;border:1px solid var(--gold);border-radius:11px;font:700 19px Georgia,serif;color:#e6c892}
+.brand strong{display:block;font-size:13px;letter-spacing:.1em}.brand small{font-size:9px;color:#b7a98e;letter-spacing:.12em}
+.side-caption{font-size:10px;letter-spacing:.15em;color:#9a9389;margin:24px 11px 12px}
+.nav{display:grid;gap:6px}.nav button{width:100%;text-align:left;background:none;border:1px solid transparent;color:#c7c3bb;padding:12px 14px;border-radius:10px;font-weight:600}
+.nav button.active,.nav button:hover{background:#302a20;border-color:#695638;color:#f2d9ad}
+.sidebar-bottom{margin-top:auto;border-top:1px solid var(--line);padding:18px 12px 0;display:grid;gap:8px;font-size:12px}
+.sidebar-bottom small{color:#918d85}
+main{margin-left:230px;padding:25px clamp(15px,2.2vw,38px) 40px;min-height:100vh}
+.eyebrow{color:var(--gold);letter-spacing:.15em;font-weight:750;font-size:10px}.page-head{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:24px}
+h1{font-size:clamp(23px,2.7vw,35px);line-height:1.2;margin:5px 0}h2{font-size:18px;margin:0 0 12px}h3{font-size:14px;margin:0}
+.sub{color:var(--muted);font-size:12px;margin:0}.status{font-size:11px;color:#cbbd9f}
+.refresh{border:1px solid #8d724b;border-radius:9px;padding:9px 14px;background:#30281f;color:#e9cf9e}
+.cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:18px 0 25px}
+.card,.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:17px}
+.card span{display:block;font-size:11px;color:#c3beb5}.card strong{display:block;font-size:clamp(25px,2.5vw,36px);margin:7px 0;color:#f7f3eb}.card small{color:#9c978e;font-size:10px}
+.card.gold{background:linear-gradient(125deg,#3a3023,#202122);border-color:#95744b}.card.gold strong{color:#ebcd99}
+.grid{display:grid;grid-template-columns:1.35fr 1fr;gap:15px}
+.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;text-align:left;font-size:12px}
+th{font-size:10px;letter-spacing:.08em;color:#bca983;font-weight:750;text-transform:uppercase}
+th,td{padding:12px 9px;border-bottom:1px solid #393833}tr:last-child td{border-bottom:0}
+.empty{color:#a9a49b;padding:15px 0;font-size:12px}.badge{border:1px solid #65543b;border-radius:99px;color:#e2c38e;padding:3px 8px;font-size:10px}
+.section[hidden]{display:none}.toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:14px 0}
+select,input{background:#17191c;color:var(--text);border:1px solid #4b453b;border-radius:9px;padding:10px 12px;max-width:100%}
+.conversation-layout{display:grid;grid-template-columns:minmax(240px,34%) minmax(0,1fr);gap:14px;min-height:530px}
+.conversation-list{max-height:67vh;overflow-y:auto;display:grid;align-content:start;gap:7px}
+.conversation-button,.follow-button{width:100%;text-align:left;border:1px solid #474137;background:#252628;border-radius:10px;color:#eee8dc;padding:11px}
+.conversation-button:hover,.conversation-button[aria-pressed="true"],.follow-button:hover{border-color:#b38d56;background:#332c23}
+.conversation-button strong,.follow-button strong{display:block;font-size:12px}
+.conversation-button small,.follow-button small{display:block;color:#b7afa3;font-size:10px;margin-top:3px}
+.messages{max-height:57vh;overflow-y:auto;display:flex;flex-direction:column;gap:9px;padding:10px 2px}
+.message{max-width:85%;padding:11px 13px;border-radius:12px;background:#2d2e31;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}
+.message.out{align-self:flex-end;background:#3d352a;border:1px solid #71583a}
+.message small{display:block;font-size:9px;color:#c3b6a4;margin-bottom:5px}
+.message .media{color:#dfbd84;font-style:italic}
+.follow-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.follow-grid .panel{min-width:0}.follow-list{display:grid;gap:8px;margin-top:12px}
+.pipeline-row{display:grid;grid-template-columns:150px 1fr 30px;align-items:center;gap:10px;font-size:12px;margin:12px 0}
+.track{height:9px;border-radius:99px;background:#37332d;overflow:hidden}.fill{height:100%;background:linear-gradient(90deg,#8d7049,#e1bd83)}
+.note{color:#aba59a;font-size:11px;margin-top:18px}
+@media(max-width:1300px){.cards{grid-template-columns:repeat(3,1fr)}.grid{grid-template-columns:1fr}}
+@media(max-width:800px){.sidebar{position:static;width:100%;height:auto;padding:10px}.brand{padding:3px 8px 10px}.side-caption,.sidebar-bottom{display:none}.nav{display:flex;overflow-x:auto;gap:5px}.nav button{width:auto;white-space:nowrap;padding:9px 12px}main{margin:0;padding:15px 12px}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.follow-grid,.conversation-layout{grid-template-columns:1fr}.conversation-list{max-height:260px}.page-head{align-items:flex-start}.refresh{flex-shrink:0}.messages{max-height:420px}}
+</style></head>
+<body>
+<aside class="sidebar">
+<div class="brand"><span class="monogram">CB</span><span><strong>CASA BONITA</strong><small>CRM MASTER · DIRETORIA</small></span></div>
+<div class="side-caption">VISÃO GERENCIAL</div>
+<nav class="nav" id="nav" aria-label="Navegação gerencial">
+<button type="button" data-view="overview" class="active">◫ Visão geral</button>
+<button type="button" data-view="consultants">♙ Consultores</button>
+<button type="button" data-view="conversations">◉ Conversas</button>
+<button type="button" data-view="followup">◷ Follow-up</button>
+<button type="button" data-view="results">▥ Resultados</button>
+</nav>
+<div class="sidebar-bottom"><a href="/">↗ Voltar à Universidade</a><small>Leitura gerencial · sem envio de mensagens</small></div>
+</aside>
+<main>
+<div class="page-head"><div><span class="eyebrow">CASA BONITA & MÓVEIS MODERNOS · DIRETORIA</span><h1 id="page-title">CRM Master</h1><p class="sub" id="page-subtitle">Acompanhe os quatro consultores em um único painel.</p></div><button type="button" class="refresh" id="refresh">Atualizar ↻</button></div>
+<p class="status" id="status" role="status">Validando seu acesso gerencial...</p>
+<section id="overview" class="section">
+<div class="cards">
+<article class="card"><span>Consultores cadastrados</span><strong id="kpi-consultants">—</strong><small>Até 4 posições comerciais</small></article>
+<article class="card"><span>Leads na carteira</span><strong id="kpi-leads">—</strong><small>Contatos atribuídos</small></article>
+<article class="card"><span>Novas atividades</span><strong id="kpi-unread">—</strong><small>Desde a última leitura</small></article>
+<article class="card"><span>Propostas e negociação</span><strong id="kpi-proposals">—</strong><small>Etapas informadas</small></article>
+<article class="card gold"><span>Vendas concluídas</span><strong id="kpi-won">—</strong><small>Quantidade registrada</small></article>
+</div>
+<div class="grid"><article class="panel"><h2>Desempenho por consultor</h2><div class="table-wrap"><table><thead><tr><th>Consultor</th><th>Leads</th><th>Propostas</th><th>Vendas</th><th>Conversão</th></tr></thead><tbody id="overview-consultants"></tbody></table></div></article>
+<article class="panel"><h2>Acompanhamento da operação</h2><div id="overview-activity" class="empty">Aguardando dados reais.</div><p class="note">Indicadores calculados a partir das etapas e mensagens registradas. Valores financeiros dependem de integração validada.</p></article></div>
+</section>
+<section id="consultants" class="section" hidden><h2>Os quatro consultores</h2><p class="sub">Selecione um consultor para consultar sua carteira e as conversas.</p><div class="toolbar"><select id="consultant-filter" aria-label="Filtrar por consultor"><option value="">Todos os consultores</option></select><button type="button" class="refresh" id="open-filtered">Ver conversas ↗</button></div><div class="panel table-wrap"><table><thead><tr><th>Consultor</th><th>Loja</th><th>Leads</th><th>Ativos</th><th>Propostas</th><th>Vendas</th></tr></thead><tbody id="consultants-table"></tbody></table></div></section>
+<section id="conversations" class="section" hidden><div class="toolbar"><select id="conversation-filter" aria-label="Consultor das conversas"><option value="">Todos os consultores</option></select><input id="search" type="search" placeholder="Buscar cliente ou telefone" aria-label="Buscar cliente"></div>
+<div class="conversation-layout"><article class="panel"><h2>Conversas <span class="badge" id="conversation-count">0</span></h2><div class="conversation-list" id="conversation-list"></div></article>
+<article class="panel"><h2 id="conversation-title">Histórico do cliente</h2><p class="sub" id="conversation-meta">Selecione uma conversa para acompanhar o atendimento.</p><div id="messages" class="messages"></div><p class="note">Acesso de supervisão somente leitura. O envio continua exclusivo do consultor responsável. Arquivos de mídia ainda dependem da correção de integração.</p></article></div></section>
+<section id="followup" class="section" hidden><h2>Follow-up e oportunidades</h2><p class="sub">Faixas exclusivas pela última mensagem, sem presumir que o cliente aguarda retorno.</p><div class="follow-grid">
+<article class="panel"><h3>24 horas a 3 dias <span class="badge" id="fu24-count">0</span></h3><div id="fu24" class="follow-list"></div></article>
+<article class="panel"><h3>3 a 7 dias <span class="badge" id="fu72-count">0</span></h3><div id="fu72" class="follow-list"></div></article>
+<article class="panel"><h3>Mais de 7 dias <span class="badge" id="fu168-count">0</span></h3><div id="fu168" class="follow-list"></div></article>
+</div></section>
+<section id="results" class="section" hidden><h2>Resultados consolidados</h2><div class="cards">
+<article class="card"><span>Leads</span><strong id="result-total">—</strong></article>
+<article class="card"><span>Vendas concluídas</span><strong id="result-won">—</strong></article>
+<article class="card"><span>Conversão por quantidade</span><strong id="result-conversion">—</strong></article>
+<article class="card"><span>Ticket médio</span><strong>—</strong><small>Aguardando valores de vendas</small></article>
+<article class="card"><span>Orçamentos em R$</span><strong>—</strong><small>Aguardando integração de PDFs</small></article>
+</div><article class="panel"><h2>Funil comercial</h2><div id="pipeline"></div></article><p class="note">Dados financeiros não são estimados. A integração de orçamentos em PDF e valores efetivos ainda será necessária.</p></section>
+</main>
+<script>
+const SBURL='https://mjtphztvjnfjlhtxtwjz.supabase.co',KEY='sb_publishable_tu2xBCVGLQyPyddMT-poMQ_BFRx2nmx';
+const storage={getItem(k){try{return(localStorage.getItem('cb_keep_login_v1')==='false'?sessionStorage:localStorage).getItem(k)}catch{return null}},setItem(k,v){try{(localStorage.getItem('cb_keep_login_v1')==='false'?sessionStorage:localStorage).setItem(k,v)}catch{}},removeItem(k){localStorage.removeItem(k);sessionStorage.removeItem(k)}};
+const sb=supabase.createClient(SBURL,KEY,{auth:{persistSession:true,storage}});
+const $=id=>document.getElementById(id);
+const labels={novo:'Novo contato',em_atendimento:'Em atendimento',proposta:'Proposta enviada',negociacao:'Negociação',ganho:'Venda concluída',perdido:'Não convertido'};
+let consultants=[],leads=[],view='overview',selectedLead=null,partial=false,requestCounter=0;
+const node=(tag,content,cls)=>{const n=document.createElement(tag);if(content!=null)n.textContent=String(content);if(cls)n.className=cls;return n};
+const number=x=>Number(x||0);
+const count=(arr,stage)=>arr.filter(l=>l.stage===stage).length;
+const unread=l=>Boolean(l.last_message_at&&(!l.last_read_at||Date.parse(l.last_message_at)>Date.parse(l.last_read_at)));
+const consultantName=id=>consultants.find(c=>c.id===id)?.full_name||'Consultor não identificado';
+const activityHours=l=>l.last_message_at?Math.max(0,(Date.now()-Date.parse(l.last_message_at))/3600000):Infinity;
+const filtered=()=>{const owner=$('conversation-filter').value;const q=$('search').value.trim().toLocaleLowerCase('pt-BR');return leads.filter(l=>(!owner||l.owner_consultant_id===owner)&&(!q||((l.display_name||'')+' '+(l.phone||'')).toLocaleLowerCase('pt-BR').includes(q)))};
+async function sessionToken(){
+  const {data:{session},error}=await sb.auth.getSession();
+  if(error||!session?.access_token)throw Error('Faça login na Universidade e volte a esta página.');
+  return session.access_token;
+}
+async function api(path){
+  const token=await sessionToken();
+  const r=await fetch(path,{headers:{Authorization:'Bearer '+token},cache:'no-store'});
+  if(r.status===403)throw Error('Acesso Master restrito à diretoria autorizada.');
+  if(r.status===401)throw Error('Sua sessão expirou. Entre novamente na Universidade.');
+  if(!r.ok)throw Error('Não foi possível consultar os dados agora. Código '+r.status+'.');
+  return r.json();
+}
+function setView(next){
+  view=next;for(const b of document.querySelectorAll('[data-view]')){const active=b.dataset.view===next;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')}
+  for(const section of document.querySelectorAll('.section'))section.hidden=section.id!==next;
+  const titles={overview:'CRM Master',consultants:'Equipe de vendas',conversations:'Conversas dos consultores',followup:'Follow-up da equipe',results:'Resultados comerciais'};
+  $('page-title').textContent=titles[next];
+  if(next==='conversations')renderConversations();
+}
+function fillTable(id,rows){$(''+id).replaceChildren(...rows)}
+function td(text){return node('td',text)}
+function renderSummary(){
+  const total=leads.length,won=count(leads,'ganho');
+  $('kpi-consultants').textContent=consultants.length+' / 4';
+  $('kpi-leads').textContent=total;
+  $('kpi-unread').textContent=leads.filter(unread).length;
+  $('kpi-proposals').textContent=count(leads,'proposta')+count(leads,'negociacao');
+  $('kpi-won').textContent=won;
+  $('result-total').textContent=total;$('result-won').textContent=won;
+  $('result-conversion').textContent=total?(100*won/total).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%':'—';
+  const overview=[],table=[];
+  for(let i=0;i<4;i++){
+    const c=consultants[i],own=c?leads.filter(l=>l.owner_consultant_id===c.id):[];
+    const name=c?.full_name||'Aguardando cadastro';
+    const row=node('tr');row.append(td(name),td(own.length),td(count(own,'proposta')),td(count(own,'ganho')),td(own.length?(100*count(own,'ganho')/own.length).toFixed(1).replace('.',',')+'%':'—'));overview.push(row);
+    const full=node('tr');full.append(td(name),td(c?.store||'—'),td(own.length),td(own.filter(l=>!['ganho','perdido'].includes(l.stage)).length),td(count(own,'proposta')),td(count(own,'ganho')));table.push(full);
+  }
+  fillTable('overview-consultants',overview);fillTable('consultants-table',table);
+  $('overview-activity').textContent=leads.filter(unread).length+' contato(s) com nova atividade · '+leads.filter(l=>!['ganho','perdido'].includes(l.stage)&&activityHours(l)>=72).length+' contato(s) ativos sem movimentação há pelo menos 3 dias.';
+  const pipeline=[];
+  for(const [stage,label] of Object.entries(labels)){
+    const row=node('div',null,'pipeline-row');row.append(node('span',label));
+    const track=node('div',null,'track'),fill=node('div',null,'fill');fill.style.width=(total?100*count(leads,stage)/total:0)+'%';track.append(fill);row.append(track,node('strong',count(leads,stage)));pipeline.push(row);
+  }
+  $('pipeline').replaceChildren(...pipeline);
+  for(const [start,end,id,countId] of [[24,72,'fu24','fu24-count'],[72,168,'fu72','fu72-count'],[168,Infinity,'fu168','fu168-count']]){
+    const matches=leads.filter(l=>!['ganho','perdido'].includes(l.stage)&&activityHours(l)>=start&&activityHours(l)<end);
+    $(countId).textContent=matches.length;
+    const buttons=matches.map(l=>{const b=node('button',null,'follow-button');b.type='button';b.append(node('strong',l.display_name||'Cliente'),node('small',consultantName(l.owner_consultant_id)+' · '+(l.last_message_at?new Date(l.last_message_at).toLocaleDateString('pt-BR'):'Sem mensagens')));b.onclick=()=>{setView('conversations');selectLead(l)};return b});
+    $(id).replaceChildren(...(buttons.length?buttons:[node('p','Nenhum contato nesta faixa.','empty')]));
+  }
+}
+function renderConversations(){
+  const matches=filtered();$('conversation-count').textContent=matches.length;
+  const nodes=matches.map(l=>{
+    const b=node('button',null,'conversation-button');b.type='button';b.setAttribute('aria-pressed',String(selectedLead===l.id));
+    b.append(node('strong',l.display_name||l.phone||'Cliente'),node('small',consultantName(l.owner_consultant_id)+' · '+(labels[l.stage]||'Novo contato')));
+    b.onclick=()=>selectLead(l);return b;
+  });
+  $('conversation-list').replaceChildren(...(nodes.length?nodes:[node('p','Nenhum contato encontrado.','empty')]));
+}
+async function selectLead(lead){
+  selectedLead=lead.id;setView('conversations');renderConversations();
+  $('conversation-title').textContent=lead.display_name||'Cliente';
+  $('conversation-meta').textContent=consultantName(lead.owner_consultant_id)+' · '+(lead.phone||'Sem telefone')+' · '+(labels[lead.stage]||'Novo contato');
+  $('messages').replaceChildren(node('p','Carregando histórico...','empty'));
+  const req=++requestCounter;
+  try{
+    const result=await api('/api/crm-master?view=messages&lead_id='+encodeURIComponent(lead.id));
+    if(req!==requestCounter||selectedLead!==lead.id)return;
+    const nodes=(result.messages||[]).map(m=>{
+      const b=node('div',null,'message'+(m.direction==='saida'?' out':''));
+      b.append(node('small',(m.direction==='saida'?'Consultor':'Cliente')+' · '+new Date(m.event_at).toLocaleString('pt-BR')));
+      if(m.kind==='text')b.append(node('div',m.body||'Mensagem sem texto'));
+      else b.append(node('div',(m.kind==='image'?'📷 Foto':m.kind==='audio'?'🎤 Áudio':m.kind==='video'?'🎬 Vídeo':'📎 '+(m.kind||'Arquivo'))+' recebido'+(m.media_name?' · '+m.media_name:''),'media'));
+      if(m.kind!=='text'&&m.body)b.append(node('div',m.body));
+      return b;
+    });
+    $('messages').replaceChildren(...(nodes.length?nodes:[node('p','Nenhuma mensagem registrada.','empty')]));
+  }catch(e){if(req===requestCounter)$('messages').replaceChildren(node('p',e.message,'empty'))}
+}
+function populateFilters(){
+  for(const id of ['consultant-filter','conversation-filter']){
+    const sel=$(id);const prev=sel.value;
+    sel.replaceChildren(node('option','Todos os consultores'));
+    sel.children[0].value='';
+    for(const c of consultants){const o=node('option',c.full_name);o.value=c.id;sel.append(o)}
+    sel.value=consultants.some(c=>c.id===prev)?prev:'';
+  }
+}
+async function load(){
+  $('refresh').disabled=true;$('status').textContent='Atualizando dados da equipe...';
+  try{
+    const data=await api('/api/crm-master?view=summary');
+    consultants=data.consultants||[];leads=data.leads||[];partial=Boolean(data.partial);
+    populateFilters();renderSummary();renderConversations();
+    $('status').textContent=consultants.length+' consultor(es) cadastrado(s) · '+leads.length+' lead(s) · atualizado às '+new Date().toLocaleTimeString('pt-BR')+(partial?' · relatório parcial: limite de 400 leads':'');
+  }catch(e){$('status').textContent=e.message}
+  finally{$('refresh').disabled=false}
+}
+document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
+$('refresh').addEventListener('click',load);
+$('conversation-filter').addEventListener('change',renderConversations);
+$('search').addEventListener('input',renderConversations);
+$('open-filtered').addEventListener('click',()=>{$('conversation-filter').value=$('consultant-filter').value;setView('conversations')});
+load();
+</script></body></html>
