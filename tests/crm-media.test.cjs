@@ -34,7 +34,8 @@ function setup(options={}){
    assert.equal(request.media_key,'private-unit-key');
    assert.equal(request.type,'image');
    assert.equal(request.file_length,9);
-   assert.equal(request.mimetype,'image/png');
+   assert.equal(request.mime_type,'image/png');
+   assert.equal(Object.hasOwn(request,'mimetype'),false);
    assert.equal(request.file_sha256,'hash');
    return json(200,{data:Buffer.from('image-binary').toString('base64')});
   }
