@@ -116,7 +116,7 @@ test('F2 sem rubrica homologada nao envia aprovacao',async()=>{
 
 test('gate gerencial preserva CRM Master e atalho do consultor na integracao com main',()=>{
  assert.match(html,/function isCrmMaster\(\)/,'Roteamento gerencial CRM ausente');
- assert.match(html,/window\.location\.assign\(isCrmMaster\(\)\?'\/crm-master\.html':'\/crm-piloto\.html'\)/,'Rotas separadas CRM ausentes');
+ assert.ok(html.includes("isCrmMaster()&&$('modeSwitch')?.dataset.mode!=='consult'?'/crm-master.html':'/crm-piloto.html'"),'Modo consultor do Master deve abrir CRM do consultor; modo administrativo deve manter CRM Master');
  assert.match(html,/id=\"crmHomeShortcut\"/,'Atalho CRM na tela inicial ausente');
  assert.match(html,/id=\"openCrmFromHome\"/,'Botao abrir CRM ausente');
  assert.match(html,/function requiresLessonAssessment\(l\)/,'Gate de aulas ausente');
