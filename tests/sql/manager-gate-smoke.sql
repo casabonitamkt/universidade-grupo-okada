@@ -310,6 +310,10 @@ $sql$,'Aprovacao exige');
 select public.training_review_exam(
  '88888888-8888-4888-8888-888888888888','needs_revision',6,false,
  'Erro critico detectado, precisa estudar antes do reteste.');
+-- Reavaliacao de prova pendente preserva ambas as decisoes.
+select public.training_review_exam(
+ '88888888-8888-4888-8888-888888888888','needs_revision',7,false,
+ 'Segunda revisao registrada, ainda precisa corrigir o erro critico.');
 
 select set_config('app.test_uid','11111111-1111-4111-8111-111111111111',false);
 insert into public.submissions(id,user_id,lesson_id,submission_type,text_content,status)
@@ -421,6 +425,35 @@ select public.training_review_exam(
 );
 
 reset role;
+
+-- Revisoes repetidas nao podem sobrescrever a primeira decisao.
+do $history_check$
+begin
+ if (select count(*) from training_private.exam_review_events
+     where submission_id='88888888-8888-4888-8888-888888888888')<>2 then
+   raise exception 'Historico perdeu uma revisao da prova A';
+ end if;
+ if not exists (select 1 from training_private.exam_review_events
+     where submission_id='88888888-8888-4888-8888-888888888888'
+       and feedback='Erro critico detectado, precisa estudar antes do reteste.')
+    or not exists (select 1 from training_private.exam_review_events
+     where submission_id='88888888-8888-4888-8888-888888888888'
+       and feedback='Segunda revisao registrada, ainda precisa corrigir o erro critico.') then
+   raise exception 'Feedback de revisao anterior foi sobrescrito';
+ end if;
+ if (select count(*) from training_private.exam_review_events)<>6 then
+   raise exception 'Historico deve registrar seis revisoes gerenciais';
+ end if;
+end
+$history_check$;
+select public.test_expect_error($sql$
+ update training_private.exam_review_events set feedback='Tentativa de apagar revisao anterior'
+ where submission_id='88888888-8888-4888-8888-888888888888'
+$sql$,'Historico de revisoes gerenciais e imutavel');
+select public.test_expect_error($sql$
+ delete from training_private.exam_review_events
+ where submission_id='88888888-8888-4888-8888-888888888888'
+$sql$,'Historico de revisoes gerenciais e imutavel');
 
 -- Integridade: uma prova A/B enviada congela banco e criterio de correcao.
 select public.test_expect_error($sql$
