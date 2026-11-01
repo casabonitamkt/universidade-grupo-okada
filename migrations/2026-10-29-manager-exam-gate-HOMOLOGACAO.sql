@@ -105,6 +105,36 @@ create unique index if not exists exam_decisions_one_approval_per_lesson
 revoke all on all tables in schema training_private from public, anon, authenticated;
 alter table training_private.exam_decisions enable row level security;
 
+-- Historico append-only: revisoes sucessivas nao apagam a primeira decisao.
+create table if not exists training_private.exam_review_events (
+  id bigint generated always as identity primary key,
+  submission_id uuid not null references public.submissions(id) on delete restrict,
+  reviewer_id uuid not null references public.profiles(id),
+  decision public.submission_status not null check (decision in ('approved','needs_revision')),
+  theory_score smallint not null check (theory_score between 0 and 10),
+  critical_errors smallint not null check (critical_errors between 0 and 10),
+  practice_score smallint not null check (practice_score between 0 and 10),
+  practice_approved boolean not null,
+  practice_cases jsonb not null,
+  feedback text not null check (length(btrim(feedback)) >= 20),
+  reviewed_at timestamptz not null
+);
+revoke all on training_private.exam_review_events from public,anon,authenticated;
+alter table training_private.exam_review_events enable row level security;
+
+create or replace function training_private.guard_exam_review_event_history()
+returns trigger language plpgsql security definer
+set search_path=pg_catalog,training_private
+as $history_guard$
+begin
+  raise exception 'Historico de revisoes gerenciais e imutavel';
+end
+$history_guard$;
+drop trigger if exists training_exam_review_history_immutable on training_private.exam_review_events;
+create trigger training_exam_review_history_immutable
+before update or delete on training_private.exam_review_events
+for each row execute function training_private.guard_exam_review_event_history();
+
 -- Migracao atomica: copia os bancos antes de remover gabaritos publicos.
 insert into training_private.exam_banks(lesson_id,questions_a,questions_b,minimum_score,keys_previously_public)
 select id,content->'questions_a',content->'questions_b',
@@ -690,6 +720,16 @@ begin
   where training_private.exam_decisions.decision='needs_revision'
   returning * into v_decision;
   if not found then raise exception 'Revisao ja encerrada'; end if;
+
+  insert into training_private.exam_review_events(
+    submission_id,reviewer_id,decision,theory_score,critical_errors,
+    practice_score,practice_approved,practice_cases,feedback,reviewed_at
+  ) values (
+    v_decision.submission_id,v_decision.reviewer_id,v_decision.decision,
+    v_decision.theory_score,v_decision.critical_errors,v_decision.practice_score,
+    v_decision.practice_approved,v_decision.practice_cases,v_decision.feedback,
+    v_decision.reviewed_at
+  );
 
   update public.submissions set status=v_status,reviewer_id=v_actor,
     reviewer_feedback=v_decision.feedback,reviewed_at=v_decision.reviewed_at
