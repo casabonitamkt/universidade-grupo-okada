@@ -56,6 +56,25 @@ test('ignora grupo, próprio envio e outra instância', () => {
 });
 
 
+
+test('registra saída apenas com destinatário WhatsApp confiável', () => {
+  const sent=clone(); sent.event='message.sent'; sent.payload.message.is_from_me=true;
+  sent.payload.message.from='5544888888888@s.whatsapp.net';
+  sent.payload.message.to='5544777777777@s.whatsapp.net';
+  const result=normalizeEvent(sent,instance);
+  assert.equal(result.phone,'5544777777777');
+  assert.equal(result.direction,'saida');
+  const echo=clone();echo.payload.message.is_from_me=true;
+  echo.payload.message.to='5544777777777@s.whatsapp.net';
+  assert.equal(normalizeEvent(echo,instance).direction,'saida');
+  delete sent.payload.message.to;
+  assert.equal(normalizeEvent(sent,instance),null);
+  sent.payload.message.to='123456@lid';
+  assert.equal(normalizeEvent(sent,instance),null);
+  sent.payload.message.to='5544777777777@g.us';
+  assert.equal(normalizeEvent(sent,instance),null);
+});
+
 test('POST autenticado salva mensagem mesmo quando PostgREST responde 201 sem corpo', async () => {
   const handler = require('../api/zappy-inbound.js');
   const owner = 'ff819b24-a03e-4e24-a37b-8369db465fd9';
