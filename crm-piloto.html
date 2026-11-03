@@ -543,12 +543,12 @@ function suggestionFor(lead){
 let copilotForLead=null,copilotGeneration=0,copilotBusy=false,copilotDirty=false,copilotLastContext='',copilotLastMessage='';
 function redactCrmContext(value){
   return String(value||'')
-    .replace(/\\b[\\w.+-]+@[\\w.-]+\\.[a-z]{2,}\\b/gi,'[e-mail omitido]')
-    .replace(/(?:https?:\\/\\/|www\\.)\\S+/gi,'[link omitido]')
-    .replace(/\\b\\d{2}\\.?\\d{3}\\.?\\d{3}\\/?\\d{4}-?\\d{2}\\b/g,'[CNPJ omitido]')
-    .replace(/\\b\\d{3}\\.?\\d{3}\\.?\\d{3}-?\\d{2}\\b/g,'[CPF omitido]')
-    .replace(/(?:\\+?55[ .-]?)?(?:\\(?\\d{2}\\)?[ .-]?)?9?\\d{4}[ .-]?\\d{4}\\b/g,'[telefone omitido]')
-    .replace(/\\b\\d{13,19}\\b/g,'[sequência numérica omitida]');
+    .replace(/\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b/gi,'[e-mail omitido]')
+    .replace(/(?:https?:\/\/|www\.)\S+/gi,'[link omitido]')
+    .replace(/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g,'[CNPJ omitido]')
+    .replace(/\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g,'[CPF omitido]')
+    .replace(/(?:\+?55[ .-]?)?(?:\(?\d{2}\)?[ .-]?)?9?\d{4}[ .-]?\d{4}\b/g,'[telefone omitido]')
+    .replace(/\b\d{13,19}\b/g,'[sequência numérica omitida]');
 }
 function buildCopilotBriefing(lead){
   if(!lead)return '';
@@ -561,7 +561,7 @@ function buildCopilotBriefing(lead){
   }
   if(!renderedMessages.length)lines.push('Histórico ainda não carregado; não suponha conversas anteriores.');
   lines.push('Forneça uma próxima ação e uma única mensagem curta para revisão humana. Nunca envie automaticamente.');
-  return lines.join('\\n').slice(0,4400);
+  return lines.join('\n').slice(0,4400);
 }
 function updateSuggestion(){
   const lead=leads.find(l=>l.id===selected);
@@ -595,7 +595,7 @@ el('ai-generate').addEventListener('click',async()=>{
     if(data?.error)throw new Error('IA indisponível ('+String(data.error).slice(0,45)+').');
     if(request!==copilotGeneration||selected!==leadId)return;
     const analysis=String(data?.analysis||'').trim();
-    const match=analysis.match(/Mensagem para WhatsApp:\\s*([\\s\\S]*?)(?=\\n\\s*Cuidado:|$)/i);
+    const match=analysis.match(/Mensagem para WhatsApp:\s*([\s\S]*?)(?=\n\s*Cuidado:|$)/i);
     const message=(match?.[1]||'').trim().replace(/^["'“”]+|["'“”]+$/g,'');
     if(!message)throw new Error('A IA não retornou uma mensagem válida. Gere novamente.');
     copilotLastMessage=message;copilotLastContext=briefing;
@@ -610,10 +610,8 @@ el('ai-generate').addEventListener('click',async()=>{
     }
   }finally{
     copilotBusy=false;
-    if(request===copilotGeneration&&selected===leadId){
-      el('ai-generate').disabled=false;
-      el('ai-generate').textContent='✧ Gerar novamente com IA';
-    }
+    el('ai-generate').disabled=!selected;
+    el('ai-generate').textContent='✧ Gerar novamente com IA';
   }
 });
 document.querySelectorAll('[data-crm-view]').forEach(button=>button.addEventListener('click',()=>navigateCRM(button.dataset.crmView)));
