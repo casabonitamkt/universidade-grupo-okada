@@ -13,14 +13,16 @@ function verifySignature(raw, signature, secret) {
   return provided.length === expected.length && timingSafeEqual(provided, expected);
 }
 function normalizeEvent(event, expectedInstance) {
-  if (!event || event.event !== 'message.received') return null;
+  if (!event || !['message.received','message.sent'].includes(event.event)) return null;
   const p = event.payload || {}, m = p.message || {};
-  if (p.instance_id !== expectedInstance || m.is_group || m.is_from_me) return null;
+  if (p.instance_id !== expectedInstance || m.is_group) return null;
+  const outbound = m.is_from_me === true || event.event === 'message.sent';
   if (typeof m.id !== 'string' || !/^[\w.-]{1,128}$/.test(m.id)) return null;
   // Em aparelhos com identificação LID, a Zappy pode enviar o telefone real em sender_pn.
   // Nunca tratar identificadores @lid como números de telefone.
-  const sender = [m.sender_pn, m.from].find(x => typeof x === 'string' && /^\d{10,15}@s\.whatsapp\.net$/.test(x));
-  if (!sender || (typeof m.from === 'string' && m.from.endsWith('@g.us'))) return null;
+  const contact = (outbound ? [m.recipient_pn, m.to] : [m.sender_pn, m.from])
+    .find(x => typeof x === 'string' && /^\d{10,15}@s\.whatsapp\.net$/.test(x));
+  if (!contact || [m.from,m.to].some(x => typeof x === 'string' && x.endsWith('@g.us'))) return null;
   const kind = typeof m.type === 'string' ? m.type.slice(0, 32) : 'unknown';
   // Legendas e nome do documento não contêm os segredos de download da mídia.
   // Nunca salvar em campos acessíveis no navegador media_key, direct_path ou URLs privadas.
@@ -40,7 +42,7 @@ function normalizeEvent(event, expectedInstance) {
   }
   const timestamp = Date.parse(m.timestamp || '');
   return {
-    phone: sender.split('@')[0], name: typeof m.push_name === 'string' ? m.push_name.slice(0, 100) : 'Cliente',
+    phone: contact.split('@')[0], direction: outbound ? 'saida' : 'entrada', name: typeof m.push_name === 'string' ? m.push_name.slice(0, 100) : 'Cliente',
     messageId: m.id, instanceId: p.instance_id, kind, body, mediaName, mediaDownload,
     mimeType:typeof m.mimetype === 'string' ? m.mimetype.slice(0,128) : null,
     mediaLength:Number.isFinite(Number(m.file_length)) && Number(m.file_length) >= 0 && Number(m.file_length) <= 52428800
@@ -133,7 +135,7 @@ async function persist(message, config) {
       method: 'POST', headers: { Prefer: 'return=minimal' },
       body: JSON.stringify({
         lead_id: leadId, source: 'zapi', instance_id: message.instanceId,
-        external_message_id: message.messageId, direction: 'entrada',
+        external_message_id: message.messageId, direction: message.direction,
         kind: message.kind, body: message.body, media_name: message.mediaName, event_at: message.eventAt
       })
     }, config);
@@ -210,7 +212,7 @@ module.exports = async function handler(req, res) {
     return res.status(403).json({ error: 'wrong_instance' });
   }
   // Outros eventos autenticados são ignorados; não há resposta automática nem download de mídia.
-  if (event.event !== 'message.received') {
+  if (!['message.received','message.sent'].includes(event.event)) {
     console.info('zappy_inbound_ignored_event');
     return res.status(204).end();
   }
