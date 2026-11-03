@@ -363,11 +363,16 @@
           <a id="reply-whatsapp" class="action-link" target="_blank" rel="noopener noreferrer" href="#">Responder pelo WhatsApp</a>
           <p class="small-note">Alternativa para atendimento externo ao CRM.</p>
         </section>
-          <section class="assist-panel" aria-label="Sugestão de abordagem comercial">
-            <div class="assist-head"><span>✧ ASSISTENTE COMERCIAL</span><small>Revisão humana</small></div>
-            <p id="suggestion-text">Selecione um contato para receber uma sugestão de abordagem consultiva.</p>
-            <button id="suggestion-copy" class="suggestion-copy" type="button" disabled>Copiar sugestão</button>
-            <small class="assist-disclaimer">Modelo de mensagem por etapa, sem geração por IA e sem envio automático.</small>
+          <section class="assist-panel" aria-label="Copiloto comercial com inteligência artificial">
+            <div class="assist-head"><span>✧ COPILOTO COM IA</span><small>Teste assistido · revisão humana</small></div>
+            <label for="ai-briefing" class="assist-disclaimer">Contexto que será enviado à IA (revise e edite antes de gerar):</label>
+            <textarea id="ai-briefing" rows="5" maxlength="4500" placeholder="Selecione um atendimento para preparar o contexto." aria-label="Contexto do atendimento para a IA" disabled style="width:100%;margin:8px 0;background:#17191e;color:#e4dfd3;border:1px solid #59554d;border-radius:8px;padding:9px;font-size:12px;resize:vertical"></textarea>
+            <button id="ai-generate" class="suggestion-copy" type="button" disabled>✧ Gerar com IA</button>
+            <p id="ai-status" class="assist-disclaimer" role="status" aria-live="polite">Selecione uma conversa para começar.</p>
+            <p id="suggestion-text">A sugestão de WhatsApp aparecerá aqui após a análise da IA.</p>
+            <button id="suggestion-copy" class="suggestion-copy" type="button" disabled>Copiar mensagem sugerida</button>
+            <details id="ai-analysis-details" hidden><summary style="cursor:pointer;font-size:11px;margin-top:8px">Ver análise comercial e cuidados</summary><p id="ai-analysis" style="white-space:pre-wrap;font-size:12px"></p></details>
+            <small class="assist-disclaimer">Ao gerar, o contexto exibido acima é enviado ao provedor de IA. Revise dados pessoais antes de continuar. A IA não envia mensagens, não altera o CRM e não aprova descontos.</small>
           </section>
 
       </aside>
@@ -534,11 +539,81 @@ function suggestionFor(lead){
   if(lead.stage==='perdido')return greeting+' Passando para me colocar à disposição caso retome seu projeto. Será um prazer ajudar a encontrar uma solução que combine com seu ambiente.';
   return greeting+' Sou seu consultor da Casa Bonita. Vou te ajudar com as informações e valores. Antes, pode me contar um pouco sobre o ambiente e o que procura para seu projeto?';
 }
+// Copiloto contextual: envio explícito e revisável; nunca dispara WhatsApp nem grava análise.
+let copilotForLead=null,copilotGeneration=0,copilotBusy=false,copilotDirty=false,copilotLastContext='',copilotLastMessage='';
+function redactCrmContext(value){
+  return String(value||'')
+    .replace(/\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b/gi,'[e-mail omitido]')
+    .replace(/(?:https?:\/\/|www\.)\S+/gi,'[link omitido]')
+    .replace(/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g,'[CNPJ omitido]')
+    .replace(/\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g,'[CPF omitido]')
+    .replace(/(?:\+?55[ .-]?)?(?:\(?\d{2}\)?[ .-]?)?9?\d{4}[ .-]?\d{4}\b/g,'[telefone omitido]')
+    .replace(/\b\d{13,19}\b/g,'[sequência numérica omitida]');
+}
+function buildCopilotBriefing(lead){
+  if(!lead)return '';
+  const lines=['Atendimento de móveis de alto padrão. Não invente dados nem condições comerciais.',
+    'Etapa atual: '+(STAGE_LABELS[lead.stage]||'Novo contato'),
+    'Observações registradas: '+redactCrmContext(lead.notes||'Nenhuma').slice(0,450),
+    'Últimas mensagens em ordem cronológica. Para mídias, conhecemos somente o tipo, não seu conteúdo:'];
+  for(const row of renderedMessages.slice(-12)){
+    lines.push((row.direction==='saida'?'Consultor: ':'Cliente: ')+redactCrmContext(row.content||'').slice(0,240));
+  }
+  if(!renderedMessages.length)lines.push('Histórico ainda não carregado; não suponha conversas anteriores.');
+  lines.push('Forneça uma próxima ação e uma única mensagem curta para revisão humana. Nunca envie automaticamente.');
+  return lines.join('\n').slice(0,4400);
+}
 function updateSuggestion(){
   const lead=leads.find(l=>l.id===selected);
-  el('suggestion-text').textContent=suggestionFor(lead);
-  el('suggestion-copy').disabled=!lead;
+  if(copilotForLead!==selected){
+    copilotForLead=selected;copilotGeneration++;copilotDirty=false;
+    copilotLastContext='';copilotLastMessage='';
+    el('suggestion-text').textContent=lead?'Clique em Gerar com IA após revisar o contexto.':'Selecione um contato para gerar uma sugestão.';
+    el('suggestion-copy').disabled=true;
+    el('ai-analysis').textContent='';el('ai-analysis-details').hidden=true;
+    el('ai-status').textContent=lead?'Aguardando sua confirmação para consultar a IA.':'Selecione uma conversa para começar.';
+  }
+  if(!copilotDirty)el('ai-briefing').value=buildCopilotBriefing(lead);
+  el('ai-briefing').disabled=!lead;
+  el('ai-generate').disabled=!lead||copilotBusy;
 }
+el('ai-briefing').addEventListener('input',()=>{copilotDirty=true;});
+el('ai-generate').addEventListener('click',async()=>{
+  if(!selected||copilotBusy)return;
+  const leadId=selected,request=++copilotGeneration;
+  const briefing=el('ai-briefing').value.trim().slice(0,4500);
+  if(briefing.length<35){el('ai-status').textContent='Informe um contexto comercial com pelo menos 35 caracteres.';return}
+  copilotBusy=true;el('ai-generate').disabled=true;
+  el('ai-generate').textContent='Analisando…';
+  el('ai-status').textContent='Consultando a IA. Nenhuma mensagem será enviada ao cliente.';
+  try{
+    const {data:{session},error:sessionError}=await sb.auth.getSession();
+    if(sessionError||!session?.access_token)throw new Error('Sessão expirada. Entre novamente na Universidade.');
+    // A função exige JWT. O texto foi preparado sem nome, telefone ou identificador do lead.
+    const {data,error}=await sb.functions.invoke('crm-copiloto-homologacao',{body:{briefing}});
+    if(error)throw new Error('Não foi possível acessar a IA. Verifique a função e tente novamente.');
+    if(data?.error)throw new Error('IA indisponível ('+String(data.error).slice(0,45)+').');
+    if(request!==copilotGeneration||selected!==leadId)return;
+    const analysis=String(data?.analysis||'').trim();
+    const match=analysis.match(/Mensagem para WhatsApp:\s*([\s\S]*?)(?=\n\s*Cuidado:|$)/i);
+    const message=(match?.[1]||'').trim().replace(/^["'“”]+|["'“”]+$/g,'');
+    if(!message)throw new Error('A IA não retornou uma mensagem válida. Gere novamente.');
+    copilotLastMessage=message;copilotLastContext=briefing;
+    el('suggestion-text').textContent=message;
+    el('suggestion-copy').disabled=false;
+    el('ai-analysis').textContent=analysis;
+    el('ai-analysis-details').hidden=false;
+    el('ai-status').textContent=message.length>260?'Sugestão gerada, mas ultrapassa 260 caracteres. Revise antes de usar.':'Sugestão gerada. Confira os fatos e aprove manualmente.';
+  }catch(error){
+    if(request===copilotGeneration&&selected===leadId){
+      el('ai-status').textContent=error.message||'Falha na geração. Tente novamente.';
+    }
+  }finally{
+    copilotBusy=false;
+    el('ai-generate').disabled=!selected;
+    el('ai-generate').textContent='✧ Gerar novamente com IA';
+  }
+});
 document.querySelectorAll('[data-crm-view]').forEach(button=>button.addEventListener('click',()=>navigateCRM(button.dataset.crmView)));
 document.querySelectorAll('[data-open-conversations]').forEach(button=>button.addEventListener('click',()=>navigateCRM('conversas')));
 el('view-all-conversations').addEventListener('click',()=>navigateCRM('conversas'));
@@ -825,6 +900,13 @@ async function refreshMessages(lead,manual=false){
       }
     }
     renderedMessages=rows;
+    if(selected===lead.id){
+      const freshContext=buildCopilotBriefing(lead);
+      if(!copilotDirty)el('ai-briefing').value=freshContext;
+      if(copilotLastMessage&&copilotLastContext!==freshContext){
+        el('ai-status').textContent='O contexto mudou desde a última sugestão. Gere novamente para considerar as mensagens recentes.';
+      }
+    }
     if(manual||wasNearBottom)container.scrollTop=container.scrollHeight;
     return true;
   }catch(error){

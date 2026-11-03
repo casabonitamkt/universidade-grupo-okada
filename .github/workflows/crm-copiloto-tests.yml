@@ -1,0 +1,27 @@
+name: CRM contextual copilot tests
+on:
+  pull_request:
+    paths:
+      - 'crm-piloto.html'
+      - 'tests/crm-copiloto-contextual.test.mjs'
+      - '.github/workflows/crm-copiloto-tests.yml'
+  push:
+    branches:
+      - 'feature/crm-copiloto-contextual-test-20261103'
+    paths:
+      - 'crm-piloto.html'
+      - 'tests/crm-copiloto-contextual.test.mjs'
+      - '.github/workflows/crm-copiloto-tests.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test contextual copilot
+        run: node --test tests/crm-copiloto-contextual.test.mjs

@@ -14,6 +14,7 @@ function harness(){
   const messages={'lead-1':[{id:'msg-1',direction:'entrada',kind:'text',body:'Mensagem original',event_at:'2026-10-30T12:00:00Z'}]};
   const requests=[];
   const mediaCalls=[];
+  const aiCalls=[];
   const intervals=[];
   const documentListeners={};
   const windowListeners={};
@@ -42,6 +43,10 @@ function harness(){
   const sessionStorage={getItem:()=>null,removeItem:()=>{}};
   const supabase={createClient:()=>({
     auth:{getUser:async()=>({data:{user:{id:'thiago-test'}},error:null}),getSession:async()=>({data:{session:{access_token:'unit-token'}},error:null})},
+    functions:{invoke:async(name,options)=>{
+      aiCalls.push({name,options});
+      return {data:{analysis:'Situação:\nCliente pediu uma referência.\nObjetivo comercial:\nIdentificar modelo.\nMensagem para WhatsApp:\nVocê consegue enviar a referência do sofá?\nCuidado:\nNão presumir modelo.'},error:null};
+    }},
     from:table=>{
       const q={filter:null,
         updated:null,
@@ -76,7 +81,7 @@ function harness(){
     setInterval:(cb,ms)=>{intervals.push({cb,ms});return 1},
     console,Date,setTimeout:(cb)=>{cb();return 1}};
   vm.runInNewContext(js,context,{filename:'crm-piloto.html'});
-  return {elements,leads,messages,requests,intervals,document,documentListeners,windowListeners,mediaCalls};
+  return {elements,leads,messages,requests,intervals,document,documentListeners,windowListeners,mediaCalls,aiCalls};
 }
 const settle=()=>new Promise(resolve=>setImmediate(resolve));
 
@@ -292,11 +297,26 @@ test('indicadores premium derivam de contatos reais, não números de exemplo',a
   assert.equal(h.elements.get('kpi-won').textContent,'1');
   assert.equal(h.elements.get('result-conversion').textContent,'50%');
 });
-test('seleção de contato atualiza sugestão sem enviar mensagem',async()=>{
+test('seleção de contato prepara contexto para IA sem enviar nem copiar mensagem automaticamente',async()=>{
   const h=harness();await settle();
   h.elements.get('leads').children[0].onclick();await settle();
-  assert.match(h.elements.get('suggestion-text').textContent,/Olá! Sou seu consultor da Casa Bonita/);
+  assert.match(h.elements.get('ai-briefing').value,/Novo contato/);
+  assert.match(h.elements.get('ai-briefing').value,/Mensagem original/);
+  assert.match(h.elements.get('suggestion-text').textContent,/Gerar com IA/);
+  assert.equal(h.elements.get('ai-generate').disabled,false);
+  assert.equal(h.elements.get('suggestion-copy').disabled,true);
+});
+test('clique explícito chama IA uma vez e separa mensagem do diagnóstico para revisão',async()=>{
+  const h=harness();await settle();
+  h.elements.get('leads').children[0].onclick();await settle();
+  assert.equal(h.aiCalls.length,0);
+  await h.elements.get('ai-generate').listeners.click();await settle();
+  assert.equal(h.aiCalls.length,1);
+  assert.equal(h.aiCalls[0].name,'crm-copiloto-homologacao');
+  assert.match(h.aiCalls[0].options.body.briefing,/Mensagem original/);
+  assert.equal(h.elements.get('suggestion-text').textContent,'Você consegue enviar a referência do sofá?');
   assert.equal(h.elements.get('suggestion-copy').disabled,false);
+  assert.match(h.elements.get('ai-analysis').textContent,/Objetivo comercial/);
 });
 
 test('follow-ups aparecem em destaque na primeira tela com cores e navegação',()=>{
