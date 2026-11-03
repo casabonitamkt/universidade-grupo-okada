@@ -292,11 +292,14 @@ test('indicadores premium derivam de contatos reais, não números de exemplo',a
   assert.equal(h.elements.get('kpi-won').textContent,'1');
   assert.equal(h.elements.get('result-conversion').textContent,'50%');
 });
-test('seleção de contato atualiza sugestão sem enviar mensagem',async()=>{
+test('seleção de contato prepara contexto para IA sem enviar nem copiar mensagem automaticamente',async()=>{
   const h=harness();await settle();
   h.elements.get('leads').children[0].onclick();await settle();
-  assert.match(h.elements.get('suggestion-text').textContent,/Olá! Sou seu consultor da Casa Bonita/);
-  assert.equal(h.elements.get('suggestion-copy').disabled,false);
+  assert.match(h.elements.get('ai-briefing').value,/Novo contato/);
+  assert.match(h.elements.get('ai-briefing').value,/Mensagem original/);
+  assert.match(h.elements.get('suggestion-text').textContent,/Gerar com IA/);
+  assert.equal(h.elements.get('ai-generate').disabled,false);
+  assert.equal(h.elements.get('suggestion-copy').disabled,true);
 });
 
 test('follow-ups aparecem em destaque na primeira tela com cores e navegação',()=>{
