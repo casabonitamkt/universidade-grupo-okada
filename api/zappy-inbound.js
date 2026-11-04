@@ -218,7 +218,18 @@ module.exports = async function handler(req, res) {
   }
   const message = normalizeEvent(event, config.instance);
   if (!message) {
-    console.warn('zappy_inbound_ignored_message', { group: Boolean(event.payload?.message?.is_group), outbound: Boolean(event.payload?.message?.is_from_me), has_sender_pn: Boolean(event.payload?.message?.sender_pn) });
+    const m = event.payload?.message || {};
+    const outbound = m.is_from_me === true || event.event === 'message.sent';
+    const candidates = outbound ? [m.recipient_pn, m.to] : [m.sender_pn, m.from];
+    const reason = m.is_group ? 'group'
+      : typeof m.id !== 'string' || !/^[\\w.-]{1,128}$/.test(m.id) ? 'invalid_message_id'
+      : candidates.some(x => typeof x === 'string' && /@lid$/.test(x)) &&
+        !candidates.some(x => typeof x === 'string' && /^\\d{10,15}@s\\.whatsapp\\.net$/.test(x)) ? 'lid_without_phone'
+      : !candidates.some(x => typeof x === 'string' && /^\\d{10,15}@s\\.whatsapp\\.net$/.test(x)) ? 'missing_phone_jid'
+      : [m.from, m.to].some(x => typeof x === 'string' && x.endsWith('@g.us')) ? 'group_jid'
+      : 'other';
+    // Apenas classificacao: nunca registrar telefone, corpo, identificador, token ou payload.
+    console.warn('zappy_inbound_ignored_message', { reason, outbound, event_type: event.event });
     return res.status(204).end();
   }
   try {
