@@ -49,3 +49,17 @@ test('signature verification authenticates exact raw bytes', () => {
   assert.equal(verifySignature(Buffer.from('changed'), sig, secret), false);
   assert.equal(verifySignature(raw, sig, 'wrong-secret'), false);
 });
+
+test('outgoing event with recipient JID in alternate provider field is preserved', () => {
+  const msg = normalizeEvent(event('message.sent', {
+    to: '123456@lid', recipient_pn: undefined,
+    recipient_jid: '5511666666666@s.whatsapp.net'
+  }), instance);
+  assert.equal(msg?.direction, 'saida');
+  assert.equal(msg?.phone, '5511666666666');
+});
+test('outgoing event with only LID is rejected instead of assigning wrong lead', () => {
+  assert.equal(normalizeEvent(event('message.sent', {
+    to: '123456@lid', recipient_pn: undefined
+  }), instance), null);
+});
