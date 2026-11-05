@@ -41,6 +41,27 @@ test('mensagem recebida com remetente @lid e sender_pn válido', () => {
   assert.equal(normalizeEvent(event, instance)?.phone, '5544999999999');
 });
 
+
+test('aceita PN em dígitos e @c.us sem transformar LID em telefone', () => {
+  for (const phone of ['5544999999999','5544999999999@c.us','5544999999999@s.whatsapp.net']) {
+    const received=clone();
+    received.payload.message.from=phone;
+    assert.equal(normalizeEvent(received,instance)?.phone,'5544999999999');
+    const sent=clone();
+    sent.event='message.sent';
+    sent.payload.message.is_from_me=true;
+    sent.payload.message.to=phone;
+    assert.equal(normalizeEvent(sent,instance)?.phone,'5544999999999');
+  }
+  const lid=clone();
+  lid.payload.message.from='1234567890123@lid';
+  assert.equal(normalizeEvent(lid,instance),null);
+  lid.payload.message.sender_pn='5544999999999@c.us';
+  assert.equal(normalizeEvent(lid,instance)?.phone,'5544999999999');
+  lid.payload.message.sender_pn='123@g.us';
+  assert.equal(normalizeEvent(lid,instance),null);
+});
+
 test('mensagem sem telefone confiável é ignorada', () => {
   const event = clone();
   event.payload.message.from = '1234567890123@lid';
