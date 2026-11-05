@@ -24,7 +24,7 @@ function normalizeEvent(event, expectedInstance) {
   // Nunca converte @lid em telefone: identificadores LID não são números confiáveis.
   function phoneNumber(value) {
     if (typeof value !== 'string') return null;
-    const match = /^(\\d{10,15})(?:@s\\.whatsapp\\.net|@c\\.us)?$/.exec(value.trim());
+    const match = /^(\d{10,15})(?:@s\.whatsapp\.net|@c\.us)?$/.exec(value.trim());
     return match ? match[1] : null;
   }
   const contact = (outbound ? [m.recipient_pn, m.to] : [m.sender_pn, m.from])
