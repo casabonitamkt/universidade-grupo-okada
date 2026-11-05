@@ -20,7 +20,7 @@ function normalizeEvent(event, expectedInstance) {
   if (typeof m.id !== 'string' || !/^[\w.-]{1,128}$/.test(m.id)) return null;
   // Em aparelhos com identificação LID, a Zappy pode enviar o telefone real em sender_pn.
   // Nunca tratar identificadores @lid como números de telefone.
-  const contact = (outbound ? [m.recipient_pn, m.to] : [m.sender_pn, m.from])
+  const contact = (outbound ? [m.recipient_pn, m.to, m.recipient, m.recipient_jid] : [m.sender_pn, m.from, m.sender_jid])
     .find(x => typeof x === 'string' && /^\d{10,15}@s\.whatsapp\.net$/.test(x));
   if (!contact || [m.from,m.to].some(x => typeof x === 'string' && x.endsWith('@g.us'))) return null;
   const kind = typeof m.type === 'string' ? m.type.slice(0, 32) : 'unknown';
