@@ -697,7 +697,11 @@ async function viewMedia(messageId,kind,button,container,generation=mediaGenerat
 }
 function createMediaElement(kind,url){
   if(kind==='image'||kind==='sticker'){
-    const img=document.createElement('img');img.src=url;img.alt='Imagem recebida';img.className='media-preview';img.loading='eager';return img;
+    const wrapper=document.createElement('div');wrapper.className='media-attachments';
+    const open=document.createElement('a');open.href=url;open.target='_blank';open.rel='noopener noreferrer';open.setAttribute('aria-label','Abrir imagem em tamanho original');open.title='Abrir imagem em tamanho original';
+    const img=document.createElement('img');img.src=url;img.alt='Imagem recebida — toque para ampliar';img.className='media-preview';img.loading='eager';open.append(img);
+    const download=document.createElement('a');download.href=url;download.download='imagem-crm';download.className='media-link';download.textContent='Baixar imagem';
+    wrapper.append(open,download);return wrapper;
   }
   if(kind==='audio'||kind==='video'){
     const element=document.createElement(kind);
