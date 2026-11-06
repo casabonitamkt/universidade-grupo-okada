@@ -1,0 +1,188 @@
+name: Manager exam gate — isolated PostgreSQL
+on:
+  pull_request:
+    paths:
+      - 'migrations/2026-10-29-manager-exam-gate-HOMOLOGACAO.sql'
+      - 'tests/sql/**'
+      - 'tests/postgrest/**'
+      - '.github/workflows/manager-exam-postgres.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  postgres-gate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: training_gate_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d training_gate_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar cliente PostgreSQL
+        run: |
+          if ! command -v psql >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y postgresql-client
+          fi
+      - name: Testar RLS, gestor, reteste e regressao historica em banco descartavel
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d training_gate_test -v ON_ERROR_STOP=1 \
+            -f tests/sql/manager-gate-fixture.sql \
+            -f migrations/2026-10-29-manager-exam-gate-HOMOLOGACAO.sql \
+            -f tests/sql/manager-gate-smoke.sql
+
+  postgrest-auth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: training_gate_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d training_gate_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGPASSWORD: postgres
+      TEST_JWT_SECRET: "local-disposable-ci-jwt-secret-not-for-production-20261029"
+      TEST_POSTGREST_URL: http://127.0.0.1:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar cliente PostgreSQL se necessario
+        run: |
+          if ! command -v psql >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y postgresql-client
+          fi
+      - name: Preparar PostgreSQL ficticio com migracao proposta
+        run: |
+          psql -h localhost -U postgres -d training_gate_test -v ON_ERROR_STOP=1 \
+            -f tests/sql/manager-gate-fixture.sql \
+            -f migrations/2026-10-29-manager-exam-gate-HOMOLOGACAO.sql
+          psql -h localhost -U postgres -d training_gate_test -v ON_ERROR_STOP=1 \
+            -c "update public.lessons set is_published=true where code in ('EXAM-APROVA','EXAM-RETESTE','F1-D30-A01','EXAM-PASS-SCORE','F2-D34-A01')"
+      - name: Subir PostgREST temporario (sem Supabase, sem custo de branch)
+        run: |
+          docker run --detach --name training-postgrest --network host \
+            -e PGRST_DB_URI=postgres://postgres:postgres@127.0.0.1:5432/training_gate_test \
+            -e PGRST_DB_SCHEMAS=public \
+            -e PGRST_DB_ANON_ROLE=anon \
+            -e PGRST_JWT_SECRET="$TEST_JWT_SECRET" \
+            -e PGRST_SERVER_PORT=3000 \
+            postgrest/postgrest:v12.2.3
+          for i in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3000/ >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          docker logs training-postgrest
+          exit 1
+      - name: Testar JWT autenticado, RLS, gabaritos, prova A/B e gestor via HTTP
+        run: node tests/postgrest/manager-gate-auth.mjs
+      - name: Diagnostico do container quando falhar
+        if: failure()
+        run: docker logs training-postgrest || true
+
+  supabase-local:
+    name: Supabase CLI local — regressao de migracao (sem projeto remoto)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.84.2
+      - name: Iniciar apenas PostgreSQL Supabase descartavel
+        run: |
+          supabase init --yes
+          supabase db start
+      - name: Validar migracao e regressao no PostgreSQL gerenciado pelo Supabase CLI
+        env:
+          PGPASSWORD: postgres
+        run: |
+          if ! command -v psql >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y postgresql-client
+          fi
+          # O banco Supabase ja tem os papeis e schema auth. Nao recria-los.
+          sed -e '/^create role authenticated;$/d' \
+              -e '/^create role anon;$/d' \
+              -e '/^create schema auth;$/d' \
+              -e '/^grant usage on schema auth to authenticated,anon;$/d' \
+              -e '/^create function auth.uid()/,/^grant execute on function auth.uid()/d' \
+              tests/sql/manager-gate-fixture.sql > /tmp/manager-gate-supabase-fixture.sql
+          # auth.uid() do Supabase e mantida intacta. Testes usam claims JWT ficticias.
+          sed 's/app.test_uid/request.jwt.claim.sub/g' \
+            tests/sql/manager-gate-smoke.sql > /tmp/manager-gate-supabase-smoke.sql
+          psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            -f /tmp/manager-gate-supabase-fixture.sql \
+            -f migrations/2026-10-29-manager-exam-gate-HOMOLOGACAO.sql \
+            -f /tmp/manager-gate-supabase-smoke.sql
+      - name: Parar ambiente isolado
+        if: always()
+        run: supabase stop --no-backup || true
+
+  main-integration-preflight:
+    name: Integracao com main atual — sem merge remoto
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Ensaiar merge da branch com main mais recente apenas no runner
+        run: |
+          git fetch origin main
+          git -c user.name='CI Merge Check' -c user.email='ci-merge-check@example.invalid' merge --no-commit --no-ff origin/main
+          if test -n "$(git diff --name-only --diff-filter=U)"; then
+            echo "Conflito de integracao com main; manter PR DRAFT"
+            exit 1
+          fi
+      - name: Regressao de provas e painel sobre a arvore integrada
+        run: |
+          node --test tests/manager-verified-exams.test.mjs \
+            tests/manager-transactional-ui.test.mjs \
+            tests/trilha-real-exam-pilot.test.mjs \
+            tests/trilha-90-dias-gate-painel-real.test.mjs
+      - name: Validar rotas reais do CRM no merge ensaiado (sem publicar)
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {existsSync,readFileSync} from 'node:fs';
+          for (const page of ['crm-master.html','crm-piloto.html']) {
+            assert.ok(existsSync(page), 'Rota CRM aponta para pagina ausente: '+page);
+          }
+          const home=readFileSync('index.html','utf8');
+          const master=readFileSync('crm-master.html','utf8');
+          const piloto=readFileSync('crm-piloto.html','utf8');
+          assert.ok(home.includes("isCrmMaster()&&$('modeSwitch')?.dataset.mode!=='consult'?'/crm-master.html':'/crm-piloto.html'"), 'CRM Master deve abrir apenas no modo administrativo; consultor deve abrir o piloto');
+          assert.match(master,/\/api\/crm-master/,'Painel gerencial sem endpoint de leitura');
+          assert.match(piloto,/\/api\/crm/,'Painel consultor sem endpoint CRM');
+          assert.match(piloto,/sem geração por IA e sem envio automático/i,'Nao declarar IA ativa sem pipeline homologado');
+          NODE

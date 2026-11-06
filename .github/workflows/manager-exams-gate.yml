@@ -7,6 +7,7 @@ on:
     paths:
       - index.html
       - tests/manager-verified-exams.test.mjs
+      - tests/manager-transactional-ui.test.mjs
       - tests/trilha-real-exam-pilot.test.mjs
       - tests/trilha-90-dias-gate-painel-real.test.mjs
 permissions:
@@ -21,4 +22,4 @@ jobs:
         with:
           node-version: '22'
       - name: Provas A/B, conferencia gerencial e regressao do historico
-        run: node --test tests/manager-verified-exams.test.mjs tests/trilha-real-exam-pilot.test.mjs tests/trilha-90-dias-gate-painel-real.test.mjs
+        run: node --test tests/manager-verified-exams.test.mjs tests/manager-transactional-ui.test.mjs tests/trilha-real-exam-pilot.test.mjs tests/trilha-90-dias-gate-painel-real.test.mjs
