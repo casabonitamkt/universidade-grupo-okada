@@ -20,8 +20,15 @@ function normalizeEvent(event, expectedInstance) {
   if (typeof m.id !== 'string' || !/^[\w.-]{1,128}$/.test(m.id)) return null;
   // Em aparelhos com identificação LID, a Zappy pode enviar o telefone real em sender_pn.
   // Nunca tratar identificadores @lid como números de telefone.
+  // Aceita formatos de telefone da Zappy (PN, @s.whatsapp.net, @c.us e dígitos).
+  // Nunca converte @lid em telefone: identificadores LID não são números confiáveis.
+  function phoneNumber(value) {
+    if (typeof value !== 'string') return null;
+    const match = /^(\d{10,15})(?:@s\.whatsapp\.net|@c\.us)?$/.exec(value.trim());
+    return match ? match[1] : null;
+  }
   const contact = (outbound ? [m.recipient_pn, m.to] : [m.sender_pn, m.from])
-    .find(x => typeof x === 'string' && /^\d{10,15}@s\.whatsapp\.net$/.test(x));
+    .map(phoneNumber).find(Boolean);
   if (!contact || [m.from,m.to].some(x => typeof x === 'string' && x.endsWith('@g.us'))) return null;
   const kind = typeof m.type === 'string' ? m.type.slice(0, 32) : 'unknown';
   // Legendas e nome do documento não contêm os segredos de download da mídia.
@@ -42,13 +49,22 @@ function normalizeEvent(event, expectedInstance) {
   }
   const timestamp = Date.parse(m.timestamp || '');
   return {
-    phone: contact.split('@')[0], direction: outbound ? 'saida' : 'entrada', name: typeof m.push_name === 'string' ? m.push_name.slice(0, 100) : 'Cliente',
+    phone: contact, direction: outbound ? 'saida' : 'entrada', name: typeof m.push_name === 'string' ? m.push_name.slice(0, 100) : 'Cliente',
     messageId: m.id, instanceId: p.instance_id, kind, body, mediaName, mediaDownload,
     mimeType:typeof m.mimetype === 'string' ? m.mimetype.slice(0,128) : null,
     mediaLength:Number.isFinite(Number(m.file_length)) && Number(m.file_length) >= 0 && Number(m.file_length) <= 52428800
       ? Number(m.file_length) : null,
     eventAt: Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : new Date().toISOString()
   };
+}
+function phoneFormat(value) {
+  if (typeof value !== 'string') return 'missing';
+  if (/^\d{10,15}$/.test(value)) return 'digits';
+  if (/^\d{10,15}@s\.whatsapp\.net$/.test(value)) return 'pn_jid';
+  if (/^\d{10,15}@c\.us$/.test(value)) return 'c_us';
+  if (/^\d+@lid$/.test(value)) return 'lid';
+  if (value.endsWith('@g.us')) return 'group';
+  return 'other';
 }
 async function readRaw(req) {
   const parts = []; let size = 0;
@@ -213,12 +229,12 @@ module.exports = async function handler(req, res) {
   }
   // Outros eventos autenticados são ignorados; não há resposta automática nem download de mídia.
   if (!['message.received','message.sent'].includes(event.event)) {
-    console.info('zappy_inbound_ignored_event');
+    console.info('zappy_inbound_ignored_event', { event_type: typeof event.event === 'string' && /^[a-z.]{1,40}$/.test(event.event) ? event.event : 'other', is_from_me: event.payload?.message?.is_from_me === true });
     return res.status(204).end();
   }
   const message = normalizeEvent(event, config.instance);
   if (!message) {
-    console.warn('zappy_inbound_ignored_message', { group: Boolean(event.payload?.message?.is_group), outbound: Boolean(event.payload?.message?.is_from_me), has_sender_pn: Boolean(event.payload?.message?.sender_pn) });
+    console.warn('zappy_inbound_ignored_message', { group: Boolean(event.payload?.message?.is_group), outbound: event.payload?.message?.is_from_me === true || event.event === 'message.sent', has_sender_pn: Boolean(event.payload?.message?.sender_pn), has_recipient_pn: Boolean(event.payload?.message?.recipient_pn), from_format: phoneFormat(event.payload?.message?.from), to_format: phoneFormat(event.payload?.message?.to) });
     return res.status(204).end();
   }
   try {
