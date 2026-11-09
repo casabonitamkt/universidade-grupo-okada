@@ -63,3 +63,18 @@ test('outgoing event with only LID is rejected instead of assigning wrong lead',
     to: '123456@lid', recipient_pn: undefined
   }), instance), null);
 });
+
+test('outbound phone formats: digits and c.us are accepted without LID coercion', () => {
+  for (const to of ['5511888888888', '5511888888888@c.us', '5511888888888@s.whatsapp.net']) {
+    const msg = normalizeEvent(event('message.sent', { to, recipient_pn: undefined }), instance);
+    assert.equal(msg?.direction, 'saida');
+    assert.equal(msg?.phone, '5511888888888');
+  }
+});
+test('outbound with only LID and no PN alias remains rejected', () => {
+  const msg = normalizeEvent(event('message.sent', {
+    to: '123456@lid', recipient_pn: undefined,
+    recipient: undefined, recipient_jid: undefined
+  }), instance);
+  assert.equal(msg, null);
+});
