@@ -41,6 +41,13 @@ select,input{background:#17191c;color:var(--text);border:1px solid #4b453b;borde
 .message.out{align-self:flex-end;background:#3d352a;border:1px solid #71583a}
 .message small{display:block;font-size:9px;color:#c3b6a4;margin-bottom:5px}
 .message .media{color:#dfbd84;font-style:italic}
+.media-open{display:block;margin:8px 0 3px;border:1px solid #806746;background:#3b3022;color:#f3e2c4;border-radius:8px;padding:7px 10px;font:inherit;font-size:12px}
+.media-open:disabled{opacity:.55;cursor:wait}
+.media-preview{display:block;max-width:100%;max-height:360px;margin:8px 0;border-radius:8px;object-fit:contain}
+audio.media-preview{width:min(100%,380px);height:48px}
+video.media-preview{width:min(100%,580px)}
+.media-link{display:inline-block;margin:7px 0;color:#e4c38d;text-decoration:underline}
+.media-error{font-size:11px;color:#ffc16c;margin:5px 0}
 .follow-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
 .follow-grid .panel{min-width:0}.follow-list{display:grid;gap:8px;margin-top:12px}
 .pipeline-row{display:grid;grid-template-columns:150px 1fr 30px;align-items:center;gap:10px;font-size:12px;margin:12px 0}
@@ -79,7 +86,7 @@ select,input{background:#17191c;color:var(--text);border:1px solid #4b453b;borde
 <section id="consultants" class="section" hidden><h2>Os quatro consultores</h2><p class="sub">Selecione um consultor para consultar sua carteira e as conversas.</p><div class="toolbar"><select id="consultant-filter" aria-label="Filtrar por consultor"><option value="">Todos os consultores</option></select><button type="button" class="refresh" id="open-filtered">Ver conversas ↗</button></div><div class="panel table-wrap"><table><thead><tr><th>Consultor</th><th>Loja</th><th>Leads</th><th>Ativos</th><th>Propostas</th><th>Vendas</th></tr></thead><tbody id="consultants-table"></tbody></table></div></section>
 <section id="conversations" class="section" hidden><div class="toolbar"><select id="conversation-filter" aria-label="Consultor das conversas"><option value="">Todos os consultores</option></select><input id="search" type="search" placeholder="Buscar cliente ou telefone" aria-label="Buscar cliente"></div>
 <div class="conversation-layout"><article class="panel"><h2>Conversas <span class="badge" id="conversation-count">0</span></h2><div class="conversation-list" id="conversation-list"></div></article>
-<article class="panel"><h2 id="conversation-title">Histórico do cliente</h2><p class="sub" id="conversation-meta">Selecione uma conversa para acompanhar o atendimento.</p><div id="messages" class="messages"></div><p class="note">Acesso de supervisão somente leitura. O envio continua exclusivo do consultor responsável. Arquivos de mídia ainda dependem da correção de integração.</p></article></div></section>
+<article class="panel"><h2 id="conversation-title">Histórico do cliente</h2><p class="sub" id="conversation-meta">Selecione uma conversa para acompanhar o atendimento.</p><div id="messages" class="messages"></div><p class="note">Acesso de supervisão somente leitura. O envio continua exclusivo do consultor responsável. Mídias compatíveis podem ser abertas neste histórico.</p></article></div></section>
 <section id="followup" class="section" hidden><h2>Follow-up e oportunidades</h2><p class="sub">Faixas exclusivas pela última mensagem, sem presumir que o cliente aguarda retorno.</p><div class="follow-grid">
 <article class="panel"><h3>24 horas a 3 dias <span class="badge" id="fu24-count">0</span></h3><div id="fu24" class="follow-list"></div></article>
 <article class="panel"><h3>3 a 7 dias <span class="badge" id="fu72-count">0</span></h3><div id="fu72" class="follow-list"></div></article>
@@ -100,6 +107,7 @@ const sb=supabase.createClient(SBURL,KEY,{auth:{persistSession:true,storage}});
 const $=id=>document.getElementById(id);
 const labels={novo:'Novo contato',em_atendimento:'Em atendimento',proposta:'Proposta enviada',negociacao:'Negociação',ganho:'Venda concluída',perdido:'Não convertido'};
 let consultants=[],leads=[],view='overview',selectedLead=null,partial=false,requestCounter=0;
+const mediaUrls=new Map();
 const node=(tag,content,cls)=>{const n=document.createElement(tag);if(content!=null)n.textContent=String(content);if(cls)n.className=cls;return n};
 const number=x=>Number(x||0);
 const count=(arr,stage)=>arr.filter(l=>l.stage===stage).length;
@@ -119,6 +127,42 @@ async function api(path){
   if(r.status===401)throw Error('Sua sessão expirou. Entre novamente na Universidade.');
   if(!r.ok)throw Error('Não foi possível consultar os dados agora. Código '+r.status+'.');
   return r.json();
+}
+function masterMediaElement(kind,url){
+  if(kind==='image'||kind==='sticker'){
+    const img=node('img','');img.src=url;img.alt='Mídia recebida';img.className='media-preview';img.loading='lazy';return img;
+  }
+  if(kind==='audio'){const audio=node('audio','');audio.src=url;audio.controls=true;audio.preload='metadata';audio.className='media-preview';return audio}
+  if(kind==='video'){const video=node('video','');video.src=url;video.controls=true;video.preload='metadata';video.className='media-preview';return video}
+  const link=node('a','Abrir documento','media-link');link.href=url;link.target='_blank';link.rel='noopener noreferrer';return link;
+}
+async function openMasterMedia(messageId,kind,button,card,leadId,requestId){
+  if(!messageId||!['image','audio','video','document','sticker'].includes(kind))return;
+  button.disabled=true;button.textContent='Carregando mídia…';
+  try{
+    const token=await sessionToken();
+    const r=await fetch('/api/crm-media?message_id='+encodeURIComponent(messageId),{
+      headers:{Authorization:'Bearer '+token},cache:'no-store'
+    });
+    if(!r.ok){
+      const data=await r.json().catch(()=>({}));
+      if(data.error==='media_not_available')throw Error('Este arquivo não tem dados de download disponíveis.');
+      if(data.error==='provider_download_unavailable')throw Error('A Zappy não disponibilizou este arquivo.');
+      if(data.error==='provider_response_unrecognized')throw Error('A Zappy retornou um formato inesperado.');
+      if(data.error==='media_format_not_supported')throw Error('Este formato não é compatível com a prévia.');
+      if(r.status===401)throw Error('Sessão expirada. Entre novamente na Universidade.');
+      throw Error('Não foi possível abrir esta mídia (código '+r.status+').');
+    }
+    const blob=await r.blob();if(!blob.size)throw Error('Arquivo vazio.');
+    if(selectedLead!==leadId||requestCounter!==requestId)return;
+    const previous=mediaUrls.get(messageId);if(previous)URL.revokeObjectURL(previous);
+    const url=URL.createObjectURL(blob);mediaUrls.set(messageId,url);
+    card.append(masterMediaElement(kind,url));button.hidden=true;
+  }catch(error){
+    if(button.isConnected&&selectedLead===leadId&&requestCounter===requestId){
+      card.append(node('p',error.message,'media-error'));button.textContent='Tentar abrir novamente';
+    }
+  }finally{button.disabled=false}
 }
 function setView(next){
   view=next;for(const b of document.querySelectorAll('[data-view]')){const active=b.dataset.view===next;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')}
@@ -170,6 +214,7 @@ function renderConversations(){
   $('conversation-list').replaceChildren(...(nodes.length?nodes:[node('p','Nenhum contato encontrado.','empty')]));
 }
 async function selectLead(lead){
+  for(const url of mediaUrls.values())URL.revokeObjectURL(url);mediaUrls.clear();
   selectedLead=lead.id;setView('conversations');renderConversations();
   $('conversation-title').textContent=lead.display_name||'Cliente';
   $('conversation-meta').textContent=consultantName(lead.owner_consultant_id)+' · '+(lead.phone||'Sem telefone')+' · '+(labels[lead.stage]||'Novo contato');
@@ -182,8 +227,14 @@ async function selectLead(lead){
       const b=node('div',null,'message'+(m.direction==='saida'?' out':''));
       b.append(node('small',(m.direction==='saida'?'Consultor':'Cliente')+' · '+new Date(m.event_at).toLocaleString('pt-BR')));
       if(m.kind==='text')b.append(node('div',m.body||'Mensagem sem texto'));
-      else b.append(node('div',(m.kind==='image'?'📷 Foto':m.kind==='audio'?'🎤 Áudio':m.kind==='video'?'🎬 Vídeo':'📎 '+(m.kind||'Arquivo'))+' recebido'+(m.media_name?' · '+m.media_name:''),'media'));
-      if(m.kind!=='text'&&m.body)b.append(node('div',m.body));
+      else{
+        b.append(node('div',(m.kind==='image'?'📷 Foto':m.kind==='audio'?'🎤 Áudio':m.kind==='video'?'🎬 Vídeo':m.kind==='sticker'?'Figurinha':'📎 '+(m.kind||'Arquivo'))+' recebido'+(m.media_name?' · '+m.media_name:''),'media'));
+        if(m.body)b.append(node('div',m.body));
+        if(['image','audio','video','document','sticker'].includes(m.kind)){
+          const open=node('button','Abrir mídia','media-open');open.type='button';
+          open.onclick=()=>openMasterMedia(m.id,m.kind,open,b,lead.id,req);b.append(open);
+        }
+      }
       return b;
     });
     $('messages').replaceChildren(...(nodes.length?nodes:[node('p','Nenhuma mensagem registrada.','empty')]));
