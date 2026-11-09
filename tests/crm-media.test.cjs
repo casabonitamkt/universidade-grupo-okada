@@ -3,6 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const handler=require('../api/crm-media.js');
 const owner='ff819b24-a03e-4e24-a37b-8369db465fd9';
 const other='8f819b24-a03e-4e24-a37b-8369db465fd9';
+const master='4215da90-7c48-4c6b-bd96-af504c9557b5';
 const lead='b2a03fa1-aac1-45a1-9d9d-03f096c47efa';
 const mid='c2a03fa1-aac1-45a1-9d9d-03f096c47efa';
 const inst='7f611f42-990f-4c6c-9493-e182de3c759a';
@@ -21,6 +22,12 @@ function setup(options={}){
  globalThis.fetch=async(url,args={})=>{
   const u=String(url);
   if(u.endsWith('/auth/v1/user'))return json(200,{id:options.user||owner});
+  if(u.includes('/rest/v1/profiles?')){
+   if(u.includes('role=eq.consultant'))return json(200,(options.consultants||[owner]).map(id=>({id})));
+   const id=options.user||owner;
+   const role=options.profileRole||([master].includes(id)?'admin':'consultant');
+   return json(200,[{id,role}]);
+  }
   if(u.includes('crm_pilot_messages?'))return json(200,[{id:mid,lead_id:lead,kind:options.kind||'image',instance_id:inst}]);
   if(u.includes('crm_pilot_leads?'))return json(200,[{id:lead,owner_consultant_id:options.leadOwner||owner}]);
   if(u.includes('crm_pilot_media?'))return json(200,[{
@@ -55,6 +62,18 @@ test('exige sessão autenticada para acessar mídia',async()=>{
 });
 test('impede mídia de contato de outro consultor',async()=>{
  const h=setup({leadOwner:other});try{const x=res();await handler(req(),x);assert.equal(x.code,404);assert.equal(h.downloads,0)}finally{h.restore()}
+});
+test('permite que a diretoria autorizada veja mídia de consultores cadastrados',async()=>{
+ const h=setup({user:master});try{const x=res();await handler(req(),x);assert.equal(x.code,200);assert.equal(h.downloads,1)}
+ finally{h.restore()}
+});
+test('limita o acesso Master aos quatro consultores registrados',async()=>{
+ const h=setup({user:master,consultants:[other]});try{const x=res();await handler(req(),x);assert.equal(x.code,404);assert.equal(h.downloads,0)}
+ finally{h.restore()}
+});
+test('não concede acesso de mídia a usuário fora da lista Master',async()=>{
+ const h=setup({user:other,profileRole:'admin'});try{const x=res();await handler(req(),x);assert.equal(x.code,404);assert.equal(h.downloads,0)}
+ finally{h.restore()}
 });
 test('valida identificador e não chama Zappy',async()=>{
  const h=setup();try{const x=res();await handler(req('invalid'),x);assert.equal(x.code,400);assert.equal(h.downloads,0)}finally{h.restore()}
