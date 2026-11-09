@@ -25,6 +25,14 @@ async function authorizedUser(cfg,token){
   const user=await r.json();
   return UUID.test(user?.id||'')?user.id:null;
 }
+const MASTER_IDS=new Set(['4215da90-7c48-4c6b-bd96-af504c9557b5','2846416e-03af-432d-b2d2-26431d5d069f']);
+async function authorizedMaster(cfg,userId){
+  if(!MASTER_IDS.has(userId))return false;
+  const profiles=await db(cfg,'profiles?'+new URLSearchParams({
+    select:'id,role',id:'eq.'+userId,limit:'1'
+  }));
+  return profiles[0]?.id===userId&&profiles[0]?.role==='admin';
+}
 function decodeMediaAnswer(payload){
   if(!payload||typeof payload!=='object'||Array.isArray(payload))return null;
   const candidate=[payload.data,payload.base64,payload.media?.data,payload.media?.base64,payload.file?.data]
@@ -67,6 +75,7 @@ module.exports=async function handler(req,res){
   if(!owner)return response(res,401,{error:'authentication_required'});
   try{
     // Verifica propriedade ANTES de consultar metadados privados ou chamar o provedor.
+    const isMaster=await authorizedMaster(cfg,owner);
     const messages=await db(cfg,'crm_pilot_messages?'+new URLSearchParams({
       select:'id,lead_id,kind,instance_id',id:'eq.'+id,limit:'1'
     }));
@@ -75,7 +84,14 @@ module.exports=async function handler(req,res){
     const leads=await db(cfg,'crm_pilot_leads?'+new URLSearchParams({
       select:'id,owner_consultant_id',id:'eq.'+msg.lead_id,limit:'1'
     }));
-    if(!leads[0]||leads[0].owner_consultant_id!==owner)return response(res,404,{error:'media_not_found'});
+    if(!leads[0])return response(res,404,{error:'media_not_found'});
+    if(leads[0].owner_consultant_id!==owner){
+      if(!isMaster)return response(res,404,{error:'media_not_found'});
+      const consultants=await db(cfg,'profiles?'+new URLSearchParams({
+        select:'id',role:'eq.consultant',order:'full_name.asc',limit:'4'
+      }));
+      if(!consultants.some(c=>c.id===leads[0].owner_consultant_id))return response(res,404,{error:'media_not_found'});
+    }
     const mediaRows=await db(cfg,'crm_pilot_media?'+new URLSearchParams({
       select:'media_type,mime_type,file_length,download_metadata',message_id:'eq.'+id,limit:'1'
     }));
