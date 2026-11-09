@@ -26,9 +26,10 @@ function normalizeEvent(event, expectedInstance) {
     const match = /^(\d{10,15})(?:@s\.whatsapp\.net|@c\.us)?$/.exec(value.trim());
     return match ? match[1] : null;
   }
+  // A mensagem própria sincronizada pelo dispositivo pode identificar o destinatário em chat.
   const contact = (outbound
-    ? [p.to, m.recipient_pn, m.to]
-    : [m.sender_pn, m.from]
+    ? [p.to, m.recipient_pn, m.to, m.chat, m.remote_jid, p.chat]
+    : [m.sender_pn, m.from, m.chat]
   ).map(phoneNumber).find(Boolean);
   if (!contact || [m.from,m.to,p.to].some(x => typeof x === 'string' && x.endsWith('@g.us'))) return null;
   const rawKind = m.type || p.type;
@@ -242,7 +243,7 @@ module.exports = async function handler(req, res) {
   }
   const message = normalizeEvent(event, config.instance);
   if (!message) {
-    console.warn('zappy_inbound_ignored_message', { group: Boolean(event.payload?.message?.is_group), outbound: event.payload?.message?.is_from_me === true || event.event === 'message.sent', has_sender_pn: Boolean(event.payload?.message?.sender_pn), has_recipient_pn: Boolean(event.payload?.message?.recipient_pn), from_format: phoneFormat(event.payload?.message?.from), to_format: phoneFormat(event.payload?.message?.to) });
+    console.warn('zappy_inbound_ignored_message', { group: Boolean(event.payload?.message?.is_group), outbound: event.payload?.message?.is_from_me === true || event.event === 'message.sent', has_sender_pn: Boolean(event.payload?.message?.sender_pn), has_recipient_pn: Boolean(event.payload?.message?.recipient_pn), from_format: phoneFormat(event.payload?.message?.from), to_format: phoneFormat(event.payload?.message?.to), chat_format: phoneFormat(event.payload?.message?.chat) });
     return res.status(204).end();
   }
   try {

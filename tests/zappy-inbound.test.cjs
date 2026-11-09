@@ -125,6 +125,19 @@ test('classifica como saída o eco recebido com is_from_me e destinatário confi
   assert.equal(value?.direction, 'saida');
 });
 
+test('classifica saída sincronizada pelo dispositivo usando o campo chat como destinatário', () => {
+  const event = clone();
+  event.payload.message.is_from_me = true;
+  event.payload.message.from = '5544888888888@s.whatsapp.net';
+  event.payload.message.chat = '5544777777777@s.whatsapp.net';
+  delete event.payload.message.to;
+  delete event.payload.message.recipient_pn;
+  const value = normalizeEvent(event, instance);
+  assert.equal(value?.phone, '5544777777777');
+  assert.equal(value?.direction, 'saida');
+  assert.equal(value?.body, 'Teste integração');
+});
+
 test('POST autenticado salva mensagem mesmo quando PostgREST responde 201 sem corpo', async () => {
   const handler = require('../api/zappy-inbound.js');
   const owner = 'ff819b24-a03e-4e24-a37b-8369db465fd9';
