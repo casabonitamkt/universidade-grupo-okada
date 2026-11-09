@@ -360,8 +360,7 @@
           </div>
           <button id="save-notes" type="button" class="panel-button">Salvar observações</button>
           <p class="small-note" id="action-status" role="status"></p>
-          <a id="reply-whatsapp" class="action-link" target="_blank" rel="noopener noreferrer" href="#">Abrir WhatsApp</a>
-          <p class="small-note">Para manter o histórico completo, prefira enviar pelo CRM. Mensagens enviadas por fora só aparecem aqui se a Zappy emitir o evento correspondente.</p>
+          <p class="small-note"><strong>Para registrar o envio, use o campo “Enviar mensagem” do CRM.</strong> Mensagens enviadas diretamente pelo aplicativo WhatsApp não aparecem no histórico do CRM.</p>
         </section>
           <section class="assist-panel" aria-label="Copiloto comercial com inteligência artificial">
             <div class="assist-head"><span>✧ COPILOTO COM IA</span><small>Teste assistido · revisão humana</small></div>
@@ -929,13 +928,7 @@ function showLeadTools(lead){
   el('lead-stage').value=lead.stage||'novo';
   el('lead-notes').value=lead.notes||'';
   el('action-status').textContent='';
-  const digits=(lead.phone||'').replace(/\D/g,'');
-  if(/^\d{10,15}$/.test(digits)){
-    el('reply-whatsapp').href='https://wa.me/'+digits;
-    el('reply-whatsapp').hidden=false;
-  }else{
-    el('reply-whatsapp').hidden=true;
-  }
+
 }
 async function updateLeadField(field,value){
   if(!selected)return;
