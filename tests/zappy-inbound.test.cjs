@@ -96,6 +96,35 @@ test('registra saída apenas com destinatário WhatsApp confiável', () => {
   assert.equal(normalizeEvent(sent,instance),null);
 });
 
+test('normaliza o formato oficial top-level de message.sent da Zappy', () => {
+  const event = {
+    event: 'message.sent',
+    payload: {
+      instance_id: instance,
+      message_id: 'zappy-outbound-123',
+      to: '5544777777777@s.whatsapp.net',
+      type: 'text',
+      content: 'Resposta enviada pelo CRM',
+      timestamp: '2026-11-09T12:45:03Z'
+    }
+  };
+  const value = normalizeEvent(event, instance);
+  assert.equal(value?.phone, '5544777777777');
+  assert.equal(value?.direction, 'saida');
+  assert.equal(value?.messageId, 'zappy-outbound-123');
+  assert.equal(value?.kind, 'text');
+  assert.equal(value?.body, 'Resposta enviada pelo CRM');
+});
+
+test('classifica como saída o eco recebido com is_from_me e destinatário confiável', () => {
+  const event = clone();
+  event.payload.message.is_from_me = true;
+  event.payload.message.to = '5544777777777@s.whatsapp.net';
+  const value = normalizeEvent(event, instance);
+  assert.equal(value?.phone, '5544777777777');
+  assert.equal(value?.direction, 'saida');
+});
+
 test('POST autenticado salva mensagem mesmo quando PostgREST responde 201 sem corpo', async () => {
   const handler = require('../api/zappy-inbound.js');
   const owner = 'ff819b24-a03e-4e24-a37b-8369db465fd9';
