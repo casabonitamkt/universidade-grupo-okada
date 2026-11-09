@@ -17,25 +17,28 @@ function normalizeEvent(event, expectedInstance) {
   const p = event.payload || {}, m = p.message || {};
   if (p.instance_id !== expectedInstance || m.is_group) return null;
   const outbound = m.is_from_me === true || event.event === 'message.sent';
-  if (typeof m.id !== 'string' || !/^[\w.-]{1,128}$/.test(m.id)) return null;
-  // Em aparelhos com identificação LID, a Zappy pode enviar o telefone real em sender_pn.
-  // Nunca tratar identificadores @lid como números de telefone.
-  // Aceita formatos de telefone da Zappy (PN, @s.whatsapp.net, @c.us e dígitos).
-  // Nunca converte @lid em telefone: identificadores LID não são números confiáveis.
+  const rawMessageId = event.event === 'message.sent' ? (p.message_id || m.id) : m.id;
+  if (typeof rawMessageId !== 'string' || !/^[\w.-]{1,128}$/.test(rawMessageId)) return null;
+  // En message.sent, Zappy coloca message_id, to, type e content diretamente em payload.
+  // Em message.received, os mesmos dados ficam em payload.message.
   function phoneNumber(value) {
     if (typeof value !== 'string') return null;
     const match = /^(\d{10,15})(?:@s\.whatsapp\.net|@c\.us)?$/.exec(value.trim());
     return match ? match[1] : null;
   }
-  const contact = (outbound ? [m.recipient_pn, m.to] : [m.sender_pn, m.from])
-    .map(phoneNumber).find(Boolean);
-  if (!contact || [m.from,m.to].some(x => typeof x === 'string' && x.endsWith('@g.us'))) return null;
-  const kind = typeof m.type === 'string' ? m.type.slice(0, 32) : 'unknown';
-  // Legendas e nome do documento não contêm os segredos de download da mídia.
-  // Nunca salvar em campos acessíveis no navegador media_key, direct_path ou URLs privadas.
-  const body = kind === 'text' && typeof m.text === 'string' ? m.text.slice(0, 10000)
-    : typeof m.caption === 'string' ? m.caption.slice(0, 2000) : '';
-  const mediaName = typeof m.filename === 'string' ? m.filename.slice(0, 180) : null;
+  const contact = (outbound
+    ? [p.to, m.recipient_pn, m.to]
+    : [m.sender_pn, m.from]
+  ).map(phoneNumber).find(Boolean);
+  if (!contact || [m.from,m.to,p.to].some(x => typeof x === 'string' && x.endsWith('@g.us'))) return null;
+  const rawKind = m.type || p.type;
+  const kind = typeof rawKind === 'string' ? rawKind.slice(0, 32) : 'unknown';
+  const rawBody = kind === 'text'
+    ? (typeof m.text === 'string' ? m.text : p.content)
+    : (typeof m.caption === 'string' ? m.caption : p.caption);
+  const body = typeof rawBody === 'string' ? rawBody.slice(0, kind === 'text' ? 10000 : 2000) : '';
+  const rawName = m.filename || p.filename;
+  const mediaName = typeof rawName === 'string' ? rawName.slice(0, 180) : null;
   let mediaDownload = null;
   if (['image','audio','video','document','sticker'].includes(kind) &&
       typeof m.direct_path === 'string' && m.direct_path.length <= 4096 &&
@@ -47,13 +50,18 @@ function normalizeEvent(event, expectedInstance) {
       url:typeof m.url === 'string' ? m.url.slice(0,4096) : null
     };
   }
-  const timestamp = Date.parse(m.timestamp || '');
+  const rawTimestamp = m.timestamp || p.timestamp || event.timestamp;
+  const numericTimestamp = Number(rawTimestamp);
+  const timestamp = Number.isFinite(numericTimestamp) && numericTimestamp > 1000000000
+    ? new Date(numericTimestamp < 100000000000 ? numericTimestamp * 1000 : numericTimestamp).getTime()
+    : Date.parse(rawTimestamp || '');
   return {
-    phone: contact, direction: outbound ? 'saida' : 'entrada', name: typeof m.push_name === 'string' ? m.push_name.slice(0, 100) : 'Cliente',
-    messageId: m.id, instanceId: p.instance_id, kind, body, mediaName, mediaDownload,
-    mimeType:typeof m.mimetype === 'string' ? m.mimetype.slice(0,128) : null,
-    mediaLength:Number.isFinite(Number(m.file_length)) && Number(m.file_length) >= 0 && Number(m.file_length) <= 52428800
-      ? Number(m.file_length) : null,
+    phone: contact, direction: outbound ? 'saida' : 'entrada',
+    name: typeof m.push_name === 'string' ? m.push_name.slice(0, 100) : 'Cliente',
+    messageId: rawMessageId, instanceId: p.instance_id, kind, body, mediaName, mediaDownload,
+    mimeType:typeof (m.mimetype || p.mime_type) === 'string' ? (m.mimetype || p.mime_type).slice(0,128) : null,
+    mediaLength:Number.isFinite(Number(m.file_length || p.file_length)) && Number(m.file_length || p.file_length) >= 0 && Number(m.file_length || p.file_length) <= 52428800
+      ? Number(m.file_length || p.file_length) : null,
     eventAt: Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : new Date().toISOString()
   };
 }
