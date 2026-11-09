@@ -248,7 +248,7 @@ module.exports = async function handler(req, res) {
   try {
     const result = await persist(message, config);
     await persistMediaMetadata(message, config);
-    console.info('zappy_inbound_persisted', { status: result });
+    console.info('zappy_inbound_persisted', { status: result, event_type: event.event, direction: message.direction, kind: message.kind });
     return res.status(200).json({ received: true, status: result });
   } catch (error) {
     // Sem log de mensagens, telefones ou credenciais. 503 permite retry pelo provedor.
