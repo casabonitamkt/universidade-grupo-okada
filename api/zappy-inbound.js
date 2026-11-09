@@ -18,12 +18,12 @@ function normalizeEvent(event, expectedInstance) {
   if (p.instance_id !== expectedInstance) return null;
   const outbound = m.is_from_me === true || event.event === 'message.sent';
   const rawMessageId = event.event === 'message.sent' ? (p.message_id || m.id) : m.id;
-  if (typeof rawMessageId !== 'string' || !/^[\\w.-]{1,128}$/.test(rawMessageId)) return null;
+  if (typeof rawMessageId !== 'string' || !/^[\w.-]{1,128}$/.test(rawMessageId)) return null;
   // En message.sent, Zappy coloca message_id, to, type e content diretamente em payload.
   // Em message.received, os mesmos dados ficam em payload.message.
   function phoneNumber(value) {
     if (typeof value !== 'string') return null;
-    const match = /^(\\d{10,15})(?:@s\\.whatsapp\\.net|@c\\.us)?$/.exec(value.trim());
+    const match = /^(\d{10,15})(?:@s\.whatsapp\.net|@c\.us)?$/.exec(value.trim());
     return match ? match[1] : null;
   }
   const contact = (outbound
