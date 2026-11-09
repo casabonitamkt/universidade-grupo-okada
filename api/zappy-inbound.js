@@ -15,7 +15,7 @@ function verifySignature(raw, signature, secret) {
 function normalizeEvent(event, expectedInstance) {
   if (!event || !['message.received','message.sent'].includes(event.event)) return null;
   const p = event.payload || {}, m = p.message || {};
-  if (p.instance_id !== expectedInstance) return null;
+  if (p.instance_id !== expectedInstance || m.is_group) return null;
   const outbound = m.is_from_me === true || event.event === 'message.sent';
   const rawMessageId = event.event === 'message.sent' ? (p.message_id || m.id) : m.id;
   if (typeof rawMessageId !== 'string' || !/^[\w.-]{1,128}$/.test(rawMessageId)) return null;
