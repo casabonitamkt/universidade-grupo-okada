@@ -248,6 +248,11 @@ module.exports = async function handler(req, res) {
   }
   try {
     const result = await persist(message, config);
+    // Diagnóstico sem dados pessoais: eventos de mídia podem chegar sem os campos
+    // privados necessários ao download; não confundir mensagem salva com mídia acessível.
+    if (['image','audio','video','document','sticker'].includes(message.kind) && !message.mediaDownload) {
+      console.warn('zappy_inbound_media_metadata_missing', { kind: message.kind, direction: message.direction });
+    }
     await persistMediaMetadata(message, config);
     console.info('zappy_inbound_persisted', { status: result, event_type: event.event, direction: message.direction, kind: message.kind });
     return res.status(200).json({ received: true, status: result });
