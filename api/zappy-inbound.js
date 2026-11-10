@@ -219,6 +219,10 @@ module.exports = async function handler(req, res) {
       }
     } catch (_) { /* não autenticado; nunca logar o payload */ }
     console.warn('zappy_inbound_invalid_signature', {
+      // Apenas sinais de formatação; nunca registrar valor, tamanho ou hash do segredo.
+      secret_outer_whitespace: config.secret !== config.secret.trim(),
+      secret_wrapping_quotes: /^(?:"[\s\S]*"|'[\s\S]*')$/.test(config.secret),
+      secret_is_variable_name: config.secret === 'ZAPPY_WEBHOOK_SECRET',
       event_age_bucket: age_bucket,
       signature_present: Boolean(signature),
       signature_format_ok: signatureFormatOk,
@@ -259,3 +263,4 @@ module.exports = async function handler(req, res) {
 };
 module.exports.verifySignature = verifySignature;
 module.exports.normalizeEvent = normalizeEvent;
+
