@@ -9,7 +9,7 @@ const inlineScripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/
 const js=inlineScripts.at(-1)?.[1];
 assert.ok(js && js.includes('REFRESH_MS=15000'),'CRM deve conter script de atualização automática');
 
-function harness({send,generate}={}){
+function harness({send,generate,clipboard}={}){
   const leads=[{id:'lead-1',display_name:'Cliente Um',phone:'5544999991111',stage:'novo'}];
   const messages={'lead-1':[{id:'msg-1',direction:'entrada',kind:'text',body:'Mensagem original',event_at:'2026-10-30T12:00:00Z'}]};
   const requests=[];
@@ -42,7 +42,7 @@ function harness({send,generate}={}){
     addEventListener:(type,handler)=>{documentListeners[type]=handler}
   };
   const window={addEventListener:(type,handler)=>{windowListeners[type]=handler}};
-  const navigator={onLine:true};
+  const navigator={onLine:true,clipboard};
   const localStorage={getItem:()=>null,removeItem:()=>{}};
   const sessionStorage={getItem:()=>null,removeItem:()=>{}};
   const supabase={createClient:()=>({
@@ -89,7 +89,8 @@ function harness({send,generate}={}){
     },
     setInterval:(cb,ms)=>{intervals.push({cb,ms});return 1},
     console,Date,setTimeout:(cb)=>{cb();return 1}};
-  vm.runInNewContext(js,context,{filename:'crm-piloto.html'});
+  const checklist=fs.readFileSync(require('node:path').join(__dirname,'../assets/crm-checklist.js'),'utf8');
+  vm.runInNewContext(checklist+'\n'+js,context,{filename:'crm-piloto.html'});
   return {elements,leads,messages,requests,intervals,document,documentListeners,windowListeners,mediaCalls,aiCalls};
 }
 const settle=()=>new Promise(resolve=>setImmediate(resolve));
@@ -436,4 +437,72 @@ test('busca nome sem acento e telefone formatado sem misturar texto com dígitos
     search.listeners.input();
     assert.equal(contact.hidden,hidden);
   }
+});
+
+test('checklist registra menções do consultor e mantém fala do cliente fora da evidência',async()=>{
+  const h=harness();
+  h.messages['lead-1'].push(
+    {id:'msg-3',direction:'entrada',kind:'text',body:'Quero saber o prazo',event_at:'2026-10-30T12:01:00Z'},
+    {id:'msg-4',direction:'saida',kind:'text',body:'Pode enviar as medidas?',event_at:'2026-10-30T12:02:00Z'}
+  );
+  await settle();
+  await h.elements.get('leads').children[0].onclick();
+  const checklist=h.elements.get('crm-checklist').textContent;
+  assert.match(checklist,/Medidas · mencionadoPode enviar as medidas/);
+  assert.match(checklist,/Prazo · sem menção/);
+  assert.doesNotMatch(checklist,/Quero saber o prazo/);
+});
+
+test('pergunta avulsa usa o contexto sem preencher o campo de envio',async()=>{
+  const h=harness();
+  await settle();
+  await h.elements.get('leads').children[0].onclick();
+  h.elements.get('ai-question').value='Como respondo a objeção? Meu e-mail é teste@exemplo.com';
+  await h.elements.get('ai-question-form').listeners.submit({preventDefault(){}});
+  const briefing=h.aiCalls[0].options.body.briefing;
+  assert.match(briefing,/Como respondo a objeção/);
+  assert.match(briefing,/Mensagem original/);
+  assert.doesNotMatch(briefing,/teste@exemplo.com/);
+  assert.equal(h.elements.get('ai-answer').hidden,false);
+  assert.equal(h.elements.get('send-content').value,'');
+});
+
+test('dica ao vivo muda quando chega objeção no histórico sem consultar a IA',async()=>{
+  const h=harness();
+  await settle();
+  await h.elements.get('leads').children[0].onclick();
+  h.messages['lead-1'].push({id:'price-1',direction:'entrada',kind:'text',body:'Encontrei mais barato.',event_at:'2026-10-30T12:03:00Z'});
+  h.intervals[0].cb();
+  await settle();
+  assert.match(h.elements.get('ai-live-tip').textContent,/objeção de preço/);
+  assert.equal(h.aiCalls.length,0);
+});
+
+test('roteiro rápido copia o modelo escolhido e preserva o rascunho do consultor',async()=>{
+  const copied=[];
+  const h=harness({clipboard:{writeText:async text=>{copied.push(text)}}});
+  await settle();
+  const picker=h.elements.get('quick-script');
+  picker.value='proposta';
+  picker.listeners.change();
+  h.elements.get('send-content').value='Rascunho em edição';
+  await h.elements.get('quick-script-copy').listeners.click();
+  assert.match(copied[0],/Conseguiu olhar a proposta/);
+  assert.match(h.elements.get('quick-script-status').textContent,/Copiado/);
+  assert.equal(h.elements.get('send-content').value,'Rascunho em edição');
+  assert.equal(h.aiCalls.length,0);
+});
+
+test('Copiloto lembra de combinar retorno e sinaliza possível data sem declarar confirmação',async()=>{
+  const h=harness();
+  await settle();
+  await h.elements.get('leads').children[0].onclick();
+  const reminder=h.elements.get('ai-return-tip');
+  assert.match(reminder.textContent,/próximo passo/);
+  h.messages['lead-1'].push({id:'return-1',direction:'saida',kind:'text',body:'Te ligo na sexta-feira para revisar a proposta.',event_at:'2026-10-30T12:03:00Z'});
+  h.intervals[0].cb();
+  await settle();
+  assert.match(reminder.textContent,/Possível retorno/);
+  assert.match(reminder.textContent,/Confira com o cliente/);
+  assert.equal(h.aiCalls.length,0);
 });

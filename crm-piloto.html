@@ -370,6 +370,11 @@
           <p class="small-note" id="action-status" role="status"></p>
           <p class="small-note">Use o campo “Enviar mensagem” para registrar o envio no histórico. A sincronização de envios pelo aplicativo está em validação.</p>
         </section>
+          <details id="crm-checklist-panel" hidden>
+            <summary>Checklist do atendimento</summary>
+            <p class="small-note">Menções nas mensagens de texto do consultor no histórico exibido.</p>
+            <ul id="crm-checklist"></ul>
+          </details>
           <section class="assist-panel" aria-label="Copiloto comercial com inteligência artificial">
             <div class="assist-head"><span>✧ COPILOTO COM IA</span><small>Teste assistido · revisão humana</small></div>
             <label for="ai-briefing" class="assist-disclaimer">Contexto que será enviado à IA (revise e edite antes de gerar):</label>
@@ -389,6 +394,38 @@
             <button id="suggestion-use" class="suggestion-copy" type="button" disabled>Usar resposta da IA</button>
             <button id="suggestion-copy" class="suggestion-copy" type="button" disabled>Copiar mensagem sugerida</button>
             <details id="ai-analysis-details" hidden><summary style="cursor:pointer;font-size:11px;margin-top:8px">Ver análise comercial e cuidados</summary><p id="ai-analysis" style="white-space:pre-wrap;font-size:12px"></p></details>
+            <div class="field">
+              <strong>Dica ao vivo</strong> <small>Regras do CRM</small>
+              <p id="ai-live-tip" class="small-note" aria-live="polite">Selecione uma conversa.</p>
+              <p id="ai-return-tip" class="small-note" aria-live="polite" hidden></p>
+            </div>
+            <details id="quick-scripts">
+              <summary>Roteiros rápidos</summary>
+              <div class="field">
+                <label for="quick-script">Modelo de mensagem</label>
+                <select id="quick-script">
+                  <option value="abertura">Início do atendimento</option>
+                  <option value="historia">História da Casa Bonita</option>
+                  <option value="proposta">Follow-up de proposta</option>
+                  <option value="retomada">Retomada de conversa</option>
+                  <option value="prospeccao">Prospecção</option>
+                  <option value="arquiteto">Contato mensal com arquiteto</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="quick-script-text">Mensagem para copiar e personalizar</label>
+                <textarea id="quick-script-text" rows="5" readonly></textarea>
+              </div>
+              <button id="quick-script-copy" class="suggestion-copy" type="button">Copiar roteiro</button>
+              <p id="quick-script-status" class="assist-disclaimer" role="status"></p>
+            </details>
+            <form id="ai-question-form" class="field">
+              <label for="ai-question">Perguntar à IA sobre este atendimento</label>
+              <textarea id="ai-question" rows="3" maxlength="500" placeholder="Ex.: Como posso responder à objeção de preço?" disabled></textarea>
+              <button id="ai-ask" class="suggestion-copy" type="submit" disabled>Perguntar à IA</button>
+              <p id="ai-question-status" class="assist-disclaimer" role="status"></p>
+              <p id="ai-answer" hidden style="white-space:pre-wrap"></p>
+            </form>
             <small class="assist-disclaimer">Ao gerar, o contexto exibido acima é enviado ao provedor de IA. Revise dados pessoais antes de continuar. A IA não envia mensagens, não altera o CRM e não aprova descontos.</small>
           </section>
 
@@ -423,7 +460,8 @@
     <form method="dialog"><button type="submit" autofocus>Fechar</button></form>
     <img alt="Imagem recebida">
   </dialog>
-  <script>
+  <script src="/assets/crm-checklist.js"></script>
+<script>
 const SBURL='https://mjtphztvjnfjlhtxtwjz.supabase.co', KEY='sb_publishable_tu2xBCVGLQyPyddMT-poMQ_BFRx2nmx';
 const storage={getItem(k){try{return(localStorage.getItem('cb_keep_login_v1')==='false'?sessionStorage:localStorage).getItem(k)}catch{return null}},setItem(k,v){try{(localStorage.getItem('cb_keep_login_v1')==='false'?sessionStorage:localStorage).setItem(k,v)}catch{}},removeItem(k){localStorage.removeItem(k);sessionStorage.removeItem(k)}};
 const sb=supabase.createClient(SBURL,KEY,{auth:{persistSession:true,storage}});
@@ -526,7 +564,7 @@ document.querySelectorAll('[data-followup-alert]').forEach(button=>button.addEve
 el('open-followup-alerts').addEventListener('click',()=>navigateCRM('followup'));
 
 const FOLLOWUP_ACTIONS={
-  novo:'Revise a última mensagem e confirme o que o cliente procura.',
+  novo:'Se ainda não se apresentou, diga seu nome. Confirme se o cliente está iniciando um projeto ou renovando um ambiente.',
   em_atendimento:'Retome o ponto que ficou pendente e combine um próximo passo.',
   levantamento:'Confirme a informação que falta para montar a solução.',
   orcamento_a_elaborar:'Revise os itens e confirme quando poderá apresentar o orçamento.',
@@ -618,18 +656,26 @@ function followUpGuidance(now,lastEventAt){
 function buildCopilotBriefing(lead){
   if(!lead)return '';
   const lines=['Atendimento consultivo de móveis de alto padrão para clientes finais, arquitetos e designers.',
-    'Identifique no histórico projeto ou peça, ambiente, medidas, cores, tecidos, materiais, estilo, necessidades da família, investimento, prazo, participação de arquiteto, objeções e etapa. Indique as lacunas no diagnóstico e priorize somente a informação necessária para avançar.',
+    'Casa Bonita: 12 anos de mercado e uma família com 70 anos de atuação em móveis de alto padrão. Referência regional, showroom de 2.000 m², arquiteta e decorador na loja para apoiar arquitetos e clientes. Use esses fatos somente quando ajudarem no atendimento da Casa Bonita.',
+    'Na abertura, cumprimente, apresente o consultor pelo nome se conhecido e explique que entender o espaço e o uso ajuda a selecionar as melhores opções antes de mandar fotos e valores.',
+    'Descubra se é projeto novo ou renovação. Se houver projeto, peça o arquivo. Se ajudar na avaliação, peça uma foto do espaço. Levante aos poucos uso, medidas, materiais, cores e faixa de investimento. Aproveite o que já foi informado e pergunte só o necessário para avançar.',
+    'Ao sugerir produtos, explique por que cada opção atende às necessidades levantadas. Envie uma seleção contextualizada de fotos e valores confirmados.',
+    'Em oportunidade aberta, procure no histórico um próximo passo e uma data de retorno acordados. Se faltar um deles, sugira combinar com o cliente uma ação e uma data concretas. Distinga data proposta de data confirmada e não invente um compromisso. Em venda concluída ou perdida, respeite o encerramento.',
+    'No contato de relacionamento com arquiteto, pergunte se há algum projeto novo em que a Casa Bonita possa apoiar a especificação ou preparar uma proposta.',
+    'Identifique também estilo, necessidades da família, prazo, participação de arquiteto, objeções e etapa. Registre no diagnóstico as lacunas relevantes.',
     'Use linguagem natural e valorize conforto, qualidade, design e personalização quando forem pertinentes. Evite perguntas já respondidas e nunca invente preços, descontos, condições, dados técnicos ou disponibilidade.',
     'Se houver objeção, reconheça a preocupação e sugira uma ação adequada ao contexto. Em retomadas, use um detalhe real do atendimento. Recomende uma próxima ação concreta e informe se um dado depender da leitura de um anexo.',
     'Etapa atual: '+(STAGE_LABELS[lead.stage]||'Novo contato'),
     'Observações registradas: '+redactCrmContext(lead.notes||'Nenhuma').slice(0,450),
     'Últimas mensagens em ordem cronológica. Para mídias, conhecemos somente o tipo, não seu conteúdo:'];
+  const messages=[];
   for(const row of renderedMessages.slice(-12)){
-    lines.push((row.direction==='saida'?'Consultor: ':'Cliente: ')+redactCrmContext(row.content||'').slice(0,240));
+    messages.push((row.direction==='saida'?'Consultor: ':'Cliente: ')+redactCrmContext(row.content||'').slice(0,240));
   }
   if(!renderedMessages.length)lines.push('Histórico ainda não carregado; não suponha conversas anteriores.');
-  lines.push('Forneça uma próxima ação e uma única mensagem curta para revisão humana. Nunca envie automaticamente.');
-  return lines.join('\n').slice(0,4400);
+  lines.unshift('Forneça uma próxima ação e uma única mensagem curta para revisão humana. Nunca envie automaticamente.');
+  while(messages.length&&lines.concat(messages).join('\n').length>4000)messages.shift();
+  return lines.concat(messages).join('\n');
 }
 function canUseSuggestion(){
   return sendingEnabled && selected && copilotForLead===selected && copilotLastMessage &&
@@ -652,7 +698,7 @@ function checkCopilotContext(){
     discardOutdatedSuggestion();
 }
 const COPILOT_PURPOSE={
-  pre_atendimento:'Prepare a abertura e faça apenas a pergunta mais útil ainda sem resposta. Sugira como passar o atendimento ao consultor.',
+  pre_atendimento:'Prepare a abertura conforme o roteiro da Casa Bonita. Faça a pergunta mais útil ainda sem resposta. Se o consultor já se apresentou, continue a conversa.',
   objecao:'Identifique a objeção real e proponha uma resposta consultiva. Se a objeção estiver incerta, pergunte com naturalidade.',
   followup:'Retome com um detalhe real da conversa e um próximo passo que faça sentido para o cliente.',
 };
@@ -661,11 +707,80 @@ function getCopilotContext(){
   const context=redactCrmContext(el('ai-briefing').value.trim());
   return (purpose?purpose+'\n\n'+context:context).slice(0,4500);
 }
+let questionInFlight=false, questionView=0;
+function updateLiveTip(lead){
+  const tip=el('ai-live-tip');
+  const latest=renderedMessages.at(-1);
+  const incoming=latest?.direction==='entrada'&&!latest.mediaKind
+    ? latest.content.normalize('NFD').replace(/\p{M}/gu,'').toLowerCase()
+    : '';
+  const price=/(?:achei caro|mais barato|fora do (?:meu )?orcamento|preco alto)/.test(incoming);
+  const text=lead&&latest
+    ? (price?'A última mensagem indica uma objeção de preço. Confirme o que está sendo comparado antes de propor condições.':FOLLOWUP_ACTIONS[lead.stage])||'Confira se ficou algum compromisso combinado com o cliente.'
+    : 'Selecione uma conversa com histórico para acompanhar o atendimento.';
+  if(tip.textContent!==text)tip.textContent=text;
+  const reminder=el('ai-return-tip');
+  const active=lead&&latest&&!['ganho','perdido'].includes(lead.stage);
+  reminder.hidden=!active;
+  if(!active)return;
+  const outgoing=renderedMessages.slice(-12).filter(row=>row.direction==='saida'&&!row.mediaKind);
+  const date=/\b(?:0?[1-9]|[12]\d|3[01])[/.-](?:0?[1-9]|1[0-2])(?:[/.-]\d{2,4})?\b|\b(?:amanha|segunda-feira|terca-feira|quarta-feira|quinta-feira|sexta-feira|sabado|domingo)\b/;
+  const action=/\b(?:retorno|retornar|volto a falar|te ligo|ligar|te envio|envio a proposta|enviar o orcamento|agendar|revisar a proposta)\b/;
+  const proposed=outgoing.findLast(row=>{
+    const body=row.content.normalize('NFD').replace(/\p{M}/gu,'').toLowerCase();
+    return date.test(body)&&action.test(body);
+  });
+  const message=proposed
+    ? 'Possível retorno encontrado no texto do consultor. Confira com o cliente se o próximo passo e a data foram combinados.'
+    : 'Atendimento em aberto. Combine com o cliente qual será o próximo passo e em que data vocês voltam a conversar.';
+  if(reminder.textContent!==message)reminder.textContent=message;
+}
+async function askCopilot(event){
+  event.preventDefault();
+  if(!selected||questionInFlight)return;
+  const question=redactCrmContext(el('ai-question').value.trim());
+  if(!question)return;
+  const leadId=selected, generation=questionView, history=getCopilotHistory();
+  const context=getCopilotContext();
+  const status=el('ai-question-status'), answer=el('ai-answer');
+  const instruction='Pergunta do consultor: '+question+
+    '\nResponda à pergunta diretamente na análise comercial para orientar o consultor. Use o histórico abaixo.';
+  questionInFlight=true;
+  el('ai-ask').disabled=true;
+  answer.hidden=true;
+  status.textContent='Consultando a IA…';
+  try{
+    const {data,error}=await sb.functions.invoke('crm-copiloto-homologacao',{
+      body:{briefing:instruction+'\n\n'+context.slice(0,4500-instruction.length-2)}
+    });
+    if(selected!==leadId||generation!==questionView)return;
+    if(history!==getCopilotHistory()||context!==getCopilotContext()){
+      status.textContent='A conversa mudou. Envie a pergunta novamente para usar o contexto atualizado.';
+      return;
+    }
+    if(error||data?.error||typeof data?.analysis!=='string'||!data.analysis.trim())
+      throw new Error('Não foi possível obter a orientação. Tente novamente.');
+    answer.textContent=data.analysis.trim();
+    answer.hidden=false;
+    status.textContent='Orientação para o consultor.';
+  }catch{
+    if(selected===leadId&&generation===questionView)
+      status.textContent='Não foi possível obter a orientação. Tente novamente.';
+  }finally{
+    questionInFlight=false;
+    el('ai-ask').disabled=!selected;
+  }
+}
 function updateSuggestion(){
   const lead=leads.find(l=>l.id===selected);
   if(copilotForLead!==selected){
     copilotForLead=selected;copilotGeneration++;copilotDirty=false;
     el('ai-purpose').value='resposta';
+    questionView++;
+    el('ai-question').value='';
+    el('ai-question-status').textContent='';
+    el('ai-answer').textContent='';
+    el('ai-answer').hidden=true;
     copilotLastContext='';copilotLastMessage='';copilotLastHistory=null;
     el('suggestion-text').textContent=lead?'Clique em Gerar com IA após revisar o contexto.':'Selecione um contato para gerar uma sugestão.';
     el('suggestion-copy').disabled=true;
@@ -675,9 +790,45 @@ function updateSuggestion(){
   if(!copilotDirty)el('ai-briefing').value=buildCopilotBriefing(lead);
   el('ai-briefing').disabled=!lead;
   el('ai-purpose').disabled=!lead;
+  el('ai-question').disabled=!lead;
+  el('ai-ask').disabled=!lead||questionInFlight;
+  updateLiveTip(lead);
   el('ai-generate').disabled=!lead||copilotBusy;
   el('suggestion-use').disabled=!canUseSuggestion();
 }
+const QUICK_SCRIPTS={
+  abertura:'Olá! Sou [seu nome], da Casa Bonita. Antes de te mandar fotos e valores, quero entender um pouco do seu espaço e de como você pretende usá-lo. Assim consigo selecionar opções que façam sentido para você. É um projeto novo ou você está renovando um ambiente?',
+  historia:'A Casa Bonita tem 12 anos de mercado e vem de uma família que trabalha com móveis de alto padrão há 70 anos. Nosso showroom tem 2.000 m² e contamos com arquiteta e decorador na loja para apoiar clientes e profissionais. Nosso atendimento começa entendendo seu espaço e o que você precisa, para então apresentar as melhores opções.',
+  proposta:'Olá, [nome do cliente]! Conseguiu olhar a proposta de [peça ou ambiente]? Se ficou alguma dúvida sobre a composição, o acabamento ou o que está incluído, posso revisar as opções com você. Qual seria um bom momento para conversarmos?',
+  retomada:'Olá, [nome do cliente]! Quando falamos, você estava avaliando [peça ou ambiente]. Esse projeto ainda está nos seus planos? Se fizer sentido, posso retomar de onde paramos e revisar as opções com você.',
+  arquiteto:'Olá, [nome]! Aqui é [seu nome], da Casa Bonita. Você tem algum projeto novo em que possamos apoiar na especificação ou preparar uma proposta? Se tiver um ambiente em andamento, posso avaliar com você quais peças e acabamentos fazem sentido.',
+  prospeccao:'Olá, [nome do cliente]! Sou [seu nome], da Casa Bonita. Lembrei de você por causa de [motivo verdadeiro do contato]. Você está planejando renovar algum ambiente ou procurando uma peça específica? Se fizer sentido, posso te ajudar a avaliar algumas opções.',
+};
+function showQuickScript(){
+  el('quick-script-text').value=QUICK_SCRIPTS[el('quick-script').value]||QUICK_SCRIPTS.abertura;
+  el('quick-script-status').textContent='';
+}
+el('quick-script').addEventListener('change',showQuickScript);
+el('quick-script-copy').addEventListener('click',async()=>{
+  const field=el('quick-script-text');
+  const text=field.value;
+  const type=el('quick-script').value;
+  const status=el('quick-script-status');
+  try{
+    await navigator.clipboard.writeText(text);
+    if(el('quick-script').value===type)status.textContent=text.includes('[')
+      ?'Copiado. Personalize os campos entre colchetes antes de enviar.'
+      :'Copiado.';
+  }catch{
+    if(el('quick-script').value!==type)return;
+    field.focus();
+    field.select();
+    status.textContent='Copie o texto selecionado.';
+  }
+});
+showQuickScript();
+
+el('ai-question-form').addEventListener('submit',askCopilot);
 el('ai-briefing').addEventListener('input',()=>{
   copilotDirty=true;
   checkCopilotContext();
@@ -1008,6 +1159,8 @@ async function sendMessage(){
   }
 }
 function clearInbox(){
+  el('crm-checklist-panel').hidden=true;
+  el('crm-checklist').replaceChildren();
   disposeMedia();
   leads=[];selected=null;leadSignature='';renderedMessages=[];messageRequest++;
   el('leads').replaceChildren();
@@ -1082,7 +1235,10 @@ async function refreshMessages(lead,manual=false){
     if(error)throw error;
     // Consulta as 200 mensagens mais recentes e exibe em ordem cronológica.
     const MEDIA_NAMES={image:'📷 Imagem recebida',audio:'🎤 Áudio recebido',video:'🎬 Vídeo recebido',document:'📄 Documento recebido',sticker:'Figurinha recebida',location:'📍 Localização recebida',unknown:'Mensagem com formato não identificado'};
-    const rows=(data||[]).slice().reverse().map(m=>{
+    const history=(data||[]).slice().reverse();
+    renderCrmChecklist(el('crm-checklist'),history);
+    el('crm-checklist-panel').hidden=false;
+    const rows=history.map(m=>{
       const content=m.kind==='text'?(m.body||'Mensagem sem texto'):
         (MEDIA_NAMES[m.kind]||'Mensagem '+m.kind)+
         (m.media_name?' • '+m.media_name:'')+
@@ -1125,6 +1281,7 @@ async function refreshMessages(lead,manual=false){
       const freshContext=buildCopilotBriefing(lead);
       if(!copilotDirty)el('ai-briefing').value=freshContext;
       checkCopilotContext();
+      updateLiveTip(lead);
     }
     if(manual||wasNearBottom)container.scrollTop=container.scrollHeight;
     return true;
@@ -1180,6 +1337,7 @@ async function openLead(lead){
   if(selected!==lead.id){
     disposeMedia();
     selected=lead.id;renderedMessages=[];
+    el('crm-checklist-panel').hidden=true;
     el('title').textContent=lead.display_name||lead.phone;
     el('messages').textContent='Carregando...';
     syncSelection();
@@ -1217,6 +1375,8 @@ async function load(){
       else{
         disposeMedia();
         selected=null;messageRequest++;renderedMessages=[];
+        el('crm-checklist-panel').hidden=true;
+        el('crm-checklist').replaceChildren();
         el('contact-tools').hidden=true;
         el('send-panel').hidden=true;
         el('title').textContent='Conversa';

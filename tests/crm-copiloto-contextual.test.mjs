@@ -25,6 +25,11 @@ test('Contexto contém etapa e histórico sem telefone, CPF, e-mail ou links',()
   );
   const briefing=buildCopilotBriefing({stage:'proposta',notes:'Aguardando decisão sobre sofá'});
   assert.match(briefing,/Proposta enviada/);
+  assert.match(briefing,/12 anos de mercado/);
+  assert.match(briefing,/70 anos de atuação/);
+  assert.match(briefing,/showroom de 2\.000 m²/);
+  assert.match(briefing,/projeto novo ou renovação/);
+  assert.match(briefing,/faixa de investimento/);
   assert.match(briefing,/sofá Sierra/);
   assert.match(briefing,/Imagem recebida/);
   assert.doesNotMatch(briefing,/41999998888|ana@example.com|123\.456\.789-09|https:\/\//);
