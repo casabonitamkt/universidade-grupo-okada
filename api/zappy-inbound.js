@@ -172,7 +172,14 @@ async function persist(message, config) {
   }
   return 'stored';
 }
+function webhookOrigin(requestUrl = '') {
+  const query = requestUrl.split('?')[1] || '';
+  return /(?:^|&)origem=(cima|baixo)(?:&|$)/.exec(query)?.[1] || 'sem_identificador';
+}
+
 module.exports = async function handler(req, res) {
+  // The URL label is diagnostic only. Authentication still uses the HMAC.
+  const webhook_origin = webhookOrigin(req.url);
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
   const env = process.env;
@@ -219,6 +226,7 @@ module.exports = async function handler(req, res) {
       }
     } catch (_) { /* não autenticado; nunca logar o payload */ }
     console.warn('zappy_inbound_invalid_signature', {
+      webhook_origin,
       // Apenas sinais de formatação; nunca registrar valor, tamanho ou hash do segredo.
       secret_outer_whitespace: config.secret !== config.secret.trim(),
       secret_wrapping_quotes: /^(?:"[\s\S]*"|'[\s\S]*')$/.test(config.secret),
@@ -242,7 +250,7 @@ module.exports = async function handler(req, res) {
   }
   // Outros eventos autenticados são ignorados; não há resposta automática nem download de mídia.
   if (!['message.received','message.sent'].includes(event.event)) {
-    console.info('zappy_inbound_ignored_event', { event_type: typeof event.event === 'string' && /^[a-z.]{1,40}$/.test(event.event) ? event.event : 'other', is_from_me: event.payload?.message?.is_from_me === true });
+    console.info('zappy_inbound_ignored_event', { webhook_origin, event_type: typeof event.event === 'string' && /^[a-z.]{1,40}$/.test(event.event) ? event.event : 'other', is_from_me: event.payload?.message?.is_from_me === true });
     return res.status(204).end();
   }
   const message = normalizeEvent(event, config.instance);
@@ -253,7 +261,7 @@ module.exports = async function handler(req, res) {
   try {
     const result = await persist(message, config);
     await persistMediaMetadata(message, config);
-    console.info('zappy_inbound_persisted', { status: result, event_type: event.event, direction: message.direction, kind: message.kind });
+    console.info('zappy_inbound_persisted', { webhook_origin, status: result, event_type: event.event, direction: message.direction, kind: message.kind });
     return res.status(200).json({ received: true, status: result });
   } catch (error) {
     // Sem log de mensagens, telefones ou credenciais. 503 permite retry pelo provedor.
