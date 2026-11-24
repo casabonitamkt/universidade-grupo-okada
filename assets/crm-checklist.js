@@ -1,6 +1,10 @@
 'use strict';
 
 const CRM_CHECKLIST = [
+  ['Apresentação do consultor', /\b(?:meu nome e|eu sou|aqui e o|aqui e a)\b/],
+  ['Projeto novo ou renovação', /\b(?:projeto novo|novo projeto|reforma|renovacao|renovar)\b/],
+  ['Projeto ou foto do espaço', /\b(?:enviar|mandar|compartilhar)\s+(?:(?:uma|a|o|seu)\s+)?(?:foto|projeto|planta)\b/],
+  ['Uso do espaço ou da peça', /\b(?:como (?:vai|pretende) usar|uso do espaco|uso no dia a dia|como sera o uso)\b/],
   ['Ambiente', /\b(?:ambiente|sala|quarto|varanda)\b/],
   ['Medidas', /\b(?:medidas?|largura|altura|profundidade|metragem)\b/],
   ['Estilo e acabamento', /\b(?:estilo|tecidos?|acabamentos?|materiais|cor|cores)\b/],

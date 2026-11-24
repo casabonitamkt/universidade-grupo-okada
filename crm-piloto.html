@@ -543,7 +543,7 @@ document.querySelectorAll('[data-followup-alert]').forEach(button=>button.addEve
 el('open-followup-alerts').addEventListener('click',()=>navigateCRM('followup'));
 
 const FOLLOWUP_ACTIONS={
-  novo:'Revise a última mensagem e confirme o que o cliente procura.',
+  novo:'Se ainda não se apresentou, diga seu nome. Confirme se o cliente está iniciando um projeto ou renovando um ambiente.',
   em_atendimento:'Retome o ponto que ficou pendente e combine um próximo passo.',
   levantamento:'Confirme a informação que falta para montar a solução.',
   orcamento_a_elaborar:'Revise os itens e confirme quando poderá apresentar o orçamento.',
@@ -635,18 +635,24 @@ function followUpGuidance(now,lastEventAt){
 function buildCopilotBriefing(lead){
   if(!lead)return '';
   const lines=['Atendimento consultivo de móveis de alto padrão para clientes finais, arquitetos e designers.',
-    'Identifique no histórico projeto ou peça, ambiente, medidas, cores, tecidos, materiais, estilo, necessidades da família, investimento, prazo, participação de arquiteto, objeções e etapa. Indique as lacunas no diagnóstico e priorize somente a informação necessária para avançar.',
+    'Casa Bonita: 12 anos de mercado e uma família com 70 anos de atuação em móveis de alto padrão. Referência regional, showroom de 2.000 m², arquiteta e decorador na loja para apoiar arquitetos e clientes. Use esses fatos somente quando ajudarem no atendimento da Casa Bonita.',
+    'Na abertura, cumprimente, apresente o consultor pelo nome se conhecido e explique que entender o espaço e o uso ajuda a selecionar as melhores opções antes de mandar fotos e valores.',
+    'Descubra se é projeto novo ou renovação. Se houver projeto, peça o arquivo. Se ajudar na avaliação, peça uma foto do espaço. Levante aos poucos uso, medidas, materiais, cores e faixa de investimento. Aproveite o que já foi informado e pergunte só o necessário para avançar.',
+    'Ao sugerir produtos, explique por que cada opção atende às necessidades levantadas. Envie uma seleção contextualizada de fotos e valores confirmados.',
+    'Identifique também estilo, necessidades da família, prazo, participação de arquiteto, objeções e etapa. Registre no diagnóstico as lacunas relevantes.',
     'Use linguagem natural e valorize conforto, qualidade, design e personalização quando forem pertinentes. Evite perguntas já respondidas e nunca invente preços, descontos, condições, dados técnicos ou disponibilidade.',
     'Se houver objeção, reconheça a preocupação e sugira uma ação adequada ao contexto. Em retomadas, use um detalhe real do atendimento. Recomende uma próxima ação concreta e informe se um dado depender da leitura de um anexo.',
     'Etapa atual: '+(STAGE_LABELS[lead.stage]||'Novo contato'),
     'Observações registradas: '+redactCrmContext(lead.notes||'Nenhuma').slice(0,450),
     'Últimas mensagens em ordem cronológica. Para mídias, conhecemos somente o tipo, não seu conteúdo:'];
+  const messages=[];
   for(const row of renderedMessages.slice(-12)){
-    lines.push((row.direction==='saida'?'Consultor: ':'Cliente: ')+redactCrmContext(row.content||'').slice(0,240));
+    messages.push((row.direction==='saida'?'Consultor: ':'Cliente: ')+redactCrmContext(row.content||'').slice(0,240));
   }
   if(!renderedMessages.length)lines.push('Histórico ainda não carregado; não suponha conversas anteriores.');
-  lines.push('Forneça uma próxima ação e uma única mensagem curta para revisão humana. Nunca envie automaticamente.');
-  return lines.join('\n').slice(0,4400);
+  lines.unshift('Forneça uma próxima ação e uma única mensagem curta para revisão humana. Nunca envie automaticamente.');
+  while(messages.length&&lines.concat(messages).join('\n').length>4000)messages.shift();
+  return lines.concat(messages).join('\n');
 }
 function canUseSuggestion(){
   return sendingEnabled && selected && copilotForLead===selected && copilotLastMessage &&
@@ -669,7 +675,7 @@ function checkCopilotContext(){
     discardOutdatedSuggestion();
 }
 const COPILOT_PURPOSE={
-  pre_atendimento:'Prepare a abertura e faça apenas a pergunta mais útil ainda sem resposta. Sugira como passar o atendimento ao consultor.',
+  pre_atendimento:'Prepare a abertura conforme o roteiro da Casa Bonita. Faça a pergunta mais útil ainda sem resposta. Se o consultor já se apresentou, continue a conversa.',
   objecao:'Identifique a objeção real e proponha uma resposta consultiva. Se a objeção estiver incerta, pergunte com naturalidade.',
   followup:'Retome com um detalhe real da conversa e um próximo passo que faça sentido para o cliente.',
 };
