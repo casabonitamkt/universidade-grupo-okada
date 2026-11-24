@@ -368,12 +368,21 @@
           </div>
           <button id="save-notes" type="button" class="panel-button">Salvar observações</button>
           <p class="small-note" id="action-status" role="status"></p>
-          <p class="small-note"><strong>Para registrar o envio, use o campo “Enviar mensagem” do CRM.</strong> Mensagens enviadas diretamente pelo aplicativo WhatsApp não aparecem no histórico do CRM.</p>
+          <p class="small-note">Use o campo “Enviar mensagem” para registrar o envio no histórico. A sincronização de envios pelo aplicativo está em validação.</p>
         </section>
           <section class="assist-panel" aria-label="Copiloto comercial com inteligência artificial">
             <div class="assist-head"><span>✧ COPILOTO COM IA</span><small>Teste assistido · revisão humana</small></div>
             <label for="ai-briefing" class="assist-disclaimer">Contexto que será enviado à IA (revise e edite antes de gerar):</label>
             <textarea id="ai-briefing" rows="5" maxlength="4500" placeholder="Selecione um atendimento para preparar o contexto." aria-label="Contexto do atendimento para a IA" disabled style="width:100%;margin:8px 0;background:#17191e;color:#e4dfd3;border:1px solid #59554d;border-radius:8px;padding:9px;font-size:12px;resize:vertical"></textarea>
+            <div class="field">
+              <label for="ai-purpose">Objetivo do Copiloto</label>
+              <select id="ai-purpose">
+                <option value="resposta">Responder à conversa</option>
+                <option value="pre_atendimento">Preparar pré-atendimento</option>
+                <option value="objecao">Trabalhar objeção</option>
+                <option value="followup">Preparar follow-up</option>
+              </select>
+            </div>
             <button id="ai-generate" class="suggestion-copy" type="button" disabled>✧ Gerar com IA</button>
             <p id="ai-status" class="assist-disclaimer" role="status" aria-live="polite">Selecione uma conversa para começar.</p>
             <p id="suggestion-text">A sugestão de WhatsApp aparecerá aqui após a análise da IA.</p>
@@ -610,13 +619,21 @@ function canUseSuggestion(){
   return sendingEnabled && selected && copilotForLead===selected && copilotLastMessage &&
     copilotLastContext===getCopilotContext() && copilotLastHistoryId===(renderedMessages.at(-1)?.id??null);
 }
+const COPILOT_PURPOSE={
+  pre_atendimento:'Prepare a abertura e faça apenas a pergunta mais útil ainda sem resposta. Sugira como passar o atendimento ao consultor.',
+  objecao:'Identifique a objeção real e proponha uma resposta consultiva. Se a objeção estiver incerta, pergunte com naturalidade.',
+  followup:'Retome com um detalhe real da conversa e um próximo passo que faça sentido para o cliente.',
+};
 function getCopilotContext(){
-  return redactCrmContext(el('ai-briefing').value.trim()).slice(0,4500);
+  const purpose=COPILOT_PURPOSE[el('ai-purpose').value];
+  const context=redactCrmContext(el('ai-briefing').value.trim());
+  return (purpose?purpose+'\n\n'+context:context).slice(0,4500);
 }
 function updateSuggestion(){
   const lead=leads.find(l=>l.id===selected);
   if(copilotForLead!==selected){
     copilotForLead=selected;copilotGeneration++;copilotDirty=false;
+    el('ai-purpose').value='resposta';
     copilotLastContext='';copilotLastMessage='';copilotLastHistoryId=null;
     el('suggestion-text').textContent=lead?'Clique em Gerar com IA após revisar o contexto.':'Selecione um contato para gerar uma sugestão.';
     el('suggestion-copy').disabled=true;
@@ -625,6 +642,7 @@ function updateSuggestion(){
   }
   if(!copilotDirty)el('ai-briefing').value=buildCopilotBriefing(lead);
   el('ai-briefing').disabled=!lead;
+  el('ai-purpose').disabled=!lead;
   el('ai-generate').disabled=!lead||copilotBusy;
   el('suggestion-use').disabled=!canUseSuggestion();
 }
@@ -632,12 +650,15 @@ el('ai-briefing').addEventListener('input',()=>{
   copilotDirty=true;
   el('suggestion-use').disabled=!canUseSuggestion();
 });
+el('ai-purpose').addEventListener('change',()=>{
+  el('suggestion-use').disabled=!canUseSuggestion();
+});
 el('ai-generate').addEventListener('click',async()=>{
   if(!selected||copilotBusy)return;
   const leadId=selected,request=++copilotGeneration;
   const briefing=getCopilotContext();
   const lastMessage=renderedMessages.at(-1);
-  if(briefing.length<35){el('ai-status').textContent='Informe um contexto comercial com pelo menos 35 caracteres.';return}
+  if(el('ai-briefing').value.trim().length<35){el('ai-status').textContent='Informe um contexto comercial com pelo menos 35 caracteres.';return}
   copilotBusy=true;el('ai-generate').disabled=true;
   el('ai-generate').textContent='Analisando…';
   el('ai-status').textContent='Consultando a IA. Nenhuma mensagem será enviada ao cliente.';
@@ -815,7 +836,15 @@ function createMediaElement(kind,url,type){
   if(kind==='audio'||kind==='video'){
     const element=document.createElement(kind);
     element.src=url;element.controls=true;element.preload='metadata';
-    element.className='media-preview';return element;
+    if(kind==='video')element.playsInline=true;
+    element.className='media-preview';
+    const fallback=node('a','Abrir arquivo em nova aba');
+    fallback.className='media-link';fallback.href=url;fallback.target='_blank';fallback.rel='noopener noreferrer';
+    element.addEventListener('error',()=>{fallback.textContent='A reprodução falhou. Tente abrir o arquivo em nova aba.';});
+    // Mantém o player como item principal e oferece acesso direto ao arquivo.
+    const media=document.createElement('div');
+    media.append(element,fallback);
+    return media;
   }
   const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';
   a.className='media-link';
@@ -1075,6 +1104,12 @@ function showLeadTools(lead){
     summary.replaceChildren();
     summary.append(node('strong',lead.display_name||'Cliente'),node('span','WhatsApp: '+lead.phone),
       node('span','Etapa: '+(STAGE_LABELS[lead.stage]||'Novo contato')));
+    if(/^[0-9]{10,15}$/.test(lead.phone||'')){
+      const whatsapp=node('a','Abrir conversa no WhatsApp');
+      whatsapp.className='media-link';whatsapp.href='https://wa.me/'+lead.phone;
+      whatsapp.target='_blank';whatsapp.rel='noopener noreferrer';
+      summary.append(whatsapp);
+    }
   }
   prepareComposer(lead);
   el('lead-stage').value=lead.stage||'novo';

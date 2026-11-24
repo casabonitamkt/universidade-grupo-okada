@@ -244,7 +244,7 @@ test('imagem e áudio aparecem automaticamente ao chegar, sem clicar em abrir',a
   const imageButton=items[1].children.find(n=>n.attrs['aria-label']==='Ampliar foto');
   const image=imageButton?.querySelector('img');
   assert.ok(image,'Foto deve ficar visível na conversa e permitir ampliação');
-  const audio=items[2].children.find(n=>n.tagName==='AUDIO');
+  const audio=items[2].children.map(n=>n.querySelector('audio')).find(Boolean);
   assert.ok(audio,'Áudio deve aparecer sem clique');
   assert.equal(audio.controls,true,'Áudio precisa ter controle de reprodução');
   assert.equal(h.mediaCalls.length,2,'Cada mídia deve ser baixada uma vez');
@@ -323,10 +323,12 @@ test('clique explícito chama IA uma vez e separa mensagem do diagnóstico para 
   const briefing=h.elements.get('ai-briefing');
   briefing.value+=' Meu e-mail é teste@example.com.';
   briefing.listeners.input();
+  h.elements.get('ai-purpose').value='followup';
   await h.elements.get('ai-generate').listeners.click();await settle();
   assert.equal(h.aiCalls.length,1);
   assert.equal(h.aiCalls[0].name,'crm-copiloto-homologacao');
   assert.match(h.aiCalls[0].options.body.briefing,/Mensagem original/);
+  assert.match(h.aiCalls[0].options.body.briefing,/Retome com um detalhe real da conversa/);
   assert.doesNotMatch(h.aiCalls[0].options.body.briefing,/teste@example\.com/);
   assert.equal(h.elements.get('suggestion-text').textContent,'Você consegue enviar a referência do sofá?');
   assert.equal(h.elements.get('suggestion-copy').disabled,false);

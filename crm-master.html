@@ -47,6 +47,7 @@ select,input{background:#17191c;color:var(--text);border:1px solid #4b453b;borde
 audio.media-preview{width:min(100%,380px);height:48px}
 video.media-preview{width:min(100%,580px)}
 .media-link{display:inline-block;margin:7px 0;color:#e4c38d;text-decoration:underline}
+.media-pdf-preview{display:block;width:min(100%,420px);height:270px;margin:9px 0;border:0;border-radius:8px;pointer-events:none}
 .media-error{font-size:11px;color:#ffc16c;margin:5px 0}
 .follow-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
 .follow-grid .panel{min-width:0}.follow-list{display:grid;gap:8px;margin-top:12px}
@@ -138,13 +139,28 @@ async function api(path){
   if(!r.ok)throw Error('Não foi possível consultar os dados agora. Código '+r.status+'.');
   return r.json();
 }
-function masterMediaElement(kind,url){
+function masterMediaElement(kind,url,type){
+  const link=node('a',kind==='image'?'Ampliar foto em nova aba':'Abrir arquivo em nova aba','media-link');
+  link.href=url;link.target='_blank';link.rel='noopener noreferrer';
+  const wrapper=node('div');
   if(kind==='image'||kind==='sticker'){
-    const img=node('img','');img.src=url;img.alt='Mídia recebida';img.className='media-preview';img.loading='lazy';return img;
+    const img=node('img');img.src=url;img.alt='Mídia recebida';img.className='media-preview';img.loading='lazy';
+    wrapper.append(img);
   }
-  if(kind==='audio'){const audio=node('audio','');audio.src=url;audio.controls=true;audio.preload='metadata';audio.className='media-preview';return audio}
-  if(kind==='video'){const video=node('video','');video.src=url;video.controls=true;video.preload='metadata';video.className='media-preview';return video}
-  const link=node('a','Abrir documento','media-link');link.href=url;link.target='_blank';link.rel='noopener noreferrer';return link;
+  if(kind==='audio'||kind==='video'){
+    const media=node(kind);media.src=url;media.controls=true;media.preload='metadata';
+    if(kind==='video')media.playsInline=true;
+    media.className='media-preview';wrapper.append(media);
+  }
+  if(kind==='document'&&type==='application/pdf'){
+    const preview=node('iframe');
+    preview.src=url+'#page=1&view=FitH&toolbar=0&navpanes=0';
+    preview.title='Prévia da primeira página do PDF';preview.tabIndex=-1;
+    preview.className='media-pdf-preview';link.textContent='Abrir PDF em nova aba';
+    wrapper.append(preview);
+  }
+  wrapper.append(link);
+  return wrapper;
 }
 async function openMasterMedia(messageId,kind,button,card,leadId,requestId){
   if(!messageId||!['image','audio','video','document','sticker'].includes(kind))return;
@@ -160,6 +176,7 @@ async function openMasterMedia(messageId,kind,button,card,leadId,requestId){
       if(data.error==='provider_download_unavailable')throw Error('A Zappy não disponibilizou este arquivo.');
       if(data.error==='provider_response_unrecognized')throw Error('A Zappy retornou um formato inesperado.');
       if(data.error==='media_format_not_supported')throw Error('Este formato não é compatível com a prévia.');
+      if(data.error==='media_too_large')throw Error('Este arquivo excede o limite de prévia do CRM.');
       if(r.status===401)throw Error('Sessão expirada. Entre novamente na Universidade.');
       throw Error('Não foi possível abrir esta mídia (código '+r.status+').');
     }
@@ -167,7 +184,7 @@ async function openMasterMedia(messageId,kind,button,card,leadId,requestId){
     if(selectedLead!==leadId||requestCounter!==requestId)return;
     const previous=mediaUrls.get(messageId);if(previous)URL.revokeObjectURL(previous);
     const url=URL.createObjectURL(blob);mediaUrls.set(messageId,url);
-    card.append(masterMediaElement(kind,url));button.hidden=true;
+    card.append(masterMediaElement(kind,url,blob.type));button.hidden=true;
   }catch(error){
     if(button.isConnected&&selectedLead===leadId&&requestCounter===requestId){
       card.append(node('p',error.message,'media-error'));button.textContent='Tentar abrir novamente';
