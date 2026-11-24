@@ -125,7 +125,20 @@ const count=(arr,stage)=>arr.filter(l=>l.stage===stage).length;
 const unread=l=>Boolean(l.last_message_at&&(!l.last_read_at||Date.parse(l.last_message_at)>Date.parse(l.last_read_at)));
 const consultantName=id=>consultants.find(c=>c.id===id)?.full_name||'Consultor não identificado';
 const activityHours=l=>l.last_message_at?Math.max(0,(Date.now()-Date.parse(l.last_message_at))/3600000):Infinity;
-const filtered=()=>{const owner=$('conversation-filter').value;const q=$('search').value.trim().toLocaleLowerCase('pt-BR');return leads.filter(l=>(!owner||l.owner_consultant_id===owner)&&(!q||((l.display_name||'')+' '+(l.phone||'')).toLocaleLowerCase('pt-BR').includes(q)))};
+function normalizeContactSearch(value){
+  return String(value||'').normalize('NFD').replace(/\p{M}/gu,'').toLocaleLowerCase('pt-BR').trim().replace(/\s+/g,' ');
+}
+function phoneSearchDigits(query){
+  return /^[+()\d .-]+$/.test(query)?query.replace(/\D/g,''):'';
+}
+function filtered(){
+  const owner=$('conversation-filter').value;
+  const query=normalizeContactSearch($('search').value);
+  const phone=phoneSearchDigits(query);
+  return leads.filter(lead=>(!owner||lead.owner_consultant_id===owner)&&
+    (!query||normalizeContactSearch((lead.display_name||'')+' '+(lead.phone||'')).includes(query)||
+      (phone&&String(lead.phone||'').replace(/\D/g,'').includes(phone))));
+}
 async function sessionToken(){
   const {data:{session},error}=await sb.auth.getSession();
   if(error||!session?.access_token)throw Error('Faça login na Universidade e volte a esta página.');

@@ -1021,13 +1021,21 @@ function clearInbox(){
   renderBusinessPanels();updateSuggestion();
   const summary=el('contact-summary');if(summary)summary.textContent='Selecione um contato para ver seus dados.';
 }
+function normalizeContactSearch(value){
+  return String(value||'').normalize('NFD').replace(/\p{M}/gu,'').toLocaleLowerCase('pt-BR').trim().replace(/\s+/g,' ');
+}
+function phoneSearchDigits(query){
+  return /^[+()\d .-]+$/.test(query)?query.replace(/\D/g,''):'';
+}
 function applyContactFilter(){
-  const query=(el('search').value||'').trim().toLocaleLowerCase('pt-BR');
+  const query=normalizeContactSearch(el('search').value);
+  const phone=phoneSearchDigits(query);
+  const stage=el('filter-stage').value;
   let matching=0;
   for(const button of el('leads').querySelectorAll('button')){
     const lead=leads.find(l=>l.id===button.dataset.leadId);
-    const stage=el('filter-stage').value;
-    const matches=(!query||button.textContent.toLocaleLowerCase('pt-BR').includes(query)) &&
+    const matches=(!query||normalizeContactSearch(button.textContent).includes(query)||
+      (phone&&String(lead?.phone||'').replace(/\D/g,'').includes(phone))) &&
       (!stage||lead?.stage===stage);
     button.hidden=!matches;
     if(matches)matching++;
