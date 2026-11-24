@@ -9,7 +9,7 @@ const inlineScripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/
 const js=inlineScripts.at(-1)?.[1];
 assert.ok(js && js.includes('REFRESH_MS=15000'),'CRM deve conter script de atualização automática');
 
-function harness(){
+function harness({send}={}){
   const leads=[{id:'lead-1',display_name:'Cliente Um',phone:'5544999991111',stage:'novo'}];
   const messages={'lead-1':[{id:'msg-1',direction:'entrada',kind:'text',body:'Mensagem original',event_at:'2026-10-30T12:00:00Z'}]};
   const requests=[];
@@ -23,12 +23,16 @@ function harness(){
     set textContent(value){this._text=String(value);this.children=[]}
     get textContent(){return this._text+this.children.map(c=>c.textContent).join('')}
     setAttribute(name,value){this.attrs[name]=value}
+    getAttribute(name){return this.attrs[name]??null}
+    querySelector(tag){return this.querySelectorAll(tag)[0]??null}
     addEventListener(type,cb){this.listeners[type]=cb}
     replaceChildren(...children){this._text='';this.children=children}
     append(...children){this.children.push(...children)}
     querySelectorAll(tag){return this.children.filter(c=>c.tagName===tag.toUpperCase())}
   }
   const elements=new Map(['status','sync','sync-light','search','filter-stage','empty-search','contact-tools','lead-stage','lead-notes','save-notes','action-status','reply-whatsapp','send-panel','send-content','send-button','send-status','leads','title','messages'].map(id=>[id,new Element('div')]));
+  elements.set('media-image-dialog',new Element('dialog'));
+  elements.get('media-image-dialog').append(new Element('img'));
   const document={
     hidden:false,
     getElementById:id=>{if(!elements.has(id))elements.set(id,new Element('div'));return elements.get(id)},
@@ -75,9 +79,13 @@ function harness(){
   })};
   const context={supabase,document,window,navigator,localStorage,sessionStorage,
     URL:{createObjectURL:()=> 'blob:media-test',revokeObjectURL:()=>{}},
-    fetch:async(path)=>{if(String(path).startsWith('/api/crm-media?')){
+    crypto:{randomUUID:()=>require('node:crypto').randomUUID()},
+    fetch:async(path,options)=>{if(String(path).startsWith('/api/crm-media?')){
       mediaCalls.push(String(path));return {ok:true,blob:async()=>({size:64})};
-    }return {json:async()=>({enabled:false})}},
+    }
+      if(path==='/api/crm-send-text'&&options?.method==='POST')return send(JSON.parse(options.body));
+      return {json:async()=>({enabled:Boolean(send)})};
+    },
     setInterval:(cb,ms)=>{intervals.push({cb,ms});return 1},
     console,Date,setTimeout:(cb)=>{cb();return 1}};
   vm.runInNewContext(js,context,{filename:'crm-piloto.html'});
@@ -233,15 +241,17 @@ test('imagem e áudio aparecem automaticamente ao chegar, sem clicar em abrir',a
   for(let i=0;i<5;i++)await settle();
   const items=h.elements.get('messages').children;
   assert.equal(items.length,3);
-  assert.ok(items[1].children.some(n=>n.tagName==='IMG'),'Foto deve ficar visível na conversa');
-  const audio=items[2].children.find(n=>n.tagName==='AUDIO');
+  const imageButton=items[1].children.find(n=>n.attrs['aria-label']==='Ampliar foto');
+  const image=imageButton?.querySelector('img');
+  assert.ok(image,'Foto deve ficar visível na conversa e permitir ampliação');
+  const audio=items[2].children.map(n=>n.querySelector('audio')).find(Boolean);
   assert.ok(audio,'Áudio deve aparecer sem clique');
   assert.equal(audio.controls,true,'Áudio precisa ter controle de reprodução');
   assert.equal(h.mediaCalls.length,2,'Cada mídia deve ser baixada uma vez');
-  const image=items[1].children.find(n=>n.tagName==='IMG');
   h.intervals[0].cb();await settle();
   assert.equal(h.mediaCalls.length,2,'Atualização não deve baixar a mesma mídia novamente');
-  assert.equal(h.elements.get('messages').children[1].children.find(n=>n.tagName==='IMG'),image);
+  assert.ok(h.elements.get('messages').children[1].children.includes(imageButton));
+  assert.equal(imageButton.querySelector('img'),image);
 });
 
 test('CRM ocupa largura do notebook e mantém painéis sem largura mínima excessiva',()=>{
@@ -300,7 +310,7 @@ test('indicadores premium derivam de contatos reais, não números de exemplo',a
 test('seleção de contato prepara contexto para IA sem enviar nem copiar mensagem automaticamente',async()=>{
   const h=harness();await settle();
   h.elements.get('leads').children[0].onclick();await settle();
-  assert.match(h.elements.get('ai-briefing').value,/Novo contato/);
+  assert.match(h.elements.get('ai-briefing').value,/Novo lead/);
   assert.match(h.elements.get('ai-briefing').value,/Mensagem original/);
   assert.match(h.elements.get('suggestion-text').textContent,/Gerar com IA/);
   assert.equal(h.elements.get('ai-generate').disabled,false);
@@ -310,10 +320,16 @@ test('clique explícito chama IA uma vez e separa mensagem do diagnóstico para 
   const h=harness();await settle();
   h.elements.get('leads').children[0].onclick();await settle();
   assert.equal(h.aiCalls.length,0);
+  const briefing=h.elements.get('ai-briefing');
+  briefing.value+=' Meu e-mail é teste@example.com.';
+  briefing.listeners.input();
+  h.elements.get('ai-purpose').value='followup';
   await h.elements.get('ai-generate').listeners.click();await settle();
   assert.equal(h.aiCalls.length,1);
   assert.equal(h.aiCalls[0].name,'crm-copiloto-homologacao');
   assert.match(h.aiCalls[0].options.body.briefing,/Mensagem original/);
+  assert.match(h.aiCalls[0].options.body.briefing,/Retome com um detalhe real da conversa/);
+  assert.doesNotMatch(h.aiCalls[0].options.body.briefing,/teste@example\.com/);
   assert.equal(h.elements.get('suggestion-text').textContent,'Você consegue enviar a referência do sofá?');
   assert.equal(h.elements.get('suggestion-copy').disabled,false);
   assert.match(h.elements.get('ai-analysis').textContent,/Objetivo comercial/);
@@ -356,4 +372,23 @@ test('contatos sem mensagem ou encerrados não geram falsos alertas de follow-up
   assert.equal(h.elements.get('followup-total').textContent,'0');
   assert.equal(h.elements.get('followup-home-168').textContent,'0');
   assert.match(h.elements.get('followup-alert-summary').textContent,/Nenhum contato/);
+});
+
+test('nova tentativa explícita após falha de rede conserva a identidade do envio',async()=>{
+  const requests=[];
+  const h=harness({send:async request=>{
+    requests.push(request);
+    if(requests.length===1)throw Error('Conexão perdida');
+    return {ok:true,json:async()=>({status:'already_sent'})};
+  }});
+  await settle();
+  await h.elements.get('leads').children[0].onclick();
+  const field=h.elements.get('send-content');
+  field.value='Teste interno';
+  await h.elements.get('send-button').listeners.click();
+  assert.equal(field.value,'Teste interno');
+  await h.elements.get('send-button').listeners.click();
+  assert.equal(requests.length,2);
+  assert.equal(requests[0].request_id,requests[1].request_id);
+  assert.equal(field.value,'');
 });

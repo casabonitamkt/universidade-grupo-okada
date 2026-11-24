@@ -368,12 +368,21 @@
           </div>
           <button id="save-notes" type="button" class="panel-button">Salvar observações</button>
           <p class="small-note" id="action-status" role="status"></p>
-          <p class="small-note"><strong>Para registrar o envio, use o campo “Enviar mensagem” do CRM.</strong> Mensagens enviadas diretamente pelo aplicativo WhatsApp não aparecem no histórico do CRM.</p>
+          <p class="small-note">Use o campo “Enviar mensagem” para registrar o envio no histórico. A sincronização de envios pelo aplicativo está em validação.</p>
         </section>
           <section class="assist-panel" aria-label="Copiloto comercial com inteligência artificial">
             <div class="assist-head"><span>✧ COPILOTO COM IA</span><small>Teste assistido · revisão humana</small></div>
             <label for="ai-briefing" class="assist-disclaimer">Contexto que será enviado à IA (revise e edite antes de gerar):</label>
             <textarea id="ai-briefing" rows="5" maxlength="4500" placeholder="Selecione um atendimento para preparar o contexto." aria-label="Contexto do atendimento para a IA" disabled style="width:100%;margin:8px 0;background:#17191e;color:#e4dfd3;border:1px solid #59554d;border-radius:8px;padding:9px;font-size:12px;resize:vertical"></textarea>
+            <div class="field">
+              <label for="ai-purpose">Objetivo do Copiloto</label>
+              <select id="ai-purpose">
+                <option value="resposta">Responder à conversa</option>
+                <option value="pre_atendimento">Preparar pré-atendimento</option>
+                <option value="objecao">Trabalhar objeção</option>
+                <option value="followup">Preparar follow-up</option>
+              </select>
+            </div>
             <button id="ai-generate" class="suggestion-copy" type="button" disabled>✧ Gerar com IA</button>
             <p id="ai-status" class="assist-disclaimer" role="status" aria-live="polite">Selecione uma conversa para começar.</p>
             <p id="suggestion-text">A sugestão de WhatsApp aparecerá aqui após a análise da IA.</p>
@@ -399,6 +408,9 @@
       <div class="workspace-heading"><div><span class="eyebrow">DESEMPENHO COMERCIAL</span><h2>Resultados e conversão</h2><p>Indicadores calculados somente com etapas registradas no CRM.</p></div><button type="button" class="workspace-button" data-open-conversations>Ver atendimentos ↗</button></div>
       <div class="results-grid">
         <article class="result-card"><span>Total de contatos</span><strong id="result-total">—</strong><small>Carteira atribuída</small></article>
+        <article class="result-card"><span>Orçamentos a elaborar</span><strong id="result-quotes-pending">—</strong></article>
+        <article class="result-card"><span>Orçamentos enviados</span><strong id="result-quotes-sent">—</strong><small>Contatos na etapa “Orçamento enviado”</small></article>
+        <article class="result-card"><span>Follow-ups pendentes</span><strong id="result-followups">—</strong><small>Contatos na etapa “Follow-up”</small></article>
         <article class="result-card"><span>Vendas concluídas</span><strong id="result-won">—</strong><small>Etapa “Venda concluída”</small></article>
         <article class="result-card"><span>Conversão por quantidade</span><strong id="result-conversion">—</strong><small>Vendas concluídas ÷ contatos cadastrados</small></article>
         <article class="result-card"><span>Conversão por valor</span><strong>—</strong><small>Aguardando integração de propostas e vendas</small></article>
@@ -416,7 +428,17 @@ const SBURL='https://mjtphztvjnfjlhtxtwjz.supabase.co', KEY='sb_publishable_tu2x
 const storage={getItem(k){try{return(localStorage.getItem('cb_keep_login_v1')==='false'?sessionStorage:localStorage).getItem(k)}catch{return null}},setItem(k,v){try{(localStorage.getItem('cb_keep_login_v1')==='false'?sessionStorage:localStorage).setItem(k,v)}catch{}},removeItem(k){localStorage.removeItem(k);sessionStorage.removeItem(k)}};
 const sb=supabase.createClient(SBURL,KEY,{auth:{persistSession:true,storage}});
 const REFRESH_MS=15000;
-const STAGE_LABELS={novo:'Novo contato',em_atendimento:'Em atendimento',proposta:'Proposta enviada',negociacao:'Negociação',ganho:'Venda concluída',perdido:'Não convertido'};
+const STAGE_LABELS={
+  novo:'Novo lead',
+  em_atendimento:'Em atendimento',
+  levantamento:'Levantamento de necessidades',
+  orcamento_a_elaborar:'Orçamento a elaborar',
+  proposta:'Orçamento enviado',
+  followup:'Follow-up',
+  negociacao:'Em negociação',
+  ganho:'Venda concluída',
+  perdido:'Venda perdida'
+};
 let leads=[],selected=null,leadSignature='',renderedMessages=[],loading=false,messageRequest=0,selectedLeadId=null;
 const previewCache=new Map();
 const el=id=>document.getElementById(id);
@@ -513,6 +535,9 @@ function renderBusinessPanels(){
   el('kpi-negotiations').textContent=negotiations;
   el('kpi-won').textContent=won;
   el('result-total').textContent=total;
+  el('result-quotes-pending').textContent=stageCount('orcamento_a_elaborar');
+  el('result-quotes-sent').textContent=proposals;
+  el('result-followups').textContent=stageCount('followup');
   el('result-won').textContent=won;
   el('result-conversion').textContent=total?(100*won/total).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%':'—';
   const groups=followupAlertGroups();
@@ -576,7 +601,10 @@ function followUpGuidance(now,lastEventAt){
 }
 function buildCopilotBriefing(lead){
   if(!lead)return '';
-  const lines=['Atendimento de móveis de alto padrão. Não invente dados nem condições comerciais.',
+  const lines=['Atendimento consultivo de móveis de alto padrão para clientes finais, arquitetos e designers.',
+    'Identifique no histórico projeto ou peça, ambiente, medidas, cores, tecidos, materiais, estilo, necessidades da família, investimento, prazo, participação de arquiteto, objeções e etapa. Indique as lacunas no diagnóstico e priorize somente a informação necessária para avançar.',
+    'Use linguagem natural e valorize conforto, qualidade, design e personalização quando forem pertinentes. Evite perguntas já respondidas e nunca invente preços, descontos, condições, dados técnicos ou disponibilidade.',
+    'Se houver objeção, reconheça a preocupação e sugira uma ação adequada ao contexto. Em retomadas, use um detalhe real do atendimento. Recomende uma próxima ação concreta e informe se um dado depender da leitura de um anexo.',
     'Etapa atual: '+(STAGE_LABELS[lead.stage]||'Novo contato'),
     'Observações registradas: '+redactCrmContext(lead.notes||'Nenhuma').slice(0,450),
     'Últimas mensagens em ordem cronológica. Para mídias, conhecemos somente o tipo, não seu conteúdo:'];
@@ -588,12 +616,24 @@ function buildCopilotBriefing(lead){
   return lines.join('\n').slice(0,4400);
 }
 function canUseSuggestion(){
-  return sendingEnabled && selected && copilotForLead===selected && copilotLastMessage;
+  return sendingEnabled && selected && copilotForLead===selected && copilotLastMessage &&
+    copilotLastContext===getCopilotContext() && copilotLastHistoryId===(renderedMessages.at(-1)?.id??null);
+}
+const COPILOT_PURPOSE={
+  pre_atendimento:'Prepare a abertura e faça apenas a pergunta mais útil ainda sem resposta. Sugira como passar o atendimento ao consultor.',
+  objecao:'Identifique a objeção real e proponha uma resposta consultiva. Se a objeção estiver incerta, pergunte com naturalidade.',
+  followup:'Retome com um detalhe real da conversa e um próximo passo que faça sentido para o cliente.',
+};
+function getCopilotContext(){
+  const purpose=COPILOT_PURPOSE[el('ai-purpose').value];
+  const context=redactCrmContext(el('ai-briefing').value.trim());
+  return (purpose?purpose+'\n\n'+context:context).slice(0,4500);
 }
 function updateSuggestion(){
   const lead=leads.find(l=>l.id===selected);
   if(copilotForLead!==selected){
     copilotForLead=selected;copilotGeneration++;copilotDirty=false;
+    el('ai-purpose').value='resposta';
     copilotLastContext='';copilotLastMessage='';copilotLastHistoryId=null;
     el('suggestion-text').textContent=lead?'Clique em Gerar com IA após revisar o contexto.':'Selecione um contato para gerar uma sugestão.';
     el('suggestion-copy').disabled=true;
@@ -602,16 +642,23 @@ function updateSuggestion(){
   }
   if(!copilotDirty)el('ai-briefing').value=buildCopilotBriefing(lead);
   el('ai-briefing').disabled=!lead;
+  el('ai-purpose').disabled=!lead;
   el('ai-generate').disabled=!lead||copilotBusy;
   el('suggestion-use').disabled=!canUseSuggestion();
 }
-el('ai-briefing').addEventListener('input',()=>{copilotDirty=true;});
+el('ai-briefing').addEventListener('input',()=>{
+  copilotDirty=true;
+  el('suggestion-use').disabled=!canUseSuggestion();
+});
+el('ai-purpose').addEventListener('change',()=>{
+  el('suggestion-use').disabled=!canUseSuggestion();
+});
 el('ai-generate').addEventListener('click',async()=>{
   if(!selected||copilotBusy)return;
   const leadId=selected,request=++copilotGeneration;
-  const briefing=el('ai-briefing').value.trim().slice(0,4500);
+  const briefing=getCopilotContext();
   const lastMessage=renderedMessages.at(-1);
-  if(briefing.length<35){el('ai-status').textContent='Informe um contexto comercial com pelo menos 35 caracteres.';return}
+  if(el('ai-briefing').value.trim().length<35){el('ai-status').textContent='Informe um contexto comercial com pelo menos 35 caracteres.';return}
   copilotBusy=true;el('ai-generate').disabled=true;
   el('ai-generate').textContent='Analisando…';
   el('ai-status').textContent='Consultando a IA. Nenhuma mensagem será enviada ao cliente.';
@@ -789,7 +836,15 @@ function createMediaElement(kind,url,type){
   if(kind==='audio'||kind==='video'){
     const element=document.createElement(kind);
     element.src=url;element.controls=true;element.preload='metadata';
-    element.className='media-preview';return element;
+    if(kind==='video')element.playsInline=true;
+    element.className='media-preview';
+    const fallback=node('a','Abrir arquivo em nova aba');
+    fallback.className='media-link';fallback.href=url;fallback.target='_blank';fallback.rel='noopener noreferrer';
+    element.addEventListener('error',()=>{fallback.textContent='A reprodução falhou. Tente abrir o arquivo em nova aba.';});
+    // Mantém o player como item principal e oferece acesso direto ao arquivo.
+    const media=document.createElement('div');
+    media.append(element,fallback);
+    return media;
   }
   const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';
   a.className='media-link';
@@ -841,6 +896,7 @@ function syncSelection(){
   }
 }
 let sendingEnabled=false,sending=false,composerLeadId=null;
+const unresolvedSends=new Map();
 async function checkSending(){
   try{
     const r=await fetch('/api/crm-send-text',{cache:'no-store'});
@@ -874,19 +930,30 @@ async function sendMessage(){
   try{
     const {data:{session},error}=await sb.auth.getSession();
     if(error||!session?.access_token)throw Error('Sessão expirada. Faça login novamente.');
-    const requestId=crypto.randomUUID();
+    const previous=unresolvedSends.get(leadId);
+    if(previous && previous.content!==content){
+      el('send-status').textContent='Há um envio sem confirmação. Confira no WhatsApp e reapresente o texto original para consultar o mesmo envio.';
+      return;
+    }
+    const requestId=previous?.requestId??crypto.randomUUID();
+    unresolvedSends.set(leadId,{requestId,content});
     const response=await fetch('/api/crm-send-text',{
       method:'POST',
       headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},
       body:JSON.stringify({lead_id:leadId,request_id:requestId,content})
     });
     const result=await response.json();
-    if(!response.ok)throw Error(result.error==='provider_rate_limited'
+    if(!response.ok){
+      if(response.status<500 || result.status==='failed')unresolvedSends.delete(leadId);
+      throw Error(result.error==='provider_rate_limited'
       ?'Limite de envio da Zappy. Tente novamente depois.'
       :'Não foi possível confirmar o envio. Confira a conexão da Zappy.');
+    }
+    const accepted=['sent','already_sent','sent_unconfirmed_in_crm'].includes(result.status);
+    if(accepted)unresolvedSends.delete(leadId);
     if(selected===leadId){
       const pendingHistory=result.status==='sent_unconfirmed_in_crm';
-      if(result.status==='sent'||result.status==='already_sent'||pendingHistory){
+      if(accepted){
         if(field.value===submittedDraft)field.value='';
         el('send-status').textContent=pendingHistory
           ?'Envio aceito pelo WhatsApp. Aguardando atualização do histórico.'
@@ -895,7 +962,6 @@ async function sendMessage(){
         if(lead)await refreshMessages(lead);
       }else{
         el('send-status').textContent='Envio incerto. Confira no WhatsApp antes de tentar de novo.';
-        el('send-button').disabled=true;
         return;
       }
     }
@@ -903,8 +969,7 @@ async function sendMessage(){
     if(selected===leadId)el('send-status').textContent=error.message;
   }finally{
     sending=false;
-    if(el('send-status').textContent!=='Envio incerto. Confira no WhatsApp antes de tentar de novo.')
-      el('send-button').disabled=false;
+    el('send-button').disabled=false;
   }
 }
 function clearInbox(){
@@ -1016,7 +1081,8 @@ async function refreshMessages(lead,manual=false){
     if(selected===lead.id){
       const freshContext=buildCopilotBriefing(lead);
       if(!copilotDirty)el('ai-briefing').value=freshContext;
-      if(copilotLastMessage&&(copilotLastContext!==el('ai-briefing').value.trim().slice(0,4500)||
+      el('suggestion-use').disabled=!canUseSuggestion();
+      if(copilotLastMessage&&(copilotLastContext!==getCopilotContext()||
           copilotLastHistoryId!==(rows.at(-1)?.id??null))){
         el('ai-status').textContent='O contexto mudou desde a última sugestão. Gere novamente para considerar as mensagens recentes.';
       }
@@ -1038,6 +1104,12 @@ function showLeadTools(lead){
     summary.replaceChildren();
     summary.append(node('strong',lead.display_name||'Cliente'),node('span','WhatsApp: '+lead.phone),
       node('span','Etapa: '+(STAGE_LABELS[lead.stage]||'Novo contato')));
+    if(/^[0-9]{10,15}$/.test(lead.phone||'')){
+      const whatsapp=node('a','Abrir conversa no WhatsApp');
+      whatsapp.className='media-link';whatsapp.href='https://wa.me/'+lead.phone;
+      whatsapp.target='_blank';whatsapp.rel='noopener noreferrer';
+      summary.append(whatsapp);
+    }
   }
   prepareComposer(lead);
   el('lead-stage').value=lead.stage||'novo';

@@ -45,8 +45,9 @@ function setup(overrides={}){
       patched.push(JSON.parse(options.body));
       return response(204,[]);
     }
-    if(path.endsWith('crm_pilot_messages')&&options.method==='POST'){
+    if(path.endsWith('crm_pilot_messages?on_conflict=source,instance_id,external_message_id')&&options.method==='POST'){
       msgPosts++;
+      assert.equal(options.headers.Prefer,'resolution=ignore-duplicates,return=minimal');
       assert.equal(JSON.parse(options.body).direction,'saida');
       return response(201,[]);
     }
@@ -159,4 +160,19 @@ test('domínio oficial personalizado pode enviar',async()=>{
   const t=setup();
   try{const req=t.makeReq();req.headers.origin='https://universidade.lojacasabonitamoveis.com.br';const r=res();await handler(req,r);assert.equal(r.code,200)}
   finally{t.restore()}
+});
+
+test('erro 5xx da Zappy deixa o envio como incerto e evita nova tentativa automática',async()=>{
+  const s=setup();
+  try{
+    const normal=globalThis.fetch;
+    s.setFetch(async(url,options)=>String(url).startsWith('https://zappy.api.br/')
+      ?response(502,{})
+      :normal(url,options));
+    const x=res();await handler(s.makeReq(),x);
+    assert.equal(x.code,202);
+    assert.equal(x.body.status,'unknown');
+    assert.equal(s.counts.patched.at(-1).status,'unknown');
+    assert.equal(s.counts.msgPosts,0);
+  }finally{s.restore()}
 });
