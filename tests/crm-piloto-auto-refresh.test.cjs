@@ -9,7 +9,7 @@ const inlineScripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/
 const js=inlineScripts.at(-1)?.[1];
 assert.ok(js && js.includes('REFRESH_MS=15000'),'CRM deve conter script de atualização automática');
 
-function harness(){
+function harness({send}={}){
   const leads=[{id:'lead-1',display_name:'Cliente Um',phone:'5544999991111',stage:'novo'}];
   const messages={'lead-1':[{id:'msg-1',direction:'entrada',kind:'text',body:'Mensagem original',event_at:'2026-10-30T12:00:00Z'}]};
   const requests=[];
@@ -79,9 +79,13 @@ function harness(){
   })};
   const context={supabase,document,window,navigator,localStorage,sessionStorage,
     URL:{createObjectURL:()=> 'blob:media-test',revokeObjectURL:()=>{}},
-    fetch:async(path)=>{if(String(path).startsWith('/api/crm-media?')){
+    crypto:{randomUUID:()=>require('node:crypto').randomUUID()},
+    fetch:async(path,options)=>{if(String(path).startsWith('/api/crm-media?')){
       mediaCalls.push(String(path));return {ok:true,blob:async()=>({size:64})};
-    }return {json:async()=>({enabled:false})}},
+    }
+      if(path==='/api/crm-send-text'&&options?.method==='POST')return send(JSON.parse(options.body));
+      return {json:async()=>({enabled:Boolean(send)})};
+    },
     setInterval:(cb,ms)=>{intervals.push({cb,ms});return 1},
     console,Date,setTimeout:(cb)=>{cb();return 1}};
   vm.runInNewContext(js,context,{filename:'crm-piloto.html'});
@@ -366,4 +370,23 @@ test('contatos sem mensagem ou encerrados não geram falsos alertas de follow-up
   assert.equal(h.elements.get('followup-total').textContent,'0');
   assert.equal(h.elements.get('followup-home-168').textContent,'0');
   assert.match(h.elements.get('followup-alert-summary').textContent,/Nenhum contato/);
+});
+
+test('nova tentativa explícita após falha de rede conserva a identidade do envio',async()=>{
+  const requests=[];
+  const h=harness({send:async request=>{
+    requests.push(request);
+    if(requests.length===1)throw Error('Conexão perdida');
+    return {ok:true,json:async()=>({status:'already_sent'})};
+  }});
+  await settle();
+  await h.elements.get('leads').children[0].onclick();
+  const field=h.elements.get('send-content');
+  field.value='Teste interno';
+  await h.elements.get('send-button').listeners.click();
+  assert.equal(field.value,'Teste interno');
+  await h.elements.get('send-button').listeners.click();
+  assert.equal(requests.length,2);
+  assert.equal(requests[0].request_id,requests[1].request_id);
+  assert.equal(field.value,'');
 });

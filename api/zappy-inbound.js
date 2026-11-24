@@ -255,7 +255,7 @@ module.exports = async function handler(req, res) {
   }
   const message = normalizeEvent(event, config.instance);
   if (!message) {
-    console.warn('zappy_inbound_ignored_message', { group: Boolean(event.payload?.message?.is_group), outbound: event.payload?.message?.is_from_me === true || event.event === 'message.sent', has_sender_pn: Boolean(event.payload?.message?.sender_pn), has_recipient_pn: Boolean(event.payload?.message?.recipient_pn), from_format: phoneFormat(event.payload?.message?.from), to_format: phoneFormat(event.payload?.message?.to), chat_format: phoneFormat(event.payload?.message?.chat) });
+    console.warn('zappy_inbound_ignored_message', { webhook_origin, event_type: event.event, group: Boolean(event.payload?.message?.is_group), outbound: event.payload?.message?.is_from_me === true || event.event === 'message.sent', has_sender_pn: Boolean(event.payload?.message?.sender_pn), has_recipient_pn: Boolean(event.payload?.message?.recipient_pn), from_format: phoneFormat(event.payload?.message?.from), to_format: phoneFormat(event.payload?.message?.to), chat_format: phoneFormat(event.payload?.message?.chat) });
     return res.status(204).end();
   }
   try {

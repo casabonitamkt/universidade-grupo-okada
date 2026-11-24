@@ -14,7 +14,7 @@ async function storage(url,serviceKey,path,options={}){
   if(!response.ok){
     const e=new Error('storage_'+response.status);e.status=response.status;throw e;
   }
-  if(response.status===204 || options.headers?.Prefer==='return=minimal')return [];
+  if(response.status===204 || options.headers?.Prefer?.split(',').includes('return=minimal'))return [];
   return response.json();
 }
 async function markOutbox(config,id,change){
@@ -120,6 +120,10 @@ module.exports=async function handler(req,res){
     // Nunca reenviar automaticamente uma requisição cujo envio é incerto.
     return res.status(202).json({status:'unknown',message:'Confira no WhatsApp antes de tentar novamente.'});
   }
+  if(response.status>=500){
+    try{await markOutbox(cfg,outbox.id,{status:'unknown',error_code:'zappy_'+response.status})}catch{}
+    return res.status(202).json({status:'unknown',message:'Confira no WhatsApp antes de tentar novamente.'});
+  }
   if(!response.ok){
     try{await markOutbox(cfg,outbox.id,{status:'failed',error_code:'zappy_'+response.status})}catch{}
     return res.status(response.status===429?429:502).json({
@@ -133,8 +137,8 @@ module.exports=async function handler(req,res){
   try{
     await markOutbox(cfg,outbox.id,{status:'sent',external_message_id:externalId});
     if(externalId){
-      await storage(cfg.db,cfg.service,'crm_pilot_messages',{
-        method:'POST',headers:{Prefer:'return=minimal'},
+      await storage(cfg.db,cfg.service,'crm_pilot_messages?on_conflict=source,instance_id,external_message_id',{
+        method:'POST',headers:{Prefer:'resolution=ignore-duplicates,return=minimal'},
         body:JSON.stringify({
           lead_id:lead.id,source:'zapi',instance_id:cfg.instance,
           external_message_id:externalId,direction:'saida',kind:'text',

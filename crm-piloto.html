@@ -867,6 +867,7 @@ function syncSelection(){
   }
 }
 let sendingEnabled=false,sending=false,composerLeadId=null;
+const unresolvedSends=new Map();
 async function checkSending(){
   try{
     const r=await fetch('/api/crm-send-text',{cache:'no-store'});
@@ -900,19 +901,30 @@ async function sendMessage(){
   try{
     const {data:{session},error}=await sb.auth.getSession();
     if(error||!session?.access_token)throw Error('Sessão expirada. Faça login novamente.');
-    const requestId=crypto.randomUUID();
+    const previous=unresolvedSends.get(leadId);
+    if(previous && previous.content!==content){
+      el('send-status').textContent='Há um envio sem confirmação. Confira no WhatsApp e reapresente o texto original para consultar o mesmo envio.';
+      return;
+    }
+    const requestId=previous?.requestId??crypto.randomUUID();
+    unresolvedSends.set(leadId,{requestId,content});
     const response=await fetch('/api/crm-send-text',{
       method:'POST',
       headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},
       body:JSON.stringify({lead_id:leadId,request_id:requestId,content})
     });
     const result=await response.json();
-    if(!response.ok)throw Error(result.error==='provider_rate_limited'
+    if(!response.ok){
+      if(response.status<500 || result.status==='failed')unresolvedSends.delete(leadId);
+      throw Error(result.error==='provider_rate_limited'
       ?'Limite de envio da Zappy. Tente novamente depois.'
       :'Não foi possível confirmar o envio. Confira a conexão da Zappy.');
+    }
+    const accepted=['sent','already_sent','sent_unconfirmed_in_crm'].includes(result.status);
+    if(accepted)unresolvedSends.delete(leadId);
     if(selected===leadId){
       const pendingHistory=result.status==='sent_unconfirmed_in_crm';
-      if(result.status==='sent'||result.status==='already_sent'||pendingHistory){
+      if(accepted){
         if(field.value===submittedDraft)field.value='';
         el('send-status').textContent=pendingHistory
           ?'Envio aceito pelo WhatsApp. Aguardando atualização do histórico.'
@@ -921,7 +933,6 @@ async function sendMessage(){
         if(lead)await refreshMessages(lead);
       }else{
         el('send-status').textContent='Envio incerto. Confira no WhatsApp antes de tentar de novo.';
-        el('send-button').disabled=true;
         return;
       }
     }
@@ -929,8 +940,7 @@ async function sendMessage(){
     if(selected===leadId)el('send-status').textContent=error.message;
   }finally{
     sending=false;
-    if(el('send-status').textContent!=='Envio incerto. Confira no WhatsApp antes de tentar de novo.')
-      el('send-button').disabled=false;
+    el('send-button').disabled=false;
   }
 }
 function clearInbox(){
