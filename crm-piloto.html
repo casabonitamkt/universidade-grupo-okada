@@ -398,6 +398,25 @@
               <strong>Dica ao vivo</strong> <small>Regras do CRM</small>
               <p id="ai-live-tip" class="small-note" aria-live="polite">Selecione uma conversa.</p>
             </div>
+            <details id="quick-scripts">
+              <summary>Roteiros rápidos</summary>
+              <div class="field">
+                <label for="quick-script">Modelo de mensagem</label>
+                <select id="quick-script">
+                  <option value="abertura">Início do atendimento</option>
+                  <option value="historia">História da Casa Bonita</option>
+                  <option value="proposta">Follow-up de proposta</option>
+                  <option value="retomada">Retomada de conversa</option>
+                  <option value="prospeccao">Prospecção</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="quick-script-text">Mensagem para copiar e personalizar</label>
+                <textarea id="quick-script-text" rows="5" readonly></textarea>
+              </div>
+              <button id="quick-script-copy" class="suggestion-copy" type="button">Copiar roteiro</button>
+              <p id="quick-script-status" class="assist-disclaimer" role="status"></p>
+            </details>
             <form id="ai-question-form" class="field">
               <label for="ai-question">Perguntar à IA sobre este atendimento</label>
               <textarea id="ai-question" rows="3" maxlength="500" placeholder="Ex.: Como posso responder à objeção de preço?" disabled></textarea>
@@ -758,6 +777,37 @@ function updateSuggestion(){
   el('ai-generate').disabled=!lead||copilotBusy;
   el('suggestion-use').disabled=!canUseSuggestion();
 }
+const QUICK_SCRIPTS={
+  abertura:'Olá! Sou [seu nome], da Casa Bonita. Antes de te mandar fotos e valores, quero entender um pouco do seu espaço e de como você pretende usá-lo. Assim consigo selecionar opções que façam sentido para você. É um projeto novo ou você está renovando um ambiente?',
+  historia:'A Casa Bonita tem 12 anos de mercado e vem de uma família que trabalha com móveis de alto padrão há 70 anos. Nosso showroom tem 2.000 m² e contamos com arquiteta e decorador na loja para apoiar clientes e profissionais. Nosso atendimento começa entendendo seu espaço e o que você precisa, para então apresentar as melhores opções.',
+  proposta:'Olá, [nome do cliente]! Conseguiu olhar a proposta de [peça ou ambiente]? Se ficou alguma dúvida sobre a composição, o acabamento ou o que está incluído, posso revisar as opções com você. Qual seria um bom momento para conversarmos?',
+  retomada:'Olá, [nome do cliente]! Quando falamos, você estava avaliando [peça ou ambiente]. Esse projeto ainda está nos seus planos? Se fizer sentido, posso retomar de onde paramos e revisar as opções com você.',
+  prospeccao:'Olá, [nome do cliente]! Sou [seu nome], da Casa Bonita. Lembrei de você por causa de [motivo verdadeiro do contato]. Você está planejando renovar algum ambiente ou procurando uma peça específica? Se fizer sentido, posso te ajudar a avaliar algumas opções.',
+};
+function showQuickScript(){
+  el('quick-script-text').value=QUICK_SCRIPTS[el('quick-script').value]||QUICK_SCRIPTS.abertura;
+  el('quick-script-status').textContent='';
+}
+el('quick-script').addEventListener('change',showQuickScript);
+el('quick-script-copy').addEventListener('click',async()=>{
+  const field=el('quick-script-text');
+  const text=field.value;
+  const type=el('quick-script').value;
+  const status=el('quick-script-status');
+  try{
+    await navigator.clipboard.writeText(text);
+    if(el('quick-script').value===type)status.textContent=text.includes('[')
+      ?'Copiado. Personalize os campos entre colchetes antes de enviar.'
+      :'Copiado.';
+  }catch{
+    if(el('quick-script').value!==type)return;
+    field.focus();
+    field.select();
+    status.textContent='Copie o texto selecionado.';
+  }
+});
+showQuickScript();
+
 el('ai-question-form').addEventListener('submit',askCopilot);
 el('ai-briefing').addEventListener('input',()=>{
   copilotDirty=true;

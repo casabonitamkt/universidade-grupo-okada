@@ -9,7 +9,7 @@ const inlineScripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/
 const js=inlineScripts.at(-1)?.[1];
 assert.ok(js && js.includes('REFRESH_MS=15000'),'CRM deve conter script de atualização automática');
 
-function harness({send,generate}={}){
+function harness({send,generate,clipboard}={}){
   const leads=[{id:'lead-1',display_name:'Cliente Um',phone:'5544999991111',stage:'novo'}];
   const messages={'lead-1':[{id:'msg-1',direction:'entrada',kind:'text',body:'Mensagem original',event_at:'2026-10-30T12:00:00Z'}]};
   const requests=[];
@@ -42,7 +42,7 @@ function harness({send,generate}={}){
     addEventListener:(type,handler)=>{documentListeners[type]=handler}
   };
   const window={addEventListener:(type,handler)=>{windowListeners[type]=handler}};
-  const navigator={onLine:true};
+  const navigator={onLine:true,clipboard};
   const localStorage={getItem:()=>null,removeItem:()=>{}};
   const sessionStorage={getItem:()=>null,removeItem:()=>{}};
   const supabase={createClient:()=>({
@@ -475,5 +475,20 @@ test('dica ao vivo muda quando chega objeção no histórico sem consultar a IA'
   h.intervals[0].cb();
   await settle();
   assert.match(h.elements.get('ai-live-tip').textContent,/objeção de preço/);
+  assert.equal(h.aiCalls.length,0);
+});
+
+test('roteiro rápido copia o modelo escolhido e preserva o rascunho do consultor',async()=>{
+  const copied=[];
+  const h=harness({clipboard:{writeText:async text=>{copied.push(text)}}});
+  await settle();
+  const picker=h.elements.get('quick-script');
+  picker.value='proposta';
+  picker.listeners.change();
+  h.elements.get('send-content').value='Rascunho em edição';
+  await h.elements.get('quick-script-copy').listeners.click();
+  assert.match(copied[0],/Conseguiu olhar a proposta/);
+  assert.match(h.elements.get('quick-script-status').textContent,/Copiado/);
+  assert.equal(h.elements.get('send-content').value,'Rascunho em edição');
   assert.equal(h.aiCalls.length,0);
 });
