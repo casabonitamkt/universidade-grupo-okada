@@ -577,7 +577,7 @@ function suggestionFor(lead){
   return greeting+' Sou seu consultor da Casa Bonita. Vou te ajudar com as informações e valores. Antes, pode me contar um pouco sobre o ambiente e o que procura para seu projeto?';
 }
 // Copiloto contextual: envio explícito e revisável; nunca dispara WhatsApp nem grava análise.
-let copilotForLead=null,copilotGeneration=0,copilotBusy=false,copilotDirty=false,copilotLastContext='',copilotLastMessage='',copilotLastHistoryId=null;
+let copilotForLead=null,copilotGeneration=0,copilotBusy=false,copilotDirty=false,copilotLastContext='',copilotLastMessage='',copilotLastHistory=null;
 function redactCrmContext(value){
   return String(value||'')
     .replace(/\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b/gi,'[e-mail omitido]')
@@ -617,7 +617,23 @@ function buildCopilotBriefing(lead){
 }
 function canUseSuggestion(){
   return sendingEnabled && selected && copilotForLead===selected && copilotLastMessage &&
-    copilotLastContext===getCopilotContext() && copilotLastHistoryId===(renderedMessages.at(-1)?.id??null);
+    copilotLastContext===getCopilotContext() && copilotLastHistory===getCopilotHistory();
+}
+function getCopilotHistory(){
+  return JSON.stringify(renderedMessages.slice(-12).map(row=>[row.id,row.direction,row.content,row.eventAt]));
+}
+function discardOutdatedSuggestion(){
+  copilotLastMessage='';copilotLastContext='';copilotLastHistory=null;
+  el('suggestion-text').textContent='Gere uma nova sugestão para este contexto.';
+  el('suggestion-copy').disabled=true;
+  el('suggestion-use').disabled=true;
+  el('ai-analysis').textContent='';
+  el('ai-analysis-details').hidden=true;
+  el('ai-status').textContent='O contexto mudou. Gere uma nova sugestão para considerar as informações atuais.';
+}
+function checkCopilotContext(){
+  if(copilotLastMessage&&(copilotLastContext!==getCopilotContext()||copilotLastHistory!==getCopilotHistory()))
+    discardOutdatedSuggestion();
 }
 const COPILOT_PURPOSE={
   pre_atendimento:'Prepare a abertura e faça apenas a pergunta mais útil ainda sem resposta. Sugira como passar o atendimento ao consultor.',
@@ -634,7 +650,7 @@ function updateSuggestion(){
   if(copilotForLead!==selected){
     copilotForLead=selected;copilotGeneration++;copilotDirty=false;
     el('ai-purpose').value='resposta';
-    copilotLastContext='';copilotLastMessage='';copilotLastHistoryId=null;
+    copilotLastContext='';copilotLastMessage='';copilotLastHistory=null;
     el('suggestion-text').textContent=lead?'Clique em Gerar com IA após revisar o contexto.':'Selecione um contato para gerar uma sugestão.';
     el('suggestion-copy').disabled=true;
     el('ai-analysis').textContent='';el('ai-analysis-details').hidden=true;
@@ -648,16 +664,15 @@ function updateSuggestion(){
 }
 el('ai-briefing').addEventListener('input',()=>{
   copilotDirty=true;
-  el('suggestion-use').disabled=!canUseSuggestion();
+  checkCopilotContext();
 });
-el('ai-purpose').addEventListener('change',()=>{
-  el('suggestion-use').disabled=!canUseSuggestion();
-});
+el('ai-purpose').addEventListener('change',checkCopilotContext);
 el('ai-generate').addEventListener('click',async()=>{
   if(!selected||copilotBusy)return;
   const leadId=selected,request=++copilotGeneration;
   const briefing=getCopilotContext();
   const lastMessage=renderedMessages.at(-1);
+  const history=getCopilotHistory();
   if(el('ai-briefing').value.trim().length<35){el('ai-status').textContent='Informe um contexto comercial com pelo menos 35 caracteres.';return}
   copilotBusy=true;el('ai-generate').disabled=true;
   el('ai-generate').textContent='Analisando…';
@@ -673,11 +688,15 @@ el('ai-generate').addEventListener('click',async()=>{
     if(error)throw new Error('Não foi possível acessar a IA. Verifique a função e tente novamente.');
     if(data?.error)throw new Error('IA indisponível ('+String(data.error).slice(0,45)+').');
     if(request!==copilotGeneration||selected!==leadId)return;
+    if(briefing!==getCopilotContext()||history!==getCopilotHistory()){
+      discardOutdatedSuggestion();
+      return;
+    }
     const analysis=String(data?.analysis||'').trim();
     const match=analysis.match(/Mensagem para WhatsApp:\s*([\s\S]*?)(?=\n\s*Cuidado:|$)/i);
     const message=(match?.[1]||'').trim().replace(/^["'“”]+|["'“”]+$/g,'');
     if(!message)throw new Error('A IA não retornou uma mensagem válida. Gere novamente.');
-    copilotLastMessage=message;copilotLastContext=briefing;copilotLastHistoryId=lastMessage?.id??null;
+    copilotLastMessage=message;copilotLastContext=briefing;copilotLastHistory=history;
     el('suggestion-text').textContent=message;
     el('suggestion-copy').disabled=false;
     el('suggestion-use').disabled=!canUseSuggestion();
@@ -711,7 +730,7 @@ el('suggestion-use').addEventListener('click',()=>{
   field.setSelectionRange(field.value.length,field.value.length);
 });
 el('suggestion-copy').addEventListener('click',async()=>{
-  const content=el('suggestion-text').textContent;
+  const content=copilotLastMessage;
   if(!selected||!content)return;
   try{await navigator.clipboard.writeText(content);el('suggestion-copy').textContent='Copiado ✓'}
   catch{el('suggestion-copy').textContent='Selecione e copie o texto acima'}
@@ -1081,11 +1100,7 @@ async function refreshMessages(lead,manual=false){
     if(selected===lead.id){
       const freshContext=buildCopilotBriefing(lead);
       if(!copilotDirty)el('ai-briefing').value=freshContext;
-      el('suggestion-use').disabled=!canUseSuggestion();
-      if(copilotLastMessage&&(copilotLastContext!==getCopilotContext()||
-          copilotLastHistoryId!==(rows.at(-1)?.id??null))){
-        el('ai-status').textContent='O contexto mudou desde a última sugestão. Gere novamente para considerar as mensagens recentes.';
-      }
+      checkCopilotContext();
     }
     if(manual||wasNearBottom)container.scrollTop=container.scrollHeight;
     return true;

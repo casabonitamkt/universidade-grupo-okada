@@ -9,7 +9,7 @@ const inlineScripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/
 const js=inlineScripts.at(-1)?.[1];
 assert.ok(js && js.includes('REFRESH_MS=15000'),'CRM deve conter script de atualização automática');
 
-function harness({send}={}){
+function harness({send,generate}={}){
   const leads=[{id:'lead-1',display_name:'Cliente Um',phone:'5544999991111',stage:'novo'}];
   const messages={'lead-1':[{id:'msg-1',direction:'entrada',kind:'text',body:'Mensagem original',event_at:'2026-10-30T12:00:00Z'}]};
   const requests=[];
@@ -49,6 +49,7 @@ function harness({send}={}){
     auth:{getUser:async()=>({data:{user:{id:'thiago-test'}},error:null}),getSession:async()=>({data:{session:{access_token:'unit-token'}},error:null})},
     functions:{invoke:async(name,options)=>{
       aiCalls.push({name,options});
+      if(generate)return generate();
       return {data:{analysis:'Situação:\nCliente pediu uma referência.\nObjetivo comercial:\nIdentificar modelo.\nMensagem para WhatsApp:\nVocê consegue enviar a referência do sofá?\nCuidado:\nNão presumir modelo.'},error:null};
     }},
     from:table=>{
@@ -391,4 +392,22 @@ test('nova tentativa explícita após falha de rede conserva a identidade do env
   assert.equal(requests.length,2);
   assert.equal(requests[0].request_id,requests[1].request_id);
   assert.equal(field.value,'');
+});
+
+test('descarta resposta da IA quando chega mensagem durante a geração',async()=>{
+  let finish;
+  const h=harness({generate:()=>new Promise(resolve=>{finish=resolve})});
+  await settle();
+  await h.elements.get('leads').children[0].onclick();
+  const generation=h.elements.get('ai-generate').listeners.click();
+  await settle();
+  h.messages['lead-1'].push({id:'msg-2',direction:'entrada',kind:'text',body:'Agora prefiro outra medida',event_at:'2026-10-30T12:02:00Z'});
+  h.intervals[0].cb();
+  await settle();
+  finish({data:{analysis:'Mensagem para WhatsApp: Segue a medida anterior.'}});
+  await generation;
+  assert.match(h.elements.get('ai-status').textContent,/contexto mudou/);
+  assert.equal(h.elements.get('suggestion-copy').disabled,true);
+  assert.equal(h.elements.get('suggestion-use').disabled,true);
+  assert.doesNotMatch(h.elements.get('suggestion-text').textContent,/medida anterior/);
 });
