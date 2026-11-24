@@ -654,7 +654,20 @@ imageDialog.addEventListener('close',()=>{
 const mediaQueue=[];
 let mediaActive=0,mediaGeneration=0;
 const MEDIA_PARALLEL=2;
+const pendingMedia=new WeakMap();
+const mediaObserver=typeof IntersectionObserver==='function'
+  ? new IntersectionObserver(entries=>{
+      for(const entry of entries){
+        if(!entry.isIntersecting)continue;
+        const load=pendingMedia.get(entry.target);
+        mediaObserver.unobserve(entry.target);
+        pendingMedia.delete(entry.target);
+        if(entry.target.isConnected && load)queueMedia(load);
+      }
+    },{root:el('messages'),rootMargin:'120px 0px'})
+  : null;
 function disposeMedia(){
+  mediaObserver?.disconnect();
   mediaGeneration++;
   mediaQueue.length=0;
   const displayedUrl=enlargedImage.getAttribute('src');
@@ -676,7 +689,7 @@ function pumpMedia(){
   }
 }
 async function viewMedia(messageId,kind,button,container,generation=mediaGeneration,leadId=selected){
-  if(!leadId || !messageId || selected!==leadId || generation!==mediaGeneration)return;
+  if(!button.isConnected || !leadId || !messageId || selected!==leadId || generation!==mediaGeneration)return;
   if(mediaUrls.has(messageId)){
     const {url,type}=mediaUrls.get(messageId);
     container.append(createMediaElement(kind,url,type));
@@ -754,7 +767,6 @@ function createMediaElement(kind,url,type){
   preview.className='media-pdf-preview';
   preview.title='Prévia da primeira página do PDF';
   preview.tabIndex=-1;
-  preview.loading='lazy';
   preview.src=url+'#page=1&view=FitH&toolbar=0&navpanes=0';
   a.textContent='Abrir PDF em nova aba';
 
@@ -775,11 +787,15 @@ function renderMessage(row){
     const generation=mediaGeneration,leadId=selected;
     button.onclick=()=>viewMedia(row.id,kind,button,div,generation,leadId);
     div.append(button);
-    // Fotos, áudios e vídeos são entregues assim que chegam à conversa.
-    // Duas requisições simultâneas no máximo para não travar o CRM.
     if(autoDisplay){
       button.disabled=true;
-      queueMedia(()=>viewMedia(row.id,kind,button,div,generation,leadId));
+      const load=()=>viewMedia(row.id,kind,button,div,generation,leadId);
+      if(mediaObserver){
+        pendingMedia.set(div,load);
+        mediaObserver.observe(div);
+      }else{
+        queueMedia(load);
+      }
     }
   }
   return div;
