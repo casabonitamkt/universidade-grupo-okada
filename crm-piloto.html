@@ -377,6 +377,7 @@
             <button id="ai-generate" class="suggestion-copy" type="button" disabled>✧ Gerar com IA</button>
             <p id="ai-status" class="assist-disclaimer" role="status" aria-live="polite">Selecione uma conversa para começar.</p>
             <p id="suggestion-text">A sugestão de WhatsApp aparecerá aqui após a análise da IA.</p>
+            <button id="suggestion-use" class="suggestion-copy" type="button" disabled>Usar resposta da IA</button>
             <button id="suggestion-copy" class="suggestion-copy" type="button" disabled>Copiar mensagem sugerida</button>
             <details id="ai-analysis-details" hidden><summary style="cursor:pointer;font-size:11px;margin-top:8px">Ver análise comercial e cuidados</summary><p id="ai-analysis" style="white-space:pre-wrap;font-size:12px"></p></details>
             <small class="assist-disclaimer">Ao gerar, o contexto exibido acima é enviado ao provedor de IA. Revise dados pessoais antes de continuar. A IA não envia mensagens, não altera o CRM e não aprova descontos.</small>
@@ -574,6 +575,9 @@ function buildCopilotBriefing(lead){
   lines.push('Forneça uma próxima ação e uma única mensagem curta para revisão humana. Nunca envie automaticamente.');
   return lines.join('\n').slice(0,4400);
 }
+function canUseSuggestion(){
+  return sendingEnabled && selected && copilotForLead===selected && copilotLastMessage;
+}
 function updateSuggestion(){
   const lead=leads.find(l=>l.id===selected);
   if(copilotForLead!==selected){
@@ -587,6 +591,7 @@ function updateSuggestion(){
   if(!copilotDirty)el('ai-briefing').value=buildCopilotBriefing(lead);
   el('ai-briefing').disabled=!lead;
   el('ai-generate').disabled=!lead||copilotBusy;
+  el('suggestion-use').disabled=!canUseSuggestion();
 }
 el('ai-briefing').addEventListener('input',()=>{copilotDirty=true;});
 el('ai-generate').addEventListener('click',async()=>{
@@ -612,6 +617,7 @@ el('ai-generate').addEventListener('click',async()=>{
     copilotLastMessage=message;copilotLastContext=briefing;
     el('suggestion-text').textContent=message;
     el('suggestion-copy').disabled=false;
+    el('suggestion-use').disabled=!canUseSuggestion();
     el('ai-analysis').textContent=analysis;
     el('ai-analysis-details').hidden=false;
     el('ai-status').textContent=message.length>260?'Sugestão gerada, mas ultrapassa 260 caracteres. Revise antes de usar.':'Sugestão gerada. Confira os fatos e aprove manualmente.';
@@ -628,6 +634,19 @@ el('ai-generate').addEventListener('click',async()=>{
 document.querySelectorAll('[data-crm-view]').forEach(button=>button.addEventListener('click',()=>navigateCRM(button.dataset.crmView)));
 document.querySelectorAll('[data-open-conversations]').forEach(button=>button.addEventListener('click',()=>navigateCRM('conversas')));
 el('view-all-conversations').addEventListener('click',()=>navigateCRM('conversas'));
+el('suggestion-use').addEventListener('click',()=>{
+  if(!canUseSuggestion()||composerLeadId!==selected||el('send-panel').hidden)return;
+  const field=el('send-content');
+  if(field.value.trim() && field.value!==copilotLastMessage &&
+      !window.confirm('Substituir o rascunho pela resposta da IA?'))return;
+  if(copilotLastMessage.length>field.maxLength){
+    el('ai-status').textContent='A sugestão excede o limite da mensagem. Copie e reduza o texto antes de enviar.';
+    return;
+  }
+  field.value=copilotLastMessage;
+  field.focus();
+  field.setSelectionRange(field.value.length,field.value.length);
+});
 el('suggestion-copy').addEventListener('click',async()=>{
   const content=el('suggestion-text').textContent;
   if(!selected||!content)return;
@@ -813,6 +832,7 @@ async function checkSending(){
     sendingEnabled=Boolean(d.enabled);
   }catch{sendingEnabled=false}
   el('send-panel').hidden=!(sendingEnabled&&selected);
+  el('suggestion-use').disabled=!canUseSuggestion();
 }
 function prepareComposer(lead){
   const changed=composerLeadId!==lead.id;
