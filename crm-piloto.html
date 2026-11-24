@@ -826,7 +826,9 @@ function prepareComposer(lead){
 async function sendMessage(){
   if(sending||!sendingEnabled||!selected)return;
   const leadId=selected;
-  const content=el('send-content').value.trim();
+  const field=el('send-content');
+  const submittedDraft=field.value;
+  const content=submittedDraft.trim();
   if(!content||content.length>4000){
     el('send-status').textContent='Digite uma mensagem de até 4.000 caracteres.';return;
   }
@@ -847,9 +849,12 @@ async function sendMessage(){
       ?'Limite de envio da Zappy. Tente novamente depois.'
       :'Não foi possível confirmar o envio. Confira a conexão da Zappy.');
     if(selected===leadId){
-      if(result.status==='sent'){
-        el('send-content').value='';
-        el('send-status').textContent='Mensagem enviada com sucesso.';
+      const pendingHistory=result.status==='sent_unconfirmed_in_crm';
+      if(result.status==='sent'||result.status==='already_sent'||pendingHistory){
+        if(field.value===submittedDraft)field.value='';
+        el('send-status').textContent=pendingHistory
+          ?'Envio aceito pelo WhatsApp. Aguardando atualização do histórico.'
+          :'Mensagem enviada com sucesso.';
         const lead=leads.find(l=>l.id===leadId);
         if(lead)await refreshMessages(lead);
       }else{
