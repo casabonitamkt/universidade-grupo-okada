@@ -576,7 +576,10 @@ function followUpGuidance(now,lastEventAt){
 }
 function buildCopilotBriefing(lead){
   if(!lead)return '';
-  const lines=['Atendimento de móveis de alto padrão. Não invente dados nem condições comerciais.',
+  const lines=['Atendimento consultivo de móveis de alto padrão para clientes finais, arquitetos e designers.',
+    'Identifique no histórico projeto ou peça, ambiente, medidas, cores, tecidos, materiais, estilo, necessidades da família, investimento, prazo, participação de arquiteto, objeções e etapa. Indique as lacunas no diagnóstico e priorize somente a informação necessária para avançar.',
+    'Use linguagem natural e valorize conforto, qualidade, design e personalização quando forem pertinentes. Evite perguntas já respondidas e nunca invente preços, descontos, condições, dados técnicos ou disponibilidade.',
+    'Se houver objeção, reconheça a preocupação e sugira uma ação adequada ao contexto. Em retomadas, use um detalhe real do atendimento. Recomende uma próxima ação concreta e informe se um dado depender da leitura de um anexo.',
     'Etapa atual: '+(STAGE_LABELS[lead.stage]||'Novo contato'),
     'Observações registradas: '+redactCrmContext(lead.notes||'Nenhuma').slice(0,450),
     'Últimas mensagens em ordem cronológica. Para mídias, conhecemos somente o tipo, não seu conteúdo:'];
@@ -588,7 +591,11 @@ function buildCopilotBriefing(lead){
   return lines.join('\n').slice(0,4400);
 }
 function canUseSuggestion(){
-  return sendingEnabled && selected && copilotForLead===selected && copilotLastMessage;
+  return sendingEnabled && selected && copilotForLead===selected && copilotLastMessage &&
+    copilotLastContext===getCopilotContext() && copilotLastHistoryId===(renderedMessages.at(-1)?.id??null);
+}
+function getCopilotContext(){
+  return redactCrmContext(el('ai-briefing').value.trim()).slice(0,4500);
 }
 function updateSuggestion(){
   const lead=leads.find(l=>l.id===selected);
@@ -605,11 +612,14 @@ function updateSuggestion(){
   el('ai-generate').disabled=!lead||copilotBusy;
   el('suggestion-use').disabled=!canUseSuggestion();
 }
-el('ai-briefing').addEventListener('input',()=>{copilotDirty=true;});
+el('ai-briefing').addEventListener('input',()=>{
+  copilotDirty=true;
+  el('suggestion-use').disabled=!canUseSuggestion();
+});
 el('ai-generate').addEventListener('click',async()=>{
   if(!selected||copilotBusy)return;
   const leadId=selected,request=++copilotGeneration;
-  const briefing=el('ai-briefing').value.trim().slice(0,4500);
+  const briefing=getCopilotContext();
   const lastMessage=renderedMessages.at(-1);
   if(briefing.length<35){el('ai-status').textContent='Informe um contexto comercial com pelo menos 35 caracteres.';return}
   copilotBusy=true;el('ai-generate').disabled=true;
@@ -1016,7 +1026,8 @@ async function refreshMessages(lead,manual=false){
     if(selected===lead.id){
       const freshContext=buildCopilotBriefing(lead);
       if(!copilotDirty)el('ai-briefing').value=freshContext;
-      if(copilotLastMessage&&(copilotLastContext!==el('ai-briefing').value.trim().slice(0,4500)||
+      el('suggestion-use').disabled=!canUseSuggestion();
+      if(copilotLastMessage&&(copilotLastContext!==getCopilotContext()||
           copilotLastHistoryId!==(rows.at(-1)?.id??null))){
         el('ai-status').textContent='O contexto mudou desde a última sugestão. Gere novamente para considerar as mensagens recentes.';
       }
