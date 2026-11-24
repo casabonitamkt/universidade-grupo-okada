@@ -306,7 +306,7 @@ test('indicadores premium derivam de contatos reais, não números de exemplo',a
 test('seleção de contato prepara contexto para IA sem enviar nem copiar mensagem automaticamente',async()=>{
   const h=harness();await settle();
   h.elements.get('leads').children[0].onclick();await settle();
-  assert.match(h.elements.get('ai-briefing').value,/Novo contato/);
+  assert.match(h.elements.get('ai-briefing').value,/Novo lead/);
   assert.match(h.elements.get('ai-briefing').value,/Mensagem original/);
   assert.match(h.elements.get('suggestion-text').textContent,/Gerar com IA/);
   assert.equal(h.elements.get('ai-generate').disabled,false);
