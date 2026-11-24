@@ -525,6 +525,15 @@ function renderFollowupAlerts(groups){
 document.querySelectorAll('[data-followup-alert]').forEach(button=>button.addEventListener('click',()=>navigateCRM('followup')));
 el('open-followup-alerts').addEventListener('click',()=>navigateCRM('followup'));
 
+const FOLLOWUP_ACTIONS={
+  novo:'Revise a última mensagem e confirme o que o cliente procura.',
+  em_atendimento:'Retome o ponto que ficou pendente e combine um próximo passo.',
+  levantamento:'Confirme a informação que falta para montar a solução.',
+  orcamento_a_elaborar:'Revise os itens e confirme quando poderá apresentar o orçamento.',
+  proposta:'Confirme se o cliente conseguiu avaliar o orçamento e ofereça ajuda para comparar as opções.',
+  followup:'Retome um ponto concreto da conversa e combine quando voltar a falar.',
+  negociacao:'Confirme o que falta para a decisão e combine uma data de retorno.',
+};
 function renderBusinessPanels(){
   const total=leads.length;
   const stageCount=stage=>leads.filter(l=>l.stage===stage).length;
@@ -550,7 +559,14 @@ function renderBusinessPanels(){
       const b=document.createElement('button');b.type='button';b.className='followup-item';
       const name=node('strong',l.display_name||'Cliente sem nome');
       const stage=node('small',(STAGE_LABELS[l.stage]||'Novo contato')+' · '+(l.last_message_at?new Date(l.last_message_at).toLocaleDateString('pt-BR'):'Sem mensagem registrada'));
-      b.append(name,stage);b.addEventListener('click',()=>{navigateCRM('conversas');openLead(l)});
+      const action=node('span',FOLLOWUP_ACTIONS[l.stage]||FOLLOWUP_ACTIONS.em_atendimento);
+      b.append(name,stage,action);
+      b.addEventListener('click',()=>{
+        navigateCRM('conversas');
+        openLead(l);
+        el('ai-purpose').value='followup';
+        checkCopilotContext();
+      });
       return b;
     });
     if(!nodes.length){const empty=node('p','Nenhum contato nesta faixa.');empty.className='empty-state';nodes.push(empty)}
