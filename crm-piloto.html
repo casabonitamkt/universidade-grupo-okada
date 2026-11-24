@@ -254,6 +254,13 @@
     .followup-alert-quicklist{display:flex;gap:7px;flex-wrap:wrap}
     .followup-quicklink{border:1px solid #6c5940;background:#2f2a25;color:#f0d4a5;border-radius:99px;padding:5px 9px;font-size:10px;cursor:pointer;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     @media(max-width:740px){.followup-alerts{padding:12px}.followup-alerts-heading{align-items:flex-start;flex-direction:column}.followup-alert-grid{grid-template-columns:1fr 1fr 1fr;gap:5px}.followup-alert-card{padding:9px 7px}.followup-alert-card .alert-label{font-size:8px}.followup-alert-card strong{font-size:23px}.followup-alert-card>span:not(.alert-label){font-size:10px}.followup-alert-card small{font-size:9px}.followup-alerts-action{width:100%}}
+    .media-image-button{display:block;max-width:100%;padding:0;border:0;background:transparent;cursor:zoom-in}
+    .media-image-button:focus-visible{outline:2px solid #e9d0a3;outline-offset:3px;border-radius:8px}
+    .media-image-dialog{width:max-content;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);box-sizing:border-box;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--text)}
+    .media-image-dialog::backdrop{background:rgba(0,0,0,.8)}
+    .media-image-dialog form{display:flex;justify-content:flex-end;margin:0 0 8px}
+    .media-image-dialog button{padding:6px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:inherit;cursor:pointer}
+    .media-image-dialog img{display:block;width:auto;height:auto;max-width:100%;max-height:calc(100dvh - 100px);object-fit:contain}
   </style>
 </head>
 <body>
@@ -398,6 +405,10 @@
       <p class="data-note">Os valores de orçamentos, ticket médio e faturamento não são calculados até existir uma fonte validada de propostas e vendas. Não exibimos estimativas como vendas reais.</p>
     </section>
   </main>
+  <dialog id="media-image-dialog" class="media-image-dialog" aria-label="Foto ampliada">
+    <form method="dialog"><button type="submit" autofocus>Fechar</button></form>
+    <img alt="Imagem recebida">
+  </dialog>
   <script>
 const SBURL='https://mjtphztvjnfjlhtxtwjz.supabase.co', KEY='sb_publishable_tu2xBCVGLQyPyddMT-poMQ_BFRx2nmx';
 const storage={getItem(k){try{return(localStorage.getItem('cb_keep_login_v1')==='false'?sessionStorage:localStorage).getItem(k)}catch{return null}},setItem(k,v){try{(localStorage.getItem('cb_keep_login_v1')==='false'?sessionStorage:localStorage).setItem(k,v)}catch{}},removeItem(k){localStorage.removeItem(k);sessionStorage.removeItem(k)}};
@@ -631,13 +642,24 @@ function setSync(text){
     ? 'sync-light sync-error' : 'sync-light';
 }
 const mediaUrls=new Map();
+const imageDialog=document.getElementById('media-image-dialog');
+const enlargedImage=imageDialog.querySelector('img');
+
+imageDialog.addEventListener('close',()=>{
+  const url=enlargedImage.getAttribute('src');
+  enlargedImage.removeAttribute('src');
+  if(url && !Array.from(mediaUrls.values()).includes(url))URL.revokeObjectURL(url);
+});
 const mediaQueue=[];
 let mediaActive=0,mediaGeneration=0;
 const MEDIA_PARALLEL=2;
 function disposeMedia(){
   mediaGeneration++;
   mediaQueue.length=0;
-  for(const url of mediaUrls.values())URL.revokeObjectURL(url);
+  const displayedUrl=enlargedImage.getAttribute('src');
+  for(const url of mediaUrls.values()){
+    if(url!==displayedUrl)URL.revokeObjectURL(url);
+  }
   mediaUrls.clear();
 }
 function queueMedia(job){
@@ -703,14 +725,16 @@ function createMediaElement(kind,url){
     img.loading='eager';
     if(kind==='sticker')return img;
 
-    const link=document.createElement('a');
-    link.href=url;
-    link.target='_blank';
-    link.rel='noopener noreferrer';
-    link.setAttribute('aria-label','Abrir imagem em tamanho original (nova aba)');
-    link.title='Abrir imagem em tamanho original';
-    link.append(img);
-    return link;
+    const button=document.createElement('button');
+    button.type='button';
+    button.className='media-image-button';
+    button.setAttribute('aria-label','Ampliar foto');
+    button.append(img);
+    button.addEventListener('click',()=>{
+      enlargedImage.src=url;
+      imageDialog.showModal();
+    });
+    return button;
   }
   if(kind==='audio'||kind==='video'){
     const element=document.createElement(kind);
