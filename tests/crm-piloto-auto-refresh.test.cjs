@@ -89,7 +89,8 @@ function harness({send,generate}={}){
     },
     setInterval:(cb,ms)=>{intervals.push({cb,ms});return 1},
     console,Date,setTimeout:(cb)=>{cb();return 1}};
-  vm.runInNewContext(js,context,{filename:'crm-piloto.html'});
+  const checklist=fs.readFileSync(require('node:path').join(__dirname,'../assets/crm-checklist.js'),'utf8');
+  vm.runInNewContext(checklist+'\n'+js,context,{filename:'crm-piloto.html'});
   return {elements,leads,messages,requests,intervals,document,documentListeners,windowListeners,mediaCalls,aiCalls};
 }
 const settle=()=>new Promise(resolve=>setImmediate(resolve));
@@ -436,4 +437,18 @@ test('busca nome sem acento e telefone formatado sem misturar texto com dígitos
     search.listeners.input();
     assert.equal(contact.hidden,hidden);
   }
+});
+
+test('checklist registra menções do consultor e mantém fala do cliente fora da evidência',async()=>{
+  const h=harness();
+  h.messages['lead-1'].push(
+    {id:'msg-3',direction:'entrada',kind:'text',body:'Quero saber o prazo',event_at:'2026-10-30T12:01:00Z'},
+    {id:'msg-4',direction:'saida',kind:'text',body:'Pode enviar as medidas?',event_at:'2026-10-30T12:02:00Z'}
+  );
+  await settle();
+  await h.elements.get('leads').children[0].onclick();
+  const checklist=h.elements.get('crm-checklist').textContent;
+  assert.match(checklist,/Medidas · mencionadoPode enviar as medidas/);
+  assert.match(checklist,/Prazo · sem menção/);
+  assert.doesNotMatch(checklist,/Quero saber o prazo/);
 });

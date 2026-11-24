@@ -87,7 +87,7 @@ video.media-preview{width:min(100%,580px)}
 <section id="consultants" class="section" hidden><h2>Os quatro consultores</h2><p class="sub">Selecione um consultor para consultar sua carteira e as conversas.</p><div class="toolbar"><select id="consultant-filter" aria-label="Filtrar por consultor"><option value="">Todos os consultores</option></select><button type="button" class="refresh" id="open-filtered">Ver conversas ↗</button></div><div class="panel table-wrap"><table><thead><tr><th>Consultor</th><th>Loja</th><th>Leads</th><th>Ativos</th><th>Propostas</th><th>Vendas</th></tr></thead><tbody id="consultants-table"></tbody></table></div></section>
 <section id="conversations" class="section" hidden><div class="toolbar"><select id="conversation-filter" aria-label="Consultor das conversas"><option value="">Todos os consultores</option></select><input id="search" type="search" placeholder="Buscar cliente ou telefone" aria-label="Buscar cliente"></div>
 <div class="conversation-layout"><article class="panel"><h2>Conversas <span class="badge" id="conversation-count">0</span></h2><div class="conversation-list" id="conversation-list"></div></article>
-<article class="panel"><h2 id="conversation-title">Histórico do cliente</h2><p class="sub" id="conversation-meta">Selecione uma conversa para acompanhar o atendimento.</p><div id="messages" class="messages"></div><p class="note">Acesso de supervisão somente leitura. O envio continua exclusivo do consultor responsável. Mídias compatíveis podem ser abertas neste histórico.</p></article></div></section>
+<article class="panel"><h2 id="conversation-title">Histórico do cliente</h2><p class="sub" id="conversation-meta">Selecione uma conversa para acompanhar o atendimento.</p><div id="messages" class="messages"></div><details id="crm-checklist-panel" hidden><summary>Checklist do atendimento</summary><p class="note">Menções nas mensagens de texto do consultor no histórico exibido.</p><ul id="crm-checklist"></ul></details><p class="note">Acesso de supervisão somente leitura. O envio continua exclusivo do consultor responsável. Mídias compatíveis podem ser abertas neste histórico.</p></article></div></section>
 <section id="followup" class="section" hidden><h2>Follow-up e oportunidades</h2><p class="sub">Faixas exclusivas pela última mensagem, sem presumir que o cliente aguarda retorno.</p><div class="follow-grid">
 <article class="panel"><h3>24 horas a 3 dias <span class="badge" id="fu24-count">0</span></h3><div id="fu24" class="follow-list"></div></article>
 <article class="panel"><h3>3 a 7 dias <span class="badge" id="fu72-count">0</span></h3><div id="fu72" class="follow-list"></div></article>
@@ -101,6 +101,7 @@ video.media-preview{width:min(100%,580px)}
 <article class="card"><span>Orçamentos em R$</span><strong>—</strong><small>Aguardando integração de PDFs</small></article>
 </div><article class="panel"><h2>Funil comercial</h2><div id="pipeline"></div></article><p class="note">Dados financeiros não são estimados. A integração de orçamentos em PDF e valores efetivos ainda será necessária.</p></section>
 </main>
+<script src="/assets/crm-checklist.js"></script>
 <script>
 const SBURL='https://mjtphztvjnfjlhtxtwjz.supabase.co',KEY='sb_publishable_tu2xBCVGLQyPyddMT-poMQ_BFRx2nmx';
 const storage={getItem(k){try{return(localStorage.getItem('cb_keep_login_v1')==='false'?sessionStorage:localStorage).getItem(k)}catch{return null}},setItem(k,v){try{(localStorage.getItem('cb_keep_login_v1')==='false'?sessionStorage:localStorage).setItem(k,v)}catch{}},removeItem(k){localStorage.removeItem(k);sessionStorage.removeItem(k)}};
@@ -259,11 +260,15 @@ async function selectLead(lead){
   $('conversation-title').textContent=lead.display_name||'Cliente';
   $('conversation-meta').textContent=consultantName(lead.owner_consultant_id)+' · '+(lead.phone||'Sem telefone')+' · '+(labels[lead.stage]||'Novo contato');
   $('messages').replaceChildren(node('p','Carregando histórico...','empty'));
+  $('crm-checklist-panel').hidden=true;
   const req=++requestCounter;
   try{
     const result=await api('/api/crm-master?view=messages&lead_id='+encodeURIComponent(lead.id));
     if(req!==requestCounter||selectedLead!==lead.id)return;
-    const nodes=(result.messages||[]).map(m=>{
+    const history=result.messages||[];
+    renderCrmChecklist($('crm-checklist'),history);
+    $('crm-checklist-panel').hidden=false;
+    const nodes=history.map(m=>{
       const b=node('div',null,'message'+(m.direction==='saida'?' out':''));
       b.append(node('small',(m.direction==='saida'?'Consultor':'Cliente')+' · '+new Date(m.event_at).toLocaleString('pt-BR')));
       if(m.kind==='text')b.append(node('div',m.body||'Mensagem sem texto'));

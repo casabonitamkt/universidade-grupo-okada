@@ -370,6 +370,11 @@
           <p class="small-note" id="action-status" role="status"></p>
           <p class="small-note">Use o campo “Enviar mensagem” para registrar o envio no histórico. A sincronização de envios pelo aplicativo está em validação.</p>
         </section>
+          <details id="crm-checklist-panel" hidden>
+            <summary>Checklist do atendimento</summary>
+            <p class="small-note">Menções nas mensagens de texto do consultor no histórico exibido.</p>
+            <ul id="crm-checklist"></ul>
+          </details>
           <section class="assist-panel" aria-label="Copiloto comercial com inteligência artificial">
             <div class="assist-head"><span>✧ COPILOTO COM IA</span><small>Teste assistido · revisão humana</small></div>
             <label for="ai-briefing" class="assist-disclaimer">Contexto que será enviado à IA (revise e edite antes de gerar):</label>
@@ -423,7 +428,8 @@
     <form method="dialog"><button type="submit" autofocus>Fechar</button></form>
     <img alt="Imagem recebida">
   </dialog>
-  <script>
+  <script src="/assets/crm-checklist.js"></script>
+<script>
 const SBURL='https://mjtphztvjnfjlhtxtwjz.supabase.co', KEY='sb_publishable_tu2xBCVGLQyPyddMT-poMQ_BFRx2nmx';
 const storage={getItem(k){try{return(localStorage.getItem('cb_keep_login_v1')==='false'?sessionStorage:localStorage).getItem(k)}catch{return null}},setItem(k,v){try{(localStorage.getItem('cb_keep_login_v1')==='false'?sessionStorage:localStorage).setItem(k,v)}catch{}},removeItem(k){localStorage.removeItem(k);sessionStorage.removeItem(k)}};
 const sb=supabase.createClient(SBURL,KEY,{auth:{persistSession:true,storage}});
@@ -1008,6 +1014,8 @@ async function sendMessage(){
   }
 }
 function clearInbox(){
+  el('crm-checklist-panel').hidden=true;
+  el('crm-checklist').replaceChildren();
   disposeMedia();
   leads=[];selected=null;leadSignature='';renderedMessages=[];messageRequest++;
   el('leads').replaceChildren();
@@ -1082,7 +1090,10 @@ async function refreshMessages(lead,manual=false){
     if(error)throw error;
     // Consulta as 200 mensagens mais recentes e exibe em ordem cronológica.
     const MEDIA_NAMES={image:'📷 Imagem recebida',audio:'🎤 Áudio recebido',video:'🎬 Vídeo recebido',document:'📄 Documento recebido',sticker:'Figurinha recebida',location:'📍 Localização recebida',unknown:'Mensagem com formato não identificado'};
-    const rows=(data||[]).slice().reverse().map(m=>{
+    const history=(data||[]).slice().reverse();
+    renderCrmChecklist(el('crm-checklist'),history);
+    el('crm-checklist-panel').hidden=false;
+    const rows=history.map(m=>{
       const content=m.kind==='text'?(m.body||'Mensagem sem texto'):
         (MEDIA_NAMES[m.kind]||'Mensagem '+m.kind)+
         (m.media_name?' • '+m.media_name:'')+
@@ -1180,6 +1191,7 @@ async function openLead(lead){
   if(selected!==lead.id){
     disposeMedia();
     selected=lead.id;renderedMessages=[];
+    el('crm-checklist-panel').hidden=true;
     el('title').textContent=lead.display_name||lead.phone;
     el('messages').textContent='Carregando...';
     syncSelection();
@@ -1217,6 +1229,8 @@ async function load(){
       else{
         disposeMedia();
         selected=null;messageRequest++;renderedMessages=[];
+        el('crm-checklist-panel').hidden=true;
+        el('crm-checklist').replaceChildren();
         el('contact-tools').hidden=true;
         el('send-panel').hidden=true;
         el('title').textContent='Conversa';
