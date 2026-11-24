@@ -411,3 +411,16 @@ test('descarta resposta da IA quando chega mensagem durante a geração',async()
   assert.equal(h.elements.get('suggestion-use').disabled,true);
   assert.doesNotMatch(h.elements.get('suggestion-text').textContent,/medida anterior/);
 });
+
+test('fila de follow-up sugere ação por etapa e abre o objetivo correspondente no Copiloto',async()=>{
+  const h=harness();
+  h.leads[0].stage='proposta';
+  h.leads[0].last_message_at=new Date(Date.now()-30*3600000).toISOString();
+  await settle();
+  const item=h.elements.get('fu-24').children[0];
+  assert.match(item.textContent,/avaliar o orçamento/);
+  item.listeners.click();
+  await settle();
+  assert.equal(h.elements.get('ai-purpose').value,'followup');
+  assert.equal(h.aiCalls.length,0);
+});
