@@ -394,6 +394,17 @@
             <button id="suggestion-use" class="suggestion-copy" type="button" disabled>Usar resposta da IA</button>
             <button id="suggestion-copy" class="suggestion-copy" type="button" disabled>Copiar mensagem sugerida</button>
             <details id="ai-analysis-details" hidden><summary style="cursor:pointer;font-size:11px;margin-top:8px">Ver análise comercial e cuidados</summary><p id="ai-analysis" style="white-space:pre-wrap;font-size:12px"></p></details>
+            <div class="field">
+              <strong>Dica ao vivo</strong> <small>Regras do CRM</small>
+              <p id="ai-live-tip" class="small-note" aria-live="polite">Selecione uma conversa.</p>
+            </div>
+            <form id="ai-question-form" class="field">
+              <label for="ai-question">Perguntar à IA sobre este atendimento</label>
+              <textarea id="ai-question" rows="3" maxlength="500" placeholder="Ex.: Como posso responder à objeção de preço?" disabled></textarea>
+              <button id="ai-ask" class="suggestion-copy" type="submit" disabled>Perguntar à IA</button>
+              <p id="ai-question-status" class="assist-disclaimer" role="status"></p>
+              <p id="ai-answer" hidden style="white-space:pre-wrap"></p>
+            </form>
             <small class="assist-disclaimer">Ao gerar, o contexto exibido acima é enviado ao provedor de IA. Revise dados pessoais antes de continuar. A IA não envia mensagens, não altera o CRM e não aprova descontos.</small>
           </section>
 
@@ -667,11 +678,65 @@ function getCopilotContext(){
   const context=redactCrmContext(el('ai-briefing').value.trim());
   return (purpose?purpose+'\n\n'+context:context).slice(0,4500);
 }
+let questionInFlight=false, questionView=0;
+function updateLiveTip(lead){
+  const tip=el('ai-live-tip');
+  const latest=renderedMessages.at(-1);
+  const incoming=latest?.direction==='entrada'&&!latest.mediaKind
+    ? latest.content.normalize('NFD').replace(/\p{M}/gu,'').toLowerCase()
+    : '';
+  const price=/(?:achei caro|mais barato|fora do (?:meu )?orcamento|preco alto)/.test(incoming);
+  const text=lead&&latest
+    ? (price?'A última mensagem indica uma objeção de preço. Confirme o que está sendo comparado antes de propor condições.':FOLLOWUP_ACTIONS[lead.stage])||'Confira se ficou algum compromisso combinado com o cliente.'
+    : 'Selecione uma conversa com histórico para acompanhar o atendimento.';
+  if(tip.textContent!==text)tip.textContent=text;
+}
+async function askCopilot(event){
+  event.preventDefault();
+  if(!selected||questionInFlight)return;
+  const question=redactCrmContext(el('ai-question').value.trim());
+  if(!question)return;
+  const leadId=selected, generation=questionView, history=getCopilotHistory();
+  const context=getCopilotContext();
+  const status=el('ai-question-status'), answer=el('ai-answer');
+  const instruction='Pergunta do consultor: '+question+
+    '\nResponda à pergunta diretamente na análise comercial para orientar o consultor. Use o histórico abaixo.';
+  questionInFlight=true;
+  el('ai-ask').disabled=true;
+  answer.hidden=true;
+  status.textContent='Consultando a IA…';
+  try{
+    const {data,error}=await sb.functions.invoke('crm-copiloto-homologacao',{
+      body:{briefing:instruction+'\n\n'+context.slice(0,4500-instruction.length-2)}
+    });
+    if(selected!==leadId||generation!==questionView)return;
+    if(history!==getCopilotHistory()||context!==getCopilotContext()){
+      status.textContent='A conversa mudou. Envie a pergunta novamente para usar o contexto atualizado.';
+      return;
+    }
+    if(error||data?.error||typeof data?.analysis!=='string'||!data.analysis.trim())
+      throw new Error('Não foi possível obter a orientação. Tente novamente.');
+    answer.textContent=data.analysis.trim();
+    answer.hidden=false;
+    status.textContent='Orientação para o consultor.';
+  }catch{
+    if(selected===leadId&&generation===questionView)
+      status.textContent='Não foi possível obter a orientação. Tente novamente.';
+  }finally{
+    questionInFlight=false;
+    el('ai-ask').disabled=!selected;
+  }
+}
 function updateSuggestion(){
   const lead=leads.find(l=>l.id===selected);
   if(copilotForLead!==selected){
     copilotForLead=selected;copilotGeneration++;copilotDirty=false;
     el('ai-purpose').value='resposta';
+    questionView++;
+    el('ai-question').value='';
+    el('ai-question-status').textContent='';
+    el('ai-answer').textContent='';
+    el('ai-answer').hidden=true;
     copilotLastContext='';copilotLastMessage='';copilotLastHistory=null;
     el('suggestion-text').textContent=lead?'Clique em Gerar com IA após revisar o contexto.':'Selecione um contato para gerar uma sugestão.';
     el('suggestion-copy').disabled=true;
@@ -681,9 +746,13 @@ function updateSuggestion(){
   if(!copilotDirty)el('ai-briefing').value=buildCopilotBriefing(lead);
   el('ai-briefing').disabled=!lead;
   el('ai-purpose').disabled=!lead;
+  el('ai-question').disabled=!lead;
+  el('ai-ask').disabled=!lead||questionInFlight;
+  updateLiveTip(lead);
   el('ai-generate').disabled=!lead||copilotBusy;
   el('suggestion-use').disabled=!canUseSuggestion();
 }
+el('ai-question-form').addEventListener('submit',askCopilot);
 el('ai-briefing').addEventListener('input',()=>{
   copilotDirty=true;
   checkCopilotContext();
@@ -1136,6 +1205,7 @@ async function refreshMessages(lead,manual=false){
       const freshContext=buildCopilotBriefing(lead);
       if(!copilotDirty)el('ai-briefing').value=freshContext;
       checkCopilotContext();
+      updateLiveTip(lead);
     }
     if(manual||wasNearBottom)container.scrollTop=container.scrollHeight;
     return true;

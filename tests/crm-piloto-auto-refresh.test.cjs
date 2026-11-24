@@ -452,3 +452,28 @@ test('checklist registra menções do consultor e mantém fala do cliente fora d
   assert.match(checklist,/Prazo · sem menção/);
   assert.doesNotMatch(checklist,/Quero saber o prazo/);
 });
+
+test('pergunta avulsa usa o contexto sem preencher o campo de envio',async()=>{
+  const h=harness();
+  await settle();
+  await h.elements.get('leads').children[0].onclick();
+  h.elements.get('ai-question').value='Como respondo a objeção? Meu e-mail é teste@exemplo.com';
+  await h.elements.get('ai-question-form').listeners.submit({preventDefault(){}});
+  const briefing=h.aiCalls[0].options.body.briefing;
+  assert.match(briefing,/Como respondo a objeção/);
+  assert.match(briefing,/Mensagem original/);
+  assert.doesNotMatch(briefing,/teste@exemplo.com/);
+  assert.equal(h.elements.get('ai-answer').hidden,false);
+  assert.equal(h.elements.get('send-content').value,'');
+});
+
+test('dica ao vivo muda quando chega objeção no histórico sem consultar a IA',async()=>{
+  const h=harness();
+  await settle();
+  await h.elements.get('leads').children[0].onclick();
+  h.messages['lead-1'].push({id:'price-1',direction:'entrada',kind:'text',body:'Encontrei mais barato.',event_at:'2026-10-30T12:03:00Z'});
+  h.intervals[0].cb();
+  await settle();
+  assert.match(h.elements.get('ai-live-tip').textContent,/objeção de preço/);
+  assert.equal(h.aiCalls.length,0);
+});
