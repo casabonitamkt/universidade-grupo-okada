@@ -397,6 +397,7 @@
             <div class="field">
               <strong>Dica ao vivo</strong> <small>Regras do CRM</small>
               <p id="ai-live-tip" class="small-note" aria-live="polite">Selecione uma conversa.</p>
+              <p id="ai-return-tip" class="small-note" aria-live="polite" hidden></p>
             </div>
             <details id="quick-scripts">
               <summary>Roteiros rápidos</summary>
@@ -408,6 +409,7 @@
                   <option value="proposta">Follow-up de proposta</option>
                   <option value="retomada">Retomada de conversa</option>
                   <option value="prospeccao">Prospecção</option>
+                  <option value="arquiteto">Contato mensal com arquiteto</option>
                 </select>
               </div>
               <div class="field">
@@ -658,6 +660,8 @@ function buildCopilotBriefing(lead){
     'Na abertura, cumprimente, apresente o consultor pelo nome se conhecido e explique que entender o espaço e o uso ajuda a selecionar as melhores opções antes de mandar fotos e valores.',
     'Descubra se é projeto novo ou renovação. Se houver projeto, peça o arquivo. Se ajudar na avaliação, peça uma foto do espaço. Levante aos poucos uso, medidas, materiais, cores e faixa de investimento. Aproveite o que já foi informado e pergunte só o necessário para avançar.',
     'Ao sugerir produtos, explique por que cada opção atende às necessidades levantadas. Envie uma seleção contextualizada de fotos e valores confirmados.',
+    'Em oportunidade aberta, procure no histórico um próximo passo e uma data de retorno acordados. Se faltar um deles, sugira combinar com o cliente uma ação e uma data concretas. Distinga data proposta de data confirmada e não invente um compromisso. Em venda concluída ou perdida, respeite o encerramento.',
+    'No contato de relacionamento com arquiteto, pergunte se há algum projeto novo em que a Casa Bonita possa apoiar a especificação ou preparar uma proposta.',
     'Identifique também estilo, necessidades da família, prazo, participação de arquiteto, objeções e etapa. Registre no diagnóstico as lacunas relevantes.',
     'Use linguagem natural e valorize conforto, qualidade, design e personalização quando forem pertinentes. Evite perguntas já respondidas e nunca invente preços, descontos, condições, dados técnicos ou disponibilidade.',
     'Se houver objeção, reconheça a preocupação e sugira uma ação adequada ao contexto. Em retomadas, use um detalhe real do atendimento. Recomende uma próxima ação concreta e informe se um dado depender da leitura de um anexo.',
@@ -715,6 +719,21 @@ function updateLiveTip(lead){
     ? (price?'A última mensagem indica uma objeção de preço. Confirme o que está sendo comparado antes de propor condições.':FOLLOWUP_ACTIONS[lead.stage])||'Confira se ficou algum compromisso combinado com o cliente.'
     : 'Selecione uma conversa com histórico para acompanhar o atendimento.';
   if(tip.textContent!==text)tip.textContent=text;
+  const reminder=el('ai-return-tip');
+  const active=lead&&latest&&!['ganho','perdido'].includes(lead.stage);
+  reminder.hidden=!active;
+  if(!active)return;
+  const outgoing=renderedMessages.slice(-12).filter(row=>row.direction==='saida'&&!row.mediaKind);
+  const date=/\b(?:0?[1-9]|[12]\d|3[01])[/.-](?:0?[1-9]|1[0-2])(?:[/.-]\d{2,4})?\b|\b(?:amanha|segunda-feira|terca-feira|quarta-feira|quinta-feira|sexta-feira|sabado|domingo)\b/;
+  const action=/\b(?:retorno|retornar|volto a falar|te ligo|ligar|te envio|envio a proposta|enviar o orcamento|agendar|revisar a proposta)\b/;
+  const proposed=outgoing.findLast(row=>{
+    const body=row.content.normalize('NFD').replace(/\p{M}/gu,'').toLowerCase();
+    return date.test(body)&&action.test(body);
+  });
+  const message=proposed
+    ? 'Possível retorno encontrado no texto do consultor. Confira com o cliente se o próximo passo e a data foram combinados.'
+    : 'Atendimento em aberto. Combine com o cliente qual será o próximo passo e em que data vocês voltam a conversar.';
+  if(reminder.textContent!==message)reminder.textContent=message;
 }
 async function askCopilot(event){
   event.preventDefault();
@@ -782,6 +801,7 @@ const QUICK_SCRIPTS={
   historia:'A Casa Bonita tem 12 anos de mercado e vem de uma família que trabalha com móveis de alto padrão há 70 anos. Nosso showroom tem 2.000 m² e contamos com arquiteta e decorador na loja para apoiar clientes e profissionais. Nosso atendimento começa entendendo seu espaço e o que você precisa, para então apresentar as melhores opções.',
   proposta:'Olá, [nome do cliente]! Conseguiu olhar a proposta de [peça ou ambiente]? Se ficou alguma dúvida sobre a composição, o acabamento ou o que está incluído, posso revisar as opções com você. Qual seria um bom momento para conversarmos?',
   retomada:'Olá, [nome do cliente]! Quando falamos, você estava avaliando [peça ou ambiente]. Esse projeto ainda está nos seus planos? Se fizer sentido, posso retomar de onde paramos e revisar as opções com você.',
+  arquiteto:'Olá, [nome]! Aqui é [seu nome], da Casa Bonita. Você tem algum projeto novo em que possamos apoiar na especificação ou preparar uma proposta? Se tiver um ambiente em andamento, posso avaliar com você quais peças e acabamentos fazem sentido.',
   prospeccao:'Olá, [nome do cliente]! Sou [seu nome], da Casa Bonita. Lembrei de você por causa de [motivo verdadeiro do contato]. Você está planejando renovar algum ambiente ou procurando uma peça específica? Se fizer sentido, posso te ajudar a avaliar algumas opções.',
 };
 function showQuickScript(){

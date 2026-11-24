@@ -492,3 +492,17 @@ test('roteiro rápido copia o modelo escolhido e preserva o rascunho do consulto
   assert.equal(h.elements.get('send-content').value,'Rascunho em edição');
   assert.equal(h.aiCalls.length,0);
 });
+
+test('Copiloto lembra de combinar retorno e sinaliza possível data sem declarar confirmação',async()=>{
+  const h=harness();
+  await settle();
+  await h.elements.get('leads').children[0].onclick();
+  const reminder=h.elements.get('ai-return-tip');
+  assert.match(reminder.textContent,/próximo passo/);
+  h.messages['lead-1'].push({id:'return-1',direction:'saida',kind:'text',body:'Te ligo na sexta-feira para revisar a proposta.',event_at:'2026-10-30T12:03:00Z'});
+  h.intervals[0].cb();
+  await settle();
+  assert.match(reminder.textContent,/Possível retorno/);
+  assert.match(reminder.textContent,/Confira com o cliente/);
+  assert.equal(h.aiCalls.length,0);
+});
