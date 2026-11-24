@@ -424,3 +424,16 @@ test('fila de follow-up sugere ação por etapa e abre o objetivo correspondente
   assert.equal(h.elements.get('ai-purpose').value,'followup');
   assert.equal(h.aiCalls.length,0);
 });
+
+test('busca nome sem acento e telefone formatado sem misturar texto com dígitos',async()=>{
+  const h=harness();
+  h.leads[0].display_name='João da Silva';
+  await settle();
+  const search=h.elements.get('search');
+  const contact=h.elements.get('leads').children[0];
+  for(const [query,hidden] of [['joao da silva',false],['(44) 99999-1111',false],['outro 1111',true]]){
+    search.value=query;
+    search.listeners.input();
+    assert.equal(contact.hidden,hidden);
+  }
+});
