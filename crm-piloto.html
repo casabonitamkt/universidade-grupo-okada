@@ -261,6 +261,7 @@
     .media-image-dialog form{display:flex;justify-content:flex-end;margin:0 0 8px}
     .media-image-dialog button{padding:6px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:inherit;cursor:pointer}
     .media-image-dialog img{display:block;width:auto;height:auto;max-width:100%;max-height:calc(100dvh - 100px);object-fit:contain}
+    .media-pdf-preview{display:block;width:min(100%,420px);height:270px;margin:9px 0;border:1px solid var(--line);border-radius:8px;background:var(--surface);pointer-events:none}
   </style>
 </head>
 <body>
@@ -648,7 +649,7 @@ const enlargedImage=imageDialog.querySelector('img');
 imageDialog.addEventListener('close',()=>{
   const url=enlargedImage.getAttribute('src');
   enlargedImage.removeAttribute('src');
-  if(url && !Array.from(mediaUrls.values()).includes(url))URL.revokeObjectURL(url);
+  if(url && !Array.from(mediaUrls.values()).some(media=>media.url===url))URL.revokeObjectURL(url);
 });
 const mediaQueue=[];
 let mediaActive=0,mediaGeneration=0;
@@ -657,7 +658,7 @@ function disposeMedia(){
   mediaGeneration++;
   mediaQueue.length=0;
   const displayedUrl=enlargedImage.getAttribute('src');
-  for(const url of mediaUrls.values()){
+  for(const {url} of mediaUrls.values()){
     if(url!==displayedUrl)URL.revokeObjectURL(url);
   }
   mediaUrls.clear();
@@ -677,7 +678,8 @@ function pumpMedia(){
 async function viewMedia(messageId,kind,button,container,generation=mediaGeneration,leadId=selected){
   if(!leadId || !messageId || selected!==leadId || generation!==mediaGeneration)return;
   if(mediaUrls.has(messageId)){
-    container.append(createMediaElement(kind,mediaUrls.get(messageId)));
+    const {url,type}=mediaUrls.get(messageId);
+    container.append(createMediaElement(kind,url,type));
     button.hidden=true;
     return;
   }
@@ -702,10 +704,10 @@ async function viewMedia(messageId,kind,button,container,generation=mediaGenerat
     if(!blob.size)throw new Error('Arquivo vazio.');
     if(selected!==leadId || generation!==mediaGeneration)return;
     const url=URL.createObjectURL(blob);
-    mediaUrls.set(messageId,url);
+    mediaUrls.set(messageId,{url,type:blob.type});
     // Se a atualização das conversas substituiu um elemento antigo, não o reintroduz.
     if(button.isConnected===false)return;
-    container.append(createMediaElement(kind,url));
+    container.append(createMediaElement(kind,url,blob.type));
     button.hidden=true;
   }catch(error){
     if(button.isConnected!==false && selected===leadId && generation===mediaGeneration){
@@ -716,7 +718,7 @@ async function viewMedia(messageId,kind,button,container,generation=mediaGenerat
     }
   }finally{button.disabled=false}
 }
-function createMediaElement(kind,url){
+function createMediaElement(kind,url,type){
   if(kind==='image'||kind==='sticker'){
     const img=document.createElement('img');
     img.src=url;
@@ -742,7 +744,23 @@ function createMediaElement(kind,url){
     element.className='media-preview';return element;
   }
   const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';
-  a.className='media-link';a.textContent='Abrir documento';return a;
+  a.className='media-link';
+  if(kind!=='document'||type!=='application/pdf'){
+    a.textContent='Abrir documento';
+    return a;
+  }
+
+  const preview=document.createElement('iframe');
+  preview.className='media-pdf-preview';
+  preview.title='Prévia da primeira página do PDF';
+  preview.tabIndex=-1;
+  preview.loading='lazy';
+  preview.src=url+'#page=1&view=FitH&toolbar=0&navpanes=0';
+  a.textContent='Abrir PDF em nova aba';
+
+  const card=document.createElement('div');
+  card.append(preview,a);
+  return card;
 }
 function renderMessage(row){
   const div=document.createElement('div');div.className='message'+(row.direction==='saida'?' from-consultant':' from-client');
@@ -750,7 +768,8 @@ function renderMessage(row){
   const body=node('div',row.content);body.className='message-body';div.append(head,body);
   if(row.mediaKind){
     const kind=row.mediaKind;
-    const autoDisplay=['image','audio','video','sticker'].includes(kind);
+    const autoDisplay=['image','audio','video','sticker'].includes(kind)||
+      (kind==='document'&&/\.pdf$/i.test(row.mediaName?.trim()||''));
     const button=node('button',autoDisplay?'Carregando mídia...':'Abrir documento');
     button.className='media-open';button.type='button';
     const generation=mediaGeneration,leadId=selected;
@@ -905,7 +924,7 @@ async function refreshMessages(lead,manual=false){
         (m.body?'\n'+m.body:'\nArquivo disponível no WhatsApp');
       return {id:m.id,direction:m.direction,
         time:new Date(m.event_at).toLocaleString('pt-BR'),
-        content,mediaKind:['image','audio','video','document','sticker'].includes(m.kind)?m.kind:null,
+        content,mediaName:m.media_name,mediaKind:['image','audio','video','document','sticker'].includes(m.kind)?m.kind:null,
         text:(m.direction==='entrada'?'Cliente':'Consultor')+' • '+new Date(m.event_at).toLocaleString('pt-BR')+'\n'+content};
     });
     if(rows.length){
