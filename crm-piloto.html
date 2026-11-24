@@ -552,7 +552,7 @@ function suggestionFor(lead){
   return greeting+' Sou seu consultor da Casa Bonita. Vou te ajudar com as informações e valores. Antes, pode me contar um pouco sobre o ambiente e o que procura para seu projeto?';
 }
 // Copiloto contextual: envio explícito e revisável; nunca dispara WhatsApp nem grava análise.
-let copilotForLead=null,copilotGeneration=0,copilotBusy=false,copilotDirty=false,copilotLastContext='',copilotLastMessage='';
+let copilotForLead=null,copilotGeneration=0,copilotBusy=false,copilotDirty=false,copilotLastContext='',copilotLastMessage='',copilotLastHistoryId=null;
 function redactCrmContext(value){
   return String(value||'')
     .replace(/\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b/gi,'[e-mail omitido]')
@@ -561,6 +561,18 @@ function redactCrmContext(value){
     .replace(/\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g,'[CPF omitido]')
     .replace(/(?:\+?55[ .-]?)?(?:\(?\d{2}\)?[ .-]?)?9?\d{4}[ .-]?\d{4}\b/g,'[telefone omitido]')
     .replace(/\b\d{13,19}\b/g,'[sequência numérica omitida]');
+}
+function followUpGuidance(now,lastEventAt){
+  const hour=Number(new Intl.DateTimeFormat('pt-BR',{
+    timeZone:'America/Sao_Paulo',hour:'numeric',hourCycle:'h23'
+  }).format(now));
+  const greeting=hour>=5&&hour<12?'Bom dia!':hour>=12&&hour<18?'Boa tarde!':hour>=18&&hour<23?'Boa noite!':'Olá!';
+  const elapsed=now.getTime()-Date.parse(lastEventAt);
+  const timing=elapsed>=86400000
+    ?' Pelo histórico, a última mensagem foi há '+Math.floor(elapsed/86400000)+' dia(s). Use o intervalo informado no contexto se ele for mais específico.'
+    :'';
+  return 'Para follow-up ou retomada depois de um intervalo, comece com “'+greeting+
+    '” (horário da loja), mencione brevemente o produto ou a proposta e faça uma pergunta leve e objetiva. Evite cobranças, presumir objeções ou sugerir que estava monitorando a decisão. Em conversa ativa, evite repetir a saudação.'+timing;
 }
 function buildCopilotBriefing(lead){
   if(!lead)return '';
@@ -582,7 +594,7 @@ function updateSuggestion(){
   const lead=leads.find(l=>l.id===selected);
   if(copilotForLead!==selected){
     copilotForLead=selected;copilotGeneration++;copilotDirty=false;
-    copilotLastContext='';copilotLastMessage='';
+    copilotLastContext='';copilotLastMessage='';copilotLastHistoryId=null;
     el('suggestion-text').textContent=lead?'Clique em Gerar com IA após revisar o contexto.':'Selecione um contato para gerar uma sugestão.';
     el('suggestion-copy').disabled=true;
     el('ai-analysis').textContent='';el('ai-analysis-details').hidden=true;
@@ -598,6 +610,7 @@ el('ai-generate').addEventListener('click',async()=>{
   if(!selected||copilotBusy)return;
   const leadId=selected,request=++copilotGeneration;
   const briefing=el('ai-briefing').value.trim().slice(0,4500);
+  const lastMessage=renderedMessages.at(-1);
   if(briefing.length<35){el('ai-status').textContent='Informe um contexto comercial com pelo menos 35 caracteres.';return}
   copilotBusy=true;el('ai-generate').disabled=true;
   el('ai-generate').textContent='Analisando…';
@@ -606,7 +619,10 @@ el('ai-generate').addEventListener('click',async()=>{
     const {data:{session},error:sessionError}=await sb.auth.getSession();
     if(sessionError||!session?.access_token)throw new Error('Sessão expirada. Entre novamente na Universidade.');
     // A função exige JWT. O texto foi preparado sem nome, telefone ou identificador do lead.
-    const {data,error}=await sb.functions.invoke('crm-copiloto-homologacao',{body:{briefing}});
+    const guidance=followUpGuidance(new Date(),lastMessage?.eventAt);
+    const {data,error}=await sb.functions.invoke('crm-copiloto-homologacao',{
+      body:{briefing:guidance+'\n\n'+briefing.slice(0,4500-guidance.length-2)}
+    });
     if(error)throw new Error('Não foi possível acessar a IA. Verifique a função e tente novamente.');
     if(data?.error)throw new Error('IA indisponível ('+String(data.error).slice(0,45)+').');
     if(request!==copilotGeneration||selected!==leadId)return;
@@ -614,7 +630,7 @@ el('ai-generate').addEventListener('click',async()=>{
     const match=analysis.match(/Mensagem para WhatsApp:\s*([\s\S]*?)(?=\n\s*Cuidado:|$)/i);
     const message=(match?.[1]||'').trim().replace(/^["'“”]+|["'“”]+$/g,'');
     if(!message)throw new Error('A IA não retornou uma mensagem válida. Gere novamente.');
-    copilotLastMessage=message;copilotLastContext=briefing;
+    copilotLastMessage=message;copilotLastContext=briefing;copilotLastHistoryId=lastMessage?.id??null;
     el('suggestion-text').textContent=message;
     el('suggestion-copy').disabled=false;
     el('suggestion-use').disabled=!canUseSuggestion();
@@ -963,7 +979,7 @@ async function refreshMessages(lead,manual=false){
         (MEDIA_NAMES[m.kind]||'Mensagem '+m.kind)+
         (m.media_name?' • '+m.media_name:'')+
         (m.body?'\n'+m.body:'\nArquivo disponível no WhatsApp');
-      return {id:m.id,direction:m.direction,
+      return {id:m.id,direction:m.direction,eventAt:m.event_at,
         time:new Date(m.event_at).toLocaleString('pt-BR'),
         content,mediaName:m.media_name,mediaKind:['image','audio','video','document','sticker'].includes(m.kind)?m.kind:null,
         text:(m.direction==='entrada'?'Cliente':'Consultor')+' • '+new Date(m.event_at).toLocaleString('pt-BR')+'\n'+content};
@@ -1000,7 +1016,8 @@ async function refreshMessages(lead,manual=false){
     if(selected===lead.id){
       const freshContext=buildCopilotBriefing(lead);
       if(!copilotDirty)el('ai-briefing').value=freshContext;
-      if(copilotLastMessage&&copilotLastContext!==freshContext){
+      if(copilotLastMessage&&(copilotLastContext!==el('ai-briefing').value.trim().slice(0,4500)||
+          copilotLastHistoryId!==(rows.at(-1)?.id??null))){
         el('ai-status').textContent='O contexto mudou desde a última sugestão. Gere novamente para considerar as mensagens recentes.';
       }
     }
