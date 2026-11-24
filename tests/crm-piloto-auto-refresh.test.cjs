@@ -506,3 +506,24 @@ test('Copiloto lembra de combinar retorno e sinaliza possível data sem declarar
   assert.match(reminder.textContent,/Confira com o cliente/);
   assert.equal(h.aiCalls.length,0);
 });
+
+test('objetivos comerciais orientam a IA usando o histórico da conversa',async()=>{
+  const h=harness();
+  await settle();
+  await h.elements.get('leads').children[0].onclick();
+  const purpose=h.elements.get('ai-purpose');
+  for(const [value,expected] of [
+    ['followup',/Se houve proposta/],
+    ['retomada',/último interesse registrado/],
+    ['prospeccao',/primeiro contato individual/],
+    ['arquiteto',/relacionamento com arquiteto/],
+  ]){
+    purpose.value=value;
+    purpose.listeners.change();
+    await h.elements.get('ai-generate').listeners.click();
+    const briefing=h.aiCalls.at(-1).options.body.briefing;
+    assert.match(briefing,expected);
+    assert.match(briefing,/Mensagem original/);
+  }
+  assert.equal(h.elements.get('send-content').value,'');
+});

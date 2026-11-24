@@ -385,7 +385,10 @@
                 <option value="resposta">Responder à conversa</option>
                 <option value="pre_atendimento">Preparar pré-atendimento</option>
                 <option value="objecao">Trabalhar objeção</option>
-                <option value="followup">Preparar follow-up</option>
+                <option value="followup">Follow-up de proposta</option>
+                <option value="retomada">Retomar cliente sem resposta</option>
+                <option value="prospeccao">Prospectar cliente</option>
+                <option value="arquiteto">Falar com arquiteto</option>
               </select>
             </div>
             <button id="ai-generate" class="suggestion-copy" type="button" disabled>✧ Gerar com IA</button>
@@ -700,7 +703,10 @@ function checkCopilotContext(){
 const COPILOT_PURPOSE={
   pre_atendimento:'Prepare a abertura conforme o roteiro da Casa Bonita. Faça a pergunta mais útil ainda sem resposta. Se o consultor já se apresentou, continue a conversa.',
   objecao:'Identifique a objeção real e proponha uma resposta consultiva. Se a objeção estiver incerta, pergunte com naturalidade.',
-  followup:'Retome com um detalhe real da conversa e um próximo passo que faça sentido para o cliente.',
+  followup:'Retome com um detalhe real da conversa. Se houve proposta, confirme se o cliente conseguiu avaliá-la, ofereça ajuda para revisar a composição e sugira combinar a próxima data de retorno. Se não houver proposta no histórico, não presuma que foi enviada.',
+  retomada:'Retome o último interesse registrado com uma pergunta leve sobre se o projeto ainda está nos planos. Evite cobrança, urgência artificial e motivos presumidos para o silêncio.',
+  prospeccao:'Prepare um primeiro contato individual para um contato autorizado. Apresente a Casa Bonita, use somente um motivo real de contato quando houver e faça uma pergunta curta sobre peça, projeto novo ou renovação. Não invente indicação, visita ou relação prévia.',
+  arquiteto:'Prepare um contato de relacionamento com arquiteto. Pergunte se há projeto novo ou ambiente em andamento e ofereça apoio em especificação, acabamentos ou proposta. Use os dados reais do projeto quando existirem e respeite a condução do profissional.',
 };
 function getCopilotContext(){
   const purpose=COPILOT_PURPOSE[el('ai-purpose').value];
