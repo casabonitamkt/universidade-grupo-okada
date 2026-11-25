@@ -52,7 +52,7 @@ module.exports=async function handler(req,res){
       const leadId=typeof req.query?.lead_id==='string'?req.query.lead_id:'';
       if(!UUID.test(leadId)||!ids.length)return reply(res,404,{error:'not_found'});
       const found=await rest(cfg,'crm_pilot_leads',{
-        select:'id,owner_consultant_id',id:'eq.'+leadId,
+        select:'id,owner_consultant_id,review_snapshot',id:'eq.'+leadId,
         owner_consultant_id:'in.('+ids.join(',')+')',limit:'1'
       });
       if(!found.length)return reply(res,404,{error:'not_found'});
@@ -60,7 +60,7 @@ module.exports=async function handler(req,res){
         select:'id,lead_id,direction,kind,body,media_name,event_at',
         lead_id:'eq.'+leadId,order:'event_at.desc',limit:'150'
       });
-      return reply(res,200,{messages:messages.reverse()});
+      return reply(res,200,{messages:messages.reverse(),review_snapshot:found[0].review_snapshot??null});
     }
     if(!ids.length)return reply(res,200,{consultants:[],leads:[],slots:4,partial:false});
     // Máximo de 400 leads na visão; quando atingir o limite, sinalizar relatório parcial.

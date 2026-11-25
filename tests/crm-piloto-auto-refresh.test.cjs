@@ -584,3 +584,16 @@ test('conversa informa o retorno atrasado, de hoje e fechado',async()=>{
   h.intervals[0].cb();await settle();
   assert.equal(status.hidden,true);
 });
+
+test('salva o briefing da conversa selecionada com evidência e mostra após reabrir',async()=>{
+  const h=harness();
+  h.messages['lead-1'].push({id:'sent',kind:'text',direction:'saida',body:'Qual é a largura da sala?',event_at:'2026-10-30T12:05:00Z'});
+  await settle();
+  await h.elements.get('leads').children[0].onclick();
+  await h.elements.get('save-crm-review').listeners.click();
+  const review=h.leads[0].review_snapshot;
+  assert.match(review.summary,/Atendimento em aberto/);
+  assert.ok(review.topics.some(topic=>topic.evidence==='Qual é a largura da sala?'));
+  h.intervals[0].cb();await settle();
+  assert.match(h.elements.get('saved-crm-review').textContent,/Briefing salvo.*largura da sala/);
+});

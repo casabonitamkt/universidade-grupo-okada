@@ -53,6 +53,9 @@ function renderCrmChecklist(container, messages, summary, stage) {
         ? 'Para revisar: verifique se faz sentido abordar ' + missing.topic.toLocaleLowerCase('pt-BR') + '.'
         : 'Confira nos trechos se as informações registradas ficaram claras para o cliente.';
   summary.textContent = result + ' ' + covered + ' de ' + evidenceByTopic.length + ' temas mencionados. ' + coaching;
+  return {summary:summary.textContent,topics:evidenceByTopic.map(({topic,evidence})=>({
+    topic,evidence:evidence?.slice(0,240)??null,
+  }))};
 }
 
 function renderCrmReturnStatus(target, lead, now = new Date()) {
@@ -69,4 +72,24 @@ function renderCrmReturnStatus(target, lead, now = new Date()) {
     }
   }
   if (target.textContent !== status) target.textContent = status;
+}
+
+function showSavedCrmReview(container, snapshot) {
+  container.replaceChildren();
+  container.hidden = !snapshot || typeof snapshot.summary !== 'string' || !Array.isArray(snapshot.topics);
+  if (container.hidden) return;
+  const title = document.createElement('strong');
+  const when = new Date(snapshot.savedAt);
+  title.textContent = 'Briefing salvo' + (Number.isFinite(when.getTime())
+    ? ' · ' + when.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}) : '');
+  const summary = document.createElement('p');
+  summary.textContent = snapshot.summary;
+  const list = document.createElement('ul');
+  for (const topic of snapshot.topics.slice(0,30)) {
+    if (typeof topic?.topic !== 'string' || typeof topic.evidence !== 'string') continue;
+    const item = document.createElement('li');
+    item.textContent = topic.topic + ' · ' + topic.evidence;
+    list.append(item);
+  }
+  container.append(title,summary,list);
 }

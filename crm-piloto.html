@@ -388,6 +388,9 @@
             <summary>Revisão do atendimento</summary><p id="crm-review-summary"></p>
             <p class="small-note">Menções nas mensagens de texto do consultor no histórico exibido.</p>
             <ul id="crm-checklist"></ul>
+            <button id="save-crm-review" type="button" class="panel-button" disabled>Salvar briefing desta conversa</button>
+            <p id="crm-review-status" class="small-note" role="status"></p>
+            <div id="saved-crm-review" hidden></div>
           </details>
           <section class="assist-panel" aria-label="Copiloto comercial com inteligência artificial">
             <div class="assist-head"><span>✧ COPILOTO COM IA</span><small>Teste assistido · revisão humana</small></div>
@@ -487,7 +490,7 @@
     <form method="dialog"><button type="submit" autofocus>Fechar</button></form>
     <img alt="Imagem recebida">
   </dialog>
-  <script src="/assets/crm-checklist.js?v=retornos"></script>
+  <script src="/assets/crm-checklist.js?v=briefing"></script>
 <script>
 const SBURL='https://mjtphztvjnfjlhtxtwjz.supabase.co', KEY='sb_publishable_tu2xBCVGLQyPyddMT-poMQ_BFRx2nmx';
 const storage={getItem(k){try{return(localStorage.getItem('cb_keep_login_v1')==='false'?sessionStorage:localStorage).getItem(k)}catch{return null}},setItem(k,v){try{(localStorage.getItem('cb_keep_login_v1')==='false'?sessionStorage:localStorage).setItem(k,v)}catch{}},removeItem(k){localStorage.removeItem(k);sessionStorage.removeItem(k)}};
@@ -1294,6 +1297,7 @@ function renderLeads(next){
   el('leads').replaceChildren(...buttons);
   applyContactFilter();
 }
+let reviewDraft=null;
 async function refreshMessages(lead,manual=false){
   const request=++messageRequest;
   try{
@@ -1305,7 +1309,10 @@ async function refreshMessages(lead,manual=false){
     // Consulta as 200 mensagens mais recentes e exibe em ordem cronológica.
     const MEDIA_NAMES={image:'📷 Imagem recebida',audio:'🎤 Áudio recebido',video:'🎬 Vídeo recebido',document:'📄 Documento recebido',sticker:'Figurinha recebida',location:'📍 Localização recebida',unknown:'Mensagem com formato não identificado'};
     const history=(data||[]).slice().reverse();
-    renderCrmChecklist(el('crm-checklist'),history,el('crm-review-summary'),lead.stage);
+    const review=renderCrmChecklist(el('crm-checklist'),history,el('crm-review-summary'),lead.stage);
+    reviewDraft=history.length&&review?{leadId:lead.id,review}:null;
+    el('save-crm-review').disabled=!reviewDraft||savingReview;
+    showSavedCrmReview(el('saved-crm-review'),lead.review_snapshot);
     renderCrmReturnStatus(el('contact-return-status'),lead);
     el('crm-checklist-panel').hidden=false;
     const rows=history.map(m=>{
@@ -1413,7 +1420,10 @@ async function updateLeadFields(changes){
 async function openLead(lead){
   if(selected!==lead.id){
     disposeMedia();
-    selected=lead.id;renderedMessages=[];
+    selected=lead.id;renderedMessages=[];reviewDraft=null;
+    el('save-crm-review').disabled=true;
+    el('crm-review-status').textContent='';
+    showSavedCrmReview(el('saved-crm-review'),null);
     el('crm-checklist-panel').hidden=true;
     el('title').textContent=lead.display_name||lead.phone;
     el('messages').textContent='Carregando...';
@@ -1437,7 +1447,7 @@ async function load(){
       return;
     }
     const {data,error}=await sb.from('crm_pilot_leads')
-      .select('id,display_name,phone,stage,notes,last_message_at,last_read_at,next_contact_on,next_contact_action').eq('owner_consultant_id',user.id)
+      .select('id,display_name,phone,stage,notes,last_message_at,last_read_at,next_contact_on,next_contact_action,review_snapshot').eq('owner_consultant_id',user.id)
       .order('last_message_at',{ascending:false,nullsFirst:false}).limit(100);
     if(error)throw error;
     renderLeads(data||[]);
@@ -1480,6 +1490,32 @@ el('search').addEventListener('input',applyContactFilter);
 el('filter-stage').addEventListener('change',applyContactFilter);
 el('lead-stage').addEventListener('change',()=>updateLeadFields({stage:el('lead-stage').value}));
 el('save-notes').addEventListener('click',()=>updateLeadFields({notes:el('lead-notes').value.trim()}));
+let savingReview=false;
+el('save-crm-review').addEventListener('click',async()=>{
+  const draft=reviewDraft;
+  if(savingReview||!draft||draft.leadId!==selected)return;
+  const status=el('crm-review-status');
+  savingReview=true;
+  el('save-crm-review').disabled=true;
+  status.textContent='Salvando briefing…';
+  try{
+    const snapshot={...draft.review,savedAt:new Date().toISOString()};
+    const {data,error}=await sb.from('crm_pilot_leads').update({review_snapshot:snapshot})
+      .eq('id',draft.leadId).select('id,review_snapshot').single();
+    if(error||!data)throw Error();
+    const contact=leads.find(lead=>lead.id===draft.leadId);
+    if(contact)contact.review_snapshot=data.review_snapshot;
+    if(selected===draft.leadId){
+      showSavedCrmReview(el('saved-crm-review'),data.review_snapshot);
+      status.textContent='Briefing salvo para o consultor e a gestão.';
+    }
+  }catch{
+    if(selected===draft.leadId)status.textContent='Não foi possível salvar o briefing. Tente novamente.';
+  }finally{
+    savingReview=false;
+    el('save-crm-review').disabled=reviewDraft?.leadId!==selected||!reviewDraft;
+  }
+});
 el('save-next-contact').addEventListener('click',()=>{
   const date=el('next-contact-on').value;
   const action=el('next-contact-action').value.trim();
