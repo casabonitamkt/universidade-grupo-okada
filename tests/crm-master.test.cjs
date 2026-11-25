@@ -66,3 +66,18 @@ test('Mensagens gerenciais exigem lead pertencente a consultor autorizado',async
   try{await handler(x.request,notFound);assert.equal(notFound.statusCode,404);assert.equal(x.calls.filter(c=>c.url.includes('crm_pilot_messages')).length,0)}
   finally{x.restore()}
 });
+
+test('visão Master combina etapa do funil, consultor e busca normalizada',()=>{
+  const script=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].at(-1)[1];
+  const filters=script.slice(script.indexOf('function normalizeContactSearch'),script.indexOf('async function sessionToken'));
+  const leads=[
+    {id:'1',display_name:'João',owner_consultant_id:'thiago',stage:'proposta'},
+    {id:'2',display_name:'João',owner_consultant_id:'thiago',stage:'novo'},
+    {id:'3',display_name:'João',owner_consultant_id:'outro',stage:'proposta'},
+  ];
+  const controls={'conversation-filter':'thiago','conversation-stage':'proposta',search:'joao'};
+  const filtered=new Function('$','leads',filters+';return filtered;')(id=>({value:controls[id]}),leads);
+  assert.deepEqual(filtered().map(lead=>lead.id),['1']);
+  controls['conversation-stage']='';
+  assert.deepEqual(filtered().map(lead=>lead.id),['1','2']);
+});
