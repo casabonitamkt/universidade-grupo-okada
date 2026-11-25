@@ -63,7 +63,7 @@ function harness({send,generate,clipboard}={}){
           const lead=leads.find(l=>l.id===this.filter.value);
           if(!lead)return {data:null,error:{message:'Contato não encontrado'}};
           Object.assign(lead,this.updated);
-          return {data:{id:lead.id,stage:lead.stage,notes:lead.notes||''},error:null};
+          return {data:{...lead},error:null};
         },
         order(column,options){this.orderColumn=column;this.ascending=options?.ascending!==false;return this},
         limit(max){requests.push({table,filter:this.filter});
@@ -528,4 +528,17 @@ test('objetivos comerciais orientam a IA usando o histórico da conversa',async(
     assert.match(briefing,/Mensagem original/);
   }
   assert.equal(h.elements.get('send-content').value,'');
+});
+
+test('salva data e ação do retorno no contato e mostra o compromisso na agenda',async()=>{
+  const h=harness();
+  await settle();
+  await h.elements.get('leads').children[0].onclick();
+  h.elements.get('next-contact-on').value='2099-12-01';
+  await h.elements.get('save-next-contact').listeners.click();
+  assert.match(h.elements.get('action-status').textContent,/Preencha a data/);
+  h.elements.get('next-contact-action').value='Revisar a proposta';
+  await h.elements.get('save-next-contact').listeners.click();
+  assert.equal(h.leads[0].next_contact_on,'2099-12-01');
+  assert.match(h.elements.get('returns-upcoming').textContent,/Revisar a proposta/);
 });
