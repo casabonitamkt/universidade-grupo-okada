@@ -88,7 +88,14 @@ video.media-preview{width:min(100%,580px)}
 <section id="conversations" class="section" hidden><div class="toolbar"><select id="conversation-filter" aria-label="Consultor das conversas"><option value="">Todos os consultores</option></select><select id="conversation-stage" aria-label="Etapa da conversa"><option value="">Todas as etapas</option></select><input id="search" type="search" placeholder="Buscar cliente ou telefone" aria-label="Buscar cliente"></div>
 <div class="conversation-layout"><article class="panel"><h2>Conversas <span class="badge" id="conversation-count">0</span></h2><div class="conversation-list" id="conversation-list"></div></article>
 <article class="panel"><h2 id="conversation-title">Histórico do cliente</h2><p class="sub" id="conversation-meta">Selecione uma conversa para acompanhar o atendimento.</p><p id="conversation-next-contact" class="note" hidden></p><div id="messages" class="messages"></div><details id="crm-checklist-panel" hidden><summary>Revisão do atendimento</summary><p id="crm-review-summary"></p><p class="note">Menções nas mensagens de texto do consultor no histórico exibido.</p><ul id="crm-checklist"></ul></details><p class="note">Acesso de supervisão somente leitura. O envio continua exclusivo do consultor responsável. Mídias compatíveis podem ser abertas neste histórico.</p></article></div></section>
-<section id="followup" class="section" hidden><h2>Follow-up e oportunidades</h2><p class="sub">Faixas exclusivas pela última mensagem, sem presumir que o cliente aguarda retorno.</p><div class="follow-grid">
+<section id="followup" class="section" hidden><h2>Follow-up e oportunidades</h2>
+<h3>Agenda da equipe</h3>
+<div class="follow-grid">
+<article class="panel"><h3>Atrasados <span id="master-overdue-count" class="badge">0</span></h3><div id="master-overdue" class="follow-list"></div></article>
+<article class="panel"><h3>Hoje <span id="master-today-count" class="badge">0</span></h3><div id="master-today" class="follow-list"></div></article>
+<article class="panel"><h3>Sem data combinada <span id="master-undated-count" class="badge">0</span></h3><div id="master-undated" class="follow-list"></div></article>
+</div>
+<h3>Conversas sem movimentação</h3><p class="sub">Faixas exclusivas pela última mensagem, sem presumir que o cliente aguarda retorno.</p><div class="follow-grid">
 <article class="panel"><h3>24 horas a 3 dias <span class="badge" id="fu24-count">0</span></h3><div id="fu24" class="follow-list"></div></article>
 <article class="panel"><h3>3 a 7 dias <span class="badge" id="fu72-count">0</span></h3><div id="fu72" class="follow-list"></div></article>
 <article class="panel"><h3>Mais de 7 dias <span class="badge" id="fu168-count">0</span></h3><div id="fu168" class="follow-list"></div></article>
@@ -215,7 +222,37 @@ function setView(next){
 }
 function fillTable(id,rows){$(''+id).replaceChildren(...rows)}
 function td(text){return node('td',text)}
+function groupTeamReturns(contacts,today){
+  const overdue=[],due=[],undated=[];
+  for(const lead of contacts){
+    if(['ganho','perdido'].includes(lead.stage))continue;
+    if(lead.next_contact_on&&lead.next_contact_on<today)overdue.push(lead);
+    else if(lead.next_contact_on===today)due.push(lead);
+    else if(!lead.next_contact_on&&lead.stage!=='novo')undated.push(lead);
+  }
+  overdue.sort((a,b)=>a.next_contact_on.localeCompare(b.next_contact_on));
+  return {overdue,due,undated};
+}
+function renderTeamReturns(){
+  const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());
+  const {overdue,due,undated}=groupTeamReturns(leads,today);
+  for(const [id,contacts] of [['master-overdue',overdue],['master-today',due],['master-undated',undated]]){
+    $(id+'-count').textContent=contacts.length;
+    const items=contacts.map(lead=>{
+      const button=node('button',null,'follow-button');
+      button.type='button';
+      const date=lead.next_contact_on?.split('-').reverse().join('/');
+      button.append(node('strong',lead.display_name||'Cliente'),
+        node('small',consultantName(lead.owner_consultant_id)+' · '+(date||labels[lead.stage]||'Em atendimento')));
+      if(lead.next_contact_action)button.append(node('span',lead.next_contact_action));
+      button.onclick=()=>selectLead(lead);
+      return button;
+    });
+    $(id).replaceChildren(...(items.length?items:[node('p','Nenhum contato nesta lista.','empty')]));
+  }
+}
 function renderSummary(){
+  renderTeamReturns();
   const total=leads.length,won=count(leads,'ganho');
   $('kpi-consultants').textContent=consultants.length+' / 4';
   $('kpi-leads').textContent=total;
