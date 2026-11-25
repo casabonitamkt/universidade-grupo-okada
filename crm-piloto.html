@@ -367,6 +367,14 @@
             <textarea id="lead-notes" maxlength="2000" placeholder="Ex.: procurou sofá de 3 lugares, retorno na segunda-feira"></textarea>
           </div>
           <button id="save-notes" type="button" class="panel-button">Salvar observações</button>
+          <div class="field">
+            <label for="next-contact-on">Data do próximo retorno</label>
+            <input id="next-contact-on" type="date">
+            <label for="next-contact-action">Próximo passo combinado</label>
+            <input id="next-contact-action" type="text" maxlength="300" placeholder="Ex.: Revisar a proposta por telefone">
+            <button id="save-next-contact" type="button" class="panel-button">Salvar retorno</button>
+            <small>Para remover o compromisso, limpe os dois campos e salve.</small>
+          </div>
           <p class="small-note" id="action-status" role="status"></p>
           <p class="small-note">Use o campo “Enviar mensagem” para registrar o envio no histórico. A sincronização de envios pelo aplicativo está em validação.</p>
         </section>
@@ -437,6 +445,15 @@
 
     <section id="followup-panel" class="crm-workspace" hidden aria-label="Acompanhamento de follow-ups">
       <div class="workspace-heading"><div><span class="eyebrow">GESTÃO DE CARTEIRA</span><h2>Follow-up e recuperação</h2><p>Contatos sem movimentação recente. Confirme no histórico se o próximo contato é necessário.</p></div><button type="button" class="workspace-button" data-open-conversations>Ir às conversas ↗</button></div>
+      <section aria-label="Agenda de retornos">
+        <h3>Retornos combinados</h3>
+        <div class="followup-grid">
+          <article class="followup-column"><h3>Atrasados</h3><div id="returns-overdue" class="followup-list"></div></article>
+          <article class="followup-column"><h3>Hoje</h3><div id="returns-today" class="followup-list"></div></article>
+          <article class="followup-column"><h3>Próximos dias</h3><div id="returns-upcoming" class="followup-list"></div></article>
+        </div>
+      </section>
+      <h3>Conversas sem movimentação</h3>
       <div class="followup-grid">
         <article class="followup-column"><h3>Há mais de 24 horas <span id="fu-24-count">0</span></h3><div id="fu-24" class="followup-list"></div></article>
         <article class="followup-column"><h3>Há mais de 3 dias <span id="fu-3-count">0</span></h3><div id="fu-3" class="followup-list"></div></article>
@@ -575,7 +592,30 @@ const FOLLOWUP_ACTIONS={
   followup:'Retome um ponto concreto da conversa e combine quando voltar a falar.',
   negociacao:'Confirme o que falta para a decisão e combine uma data de retorno.',
 };
+function renderReturnAgenda(){
+  const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());
+  const scheduled=leads.filter(lead=>lead.next_contact_on&&!['ganho','perdido'].includes(lead.stage))
+    .sort((a,b)=>a.next_contact_on.localeCompare(b.next_contact_on));
+  const groups=[
+    ['returns-overdue',lead=>lead.next_contact_on<today],
+    ['returns-today',lead=>lead.next_contact_on===today],
+    ['returns-upcoming',lead=>lead.next_contact_on>today],
+  ];
+  for(const [id,match] of groups){
+    const items=scheduled.filter(match).map(lead=>{
+      const button=node('button','');
+      button.className='followup-item';
+      button.type='button';
+      const date=lead.next_contact_on.split('-').reverse().join('/');
+      button.append(node('strong',lead.display_name||'Cliente'),node('small',date),node('span',lead.next_contact_action));
+      button.addEventListener('click',()=>{navigateCRM('conversas');openLead(lead);});
+      return button;
+    });
+    el(id).replaceChildren(...(items.length?items:[node('p','Sem retornos.')]));
+  }
+}
 function renderBusinessPanels(){
+  renderReturnAgenda();
   const total=leads.length;
   const stageCount=stage=>leads.filter(l=>l.stage===stage).length;
   const won=stageCount('ganho'),proposals=stageCount('proposta'),negotiations=stageCount('negociacao');
@@ -1316,26 +1356,28 @@ function showLeadTools(lead){
   prepareComposer(lead);
   el('lead-stage').value=lead.stage||'novo';
   el('lead-notes').value=lead.notes||'';
+  el('next-contact-on').value=lead.next_contact_on||'';
+  el('next-contact-action').value=lead.next_contact_action||'';
   el('action-status').textContent='';
 
 }
-async function updateLeadField(field,value){
+async function updateLeadFields(changes){
   if(!selected)return;
   const id=selected;
-  const buttons=[el('save-notes'),el('lead-stage')];
+  const buttons=[el('save-notes'),el('lead-stage'),el('save-next-contact')];
   buttons.forEach(b=>b.disabled=true);
   el('action-status').textContent='Salvando...';
   try{
-    const {data,error}=await sb.from('crm_pilot_leads').update({[field]:value})
-      .eq('id',id).select('id,stage,notes').single();
+    const {data,error}=await sb.from('crm_pilot_leads').update(changes)
+      .eq('id',id).select('id,stage,notes,next_contact_on,next_contact_action').single();
     if(error)throw error;
     if(!data || selected!==id)return;
     const current=leads.find(l=>l.id===id);
-    if(current){current.stage=data.stage;current.notes=data.notes}
+    if(current)Object.assign(current,data);
     leadSignature='';
     renderLeads(leads.slice());
     el('action-status').textContent='Alteração salva.';
-    if(field==='stage'&&current)await refreshMessages(current);
+    if(Object.hasOwn(changes,'stage')&&current)await refreshMessages(current);
   }catch(error){
     el('action-status').textContent='Não foi possível salvar: '+error.message;
   }finally{buttons.forEach(b=>b.disabled=false)}
@@ -1367,7 +1409,7 @@ async function load(){
       return;
     }
     const {data,error}=await sb.from('crm_pilot_leads')
-      .select('id,display_name,phone,stage,notes,last_message_at,last_read_at').eq('owner_consultant_id',user.id)
+      .select('id,display_name,phone,stage,notes,last_message_at,last_read_at,next_contact_on,next_contact_action').eq('owner_consultant_id',user.id)
       .order('last_message_at',{ascending:false,nullsFirst:false}).limit(100);
     if(error)throw error;
     renderLeads(data||[]);
@@ -1408,8 +1450,17 @@ el('send-content').addEventListener('keydown',event=>{
 });
 el('search').addEventListener('input',applyContactFilter);
 el('filter-stage').addEventListener('change',applyContactFilter);
-el('lead-stage').addEventListener('change',()=>updateLeadField('stage',el('lead-stage').value));
-el('save-notes').addEventListener('click',()=>updateLeadField('notes',el('lead-notes').value.trim()));
+el('lead-stage').addEventListener('change',()=>updateLeadFields({stage:el('lead-stage').value}));
+el('save-notes').addEventListener('click',()=>updateLeadFields({notes:el('lead-notes').value.trim()}));
+el('save-next-contact').addEventListener('click',()=>{
+  const date=el('next-contact-on').value;
+  const action=el('next-contact-action').value.trim();
+  if(Boolean(date)!==Boolean(action)||action.length>300){
+    el('action-status').textContent='Preencha a data e o próximo passo juntos.';
+    return;
+  }
+  return updateLeadFields({next_contact_on:date||null,next_contact_action:action||null});
+});
 setInterval(()=>{if(!document.hidden)load()},REFRESH_MS);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
 window.addEventListener('focus',()=>{if(!document.hidden)load()});

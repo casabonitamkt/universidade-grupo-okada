@@ -65,7 +65,7 @@ module.exports=async function handler(req,res){
     if(!ids.length)return reply(res,200,{consultants:[],leads:[],slots:4,partial:false});
     // Máximo de 400 leads na visão; quando atingir o limite, sinalizar relatório parcial.
     const rows=await rest(cfg,'crm_pilot_leads',{
-      select:'id,display_name,phone,store,source,owner_consultant_id,stage,last_message_at,last_read_at,created_at',
+      select:'id,display_name,phone,store,source,owner_consultant_id,stage,last_message_at,last_read_at,created_at,next_contact_on,next_contact_action',
       owner_consultant_id:'in.('+ids.join(',')+')',order:'last_message_at.desc.nullslast',limit:'401'
     });
     return reply(res,200,{consultants,leads:rows.slice(0,400),slots:4,partial:rows.length>400});
