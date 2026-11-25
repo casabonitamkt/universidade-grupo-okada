@@ -10,3 +10,6 @@ button{cursor:pointer;min-height:38px}button:disabled{opacity:.55;cursor:default
 a{color:var(--accent)}.row{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px}
 .note{color:var(--muted);font-size:13px}#result{padding:13px;background:var(--paper);border-radius:10px}#analysis{white-space:pre-wrap;overflow-wrap:anywhere}
 details{margin-top:12px}#status{margin-top:10px;color:var(--muted)}
+
+#live-enabled { width: auto; }
+#live-advice { white-space: pre-wrap; overflow-wrap: anywhere; }

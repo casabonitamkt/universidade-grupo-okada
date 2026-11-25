@@ -31,7 +31,13 @@
     <label for="contact">Contato no CRM</label>
     <input id="search" type="search" aria-label="Buscar contato pelo nome" placeholder="Buscar pelo nome">
     <select id="contact"><option value="">Selecione um contato</option></select>
-    <label for="purpose">Objetivo</label>
+    <section aria-labelledby="live-heading">
+      <h2 id="live-heading">Sugestões ao vivo</h2>
+      <label><input id="live-enabled" type="checkbox" checked> Acompanhar contato selecionado</label>
+      <p id="live-status" class="note" role="status">Selecione um contato do CRM.</p>
+      <p id="live-advice" hidden></p>
+    </section>
+    <label for="purpose">Objetivo da pergunta</label>
     <select id="purpose">
       <option value="resposta">Responder à conversa</option>
       <option value="objecao">Trabalhar uma objeção</option>
