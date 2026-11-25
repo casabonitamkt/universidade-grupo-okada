@@ -81,3 +81,17 @@ test('visão Master combina etapa do funil, consultor e busca normalizada',()=>{
   controls['conversation-stage']='';
   assert.deepEqual(filtered().map(lead=>lead.id),['1','2']);
 });
+
+test('agenda Master separa retornos de hoje, atrasados e sem data',()=>{
+  const source=html.slice(html.indexOf('function groupTeamReturns'),html.indexOf('function renderTeamReturns'));
+  const group=new Function(source+';return groupTeamReturns;')();
+  const result=group([
+    {id:'late',stage:'proposta',next_contact_on:'2026-11-24'},
+    {id:'today',stage:'negociacao',next_contact_on:'2026-11-25'},
+    {id:'undated',stage:'em_atendimento'},
+    {id:'won',stage:'ganho',next_contact_on:'2026-11-24'},
+    {id:'new',stage:'novo'},
+    {id:'future',stage:'proposta',next_contact_on:'2026-11-26'},
+  ],'2026-11-25');
+  assert.deepEqual(Object.values(result).map(group=>group.map(lead=>lead.id)),[['late'],['today'],['undated']]);
+});
