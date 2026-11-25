@@ -148,19 +148,36 @@ $('live-enabled').addEventListener('change',resetLive);
 setInterval(checkLive,30000);
 
 let followRequest=0;
+async function readWhatsApp(){
+  const [tab]=await chrome.tabs.query({active:true,currentWindow:true}).catch(()=>[]);
+  return tab?.id!=null?chrome.tabs.sendMessage(tab.id,{type:'okada-active-chat'}).catch(()=>null):null;
+}
+function linkKey(userId,privateId){
+  return 'okadaChatLink:'+userId+':'+privateId;
+}
+
 async function followWhatsApp(){
   const active=session;
   if(!active||!$('follow-whatsapp').checked)return;
   const requestId=++followRequest;
-  const [tab]=await chrome.tabs.query({active:true,currentWindow:true}).catch(()=>[]);
-  const chat=tab?.id!=null?await chrome.tabs.sendMessage(tab.id,{type:'okada-active-chat'}).catch(()=>null):null;
+  const chat=await readWhatsApp();
+  const key=chat?.privateId?linkKey(active.userId,chat.privateId):null;
+  const linkedId=key?(await chrome.storage.local.get(key).catch(()=>({})))[key]:null;
   if(requestId!==followRequest||session!==active||!$('follow-whatsapp').checked)return;
-  const matches=chat?.phone?contacts.filter(item=>String(item.phone||'').replace(/\D/g,'')===chat.phone):[];
+  const matches=chat?.phone?contacts.filter(item=>String(item.phone||'').replace(/\D/g,'')===chat.phone):contacts.filter(item=>item.id===linkedId);
   const contact=matches.length===1?matches[0]:null;
   $('contact').disabled=Boolean(contact);
   $('search').disabled=Boolean(contact);
+  const issue={
+    'no-chat':'Abra uma conversa no WhatsApp Web.',
+    'unsupported':'A seleção automática está disponível para conversas individuais.',
+    'private-id':'Selecione o contato correto e clique em Vincular conversa aberta para reconhecer esta conversa nas próximas vezes.',
+    'ambiguous':'O WhatsApp mostrou telefones diferentes. Selecione o contato manualmente.',
+    'no-phone':'O WhatsApp não mostrou um telefone verificável. Selecione o contato manualmente.',
+  };
   $('follow-status').textContent=contact?'Conversa localizada na carteira do CRM.':
-    'Conversa sem correspondência por telefone. Selecione o contato abaixo para seguir manualmente.';
+    chat?.phone?'Telefone sem contato único na carteira. Selecione manualmente.':
+    issue[chat?.reason]||'Abra ou atualize a aba do WhatsApp Web para conectar o painel.';
   if($('contact').value!==(contact?.id||'')){
     $('search').value='';
     filterContacts();
@@ -170,6 +187,30 @@ async function followWhatsApp(){
     resetLive();
   }
 }
+
+$('link-chat').addEventListener('click',async()=>{
+  const active=session;
+  const contact=contacts.find(item=>item.id===$('contact').value);
+  if(!active||!contact){
+    $('follow-status').textContent='Selecione primeiro o contato correto no CRM.';
+    return;
+  }
+  const chat=await readWhatsApp();
+  if(!chat?.privateId||session!==active||$('contact').value!==contact.id){
+    $('follow-status').textContent='Abra uma conversa individual com identificador privado para vincular.';
+    return;
+  }
+  if(!confirm('Vincular a conversa aberta “'+chat.label+'” ao contato “'+(contact.display_name||'Cliente')+'” do CRM?'))return;
+  const current=await readWhatsApp();
+  if(current?.privateId!==chat.privateId||session!==active||$('contact').value!==contact.id)return;
+  try{
+    await chrome.storage.local.set({[linkKey(active.userId,chat.privateId)]:contact.id});
+    $('follow-whatsapp').checked=true;
+    void followWhatsApp();
+  }catch{
+    $('follow-status').textContent='Não foi possível salvar o vínculo.';
+  }
+});
 
 $('follow-whatsapp').addEventListener('change',()=>{
   followRequest++;
