@@ -90,9 +90,11 @@ video.media-preview{width:min(100%,580px)}
 <article class="panel"><h2 id="conversation-title">Histórico do cliente</h2><p class="sub" id="conversation-meta">Selecione uma conversa para acompanhar o atendimento.</p><p id="conversation-next-contact" class="note" hidden></p><div id="messages" class="messages"></div><details id="crm-checklist-panel" hidden><summary>Revisão do atendimento</summary><p id="crm-review-summary"></p><p class="note">Menções nas mensagens de texto do consultor no histórico exibido.</p><ul id="crm-checklist"></ul></details><p class="note">Acesso de supervisão somente leitura. O envio continua exclusivo do consultor responsável. Mídias compatíveis podem ser abertas neste histórico.</p></article></div></section>
 <section id="followup" class="section" hidden><h2>Follow-up e oportunidades</h2>
 <h3>Agenda da equipe</h3>
+<div class="toolbar"><label for="team-return-filter">Consultor da agenda</label><select id="team-return-filter"><option value="">Todos os consultores</option></select></div>
 <div class="follow-grid">
 <article class="panel"><h3>Atrasados <span id="master-overdue-count" class="badge">0</span></h3><div id="master-overdue" class="follow-list"></div></article>
 <article class="panel"><h3>Hoje <span id="master-today-count" class="badge">0</span></h3><div id="master-today" class="follow-list"></div></article>
+<article class="panel"><h3>Próximos dias <span id="master-upcoming-count" class="badge">0</span></h3><div id="master-upcoming" class="follow-list"></div></article>
 <article class="panel"><h3>Sem data combinada <span id="master-undated-count" class="badge">0</span></h3><div id="master-undated" class="follow-list"></div></article>
 </div>
 <h3>Conversas sem movimentação</h3><p class="sub">Faixas exclusivas pela última mensagem, sem presumir que o cliente aguarda retorno.</p><div class="follow-grid">
@@ -222,21 +224,23 @@ function setView(next){
 }
 function fillTable(id,rows){$(''+id).replaceChildren(...rows)}
 function td(text){return node('td',text)}
-function groupTeamReturns(contacts,today){
-  const overdue=[],due=[],undated=[];
+function groupTeamReturns(contacts,today,owner){
+  const overdue=[],due=[],upcoming=[],undated=[];
   for(const lead of contacts){
-    if(['ganho','perdido'].includes(lead.stage))continue;
+    if((owner&&lead.owner_consultant_id!==owner)||['ganho','perdido'].includes(lead.stage))continue;
     if(lead.next_contact_on&&lead.next_contact_on<today)overdue.push(lead);
     else if(lead.next_contact_on===today)due.push(lead);
-    else if(!lead.next_contact_on&&lead.stage!=='novo')undated.push(lead);
+    else if(lead.next_contact_on)upcoming.push(lead);
+    else if(lead.stage!=='novo')undated.push(lead);
   }
   overdue.sort((a,b)=>a.next_contact_on.localeCompare(b.next_contact_on));
-  return {overdue,due,undated};
+  upcoming.sort((a,b)=>a.next_contact_on.localeCompare(b.next_contact_on));
+  return {overdue,due,upcoming,undated};
 }
 function renderTeamReturns(){
   const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());
-  const {overdue,due,undated}=groupTeamReturns(leads,today);
-  for(const [id,contacts] of [['master-overdue',overdue],['master-today',due],['master-undated',undated]]){
+  const {overdue,due,upcoming,undated}=groupTeamReturns(leads,today,$('team-return-filter').value);
+  for(const [id,contacts] of [['master-overdue',overdue],['master-today',due],['master-upcoming',upcoming],['master-undated',undated]]){
     $(id+'-count').textContent=contacts.length;
     const items=contacts.map(lead=>{
       const button=node('button',null,'follow-button');
@@ -327,7 +331,7 @@ async function selectLead(lead){
   }catch(e){if(req===requestCounter)$('messages').replaceChildren(node('p',e.message,'empty'))}
 }
 function populateFilters(){
-  for(const id of ['consultant-filter','conversation-filter']){
+  for(const id of ['consultant-filter','conversation-filter','team-return-filter']){
     const sel=$(id);const prev=sel.value;
     sel.replaceChildren(node('option','Todos os consultores'));
     sel.children[0].value='';
@@ -354,6 +358,7 @@ for(const [value,label] of Object.entries(labels)){
   $('conversation-stage').append(option);
 }
 $('conversation-stage').addEventListener('change',renderConversations);
+$('team-return-filter').addEventListener('change',renderTeamReturns);
 $('search').addEventListener('input',renderConversations);
 $('open-filtered').addEventListener('click',()=>{$('conversation-filter').value=$('consultant-filter').value;setView('conversations')});
 load();
