@@ -54,3 +54,19 @@ function renderCrmChecklist(container, messages, summary, stage) {
         : 'Confira nos trechos se as informações registradas ficaram claras para o cliente.';
   summary.textContent = result + ' ' + covered + ' de ' + evidenceByTopic.length + ' temas mencionados. ' + coaching;
 }
+
+function renderCrmReturnStatus(target, lead, now = new Date()) {
+  const date = lead?.next_contact_on;
+  target.hidden = !lead || ['ganho','perdido'].includes(lead.stage);
+  let status = '';
+  if (!target.hidden) {
+    if (date) {
+      const today = new Intl.DateTimeFormat('sv-SE', {timeZone:'America/Sao_Paulo'}).format(now);
+      const label = date < today ? 'Retorno atrasado' : date === today ? 'Retorno hoje' : 'Retorno agendado';
+      status = label + ' · ' + date.split('-').reverse().join('/') + ' · ' + (lead.next_contact_action || '');
+    } else {
+      status = 'Sem data de retorno combinada.';
+    }
+  }
+  if (target.textContent !== status) target.textContent = status;
+}

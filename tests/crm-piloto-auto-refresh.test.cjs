@@ -541,6 +541,7 @@ test('salva data e ação do retorno no contato e mostra o compromisso na agenda
   await h.elements.get('save-next-contact').listeners.click();
   assert.equal(h.leads[0].next_contact_on,'2099-12-01');
   assert.match(h.elements.get('returns-upcoming').textContent,/Revisar a proposta/);
+  assert.match(h.elements.get('contact-return-status').textContent,/Retorno agendado · 01\/12\/2099 · Revisar a proposta/);
 });
 
 test('início alerta sobre atrasos, hoje e oportunidades sem data e exclui vendas encerradas',async()=>{
@@ -567,4 +568,19 @@ test('agenda abre a retomada e usa a data e ação salvas na consulta à IA',asy
   assert.equal(h.elements.get('ai-purpose').value,'retomada');
   await h.elements.get('ai-generate').listeners.click();
   assert.match(h.aiCalls[0].options.body.briefing,/2099-12-01.*Confirmar tecido escolhido/);
+});
+
+test('conversa informa o retorno atrasado, de hoje e fechado',async()=>{
+  const h=harness();
+  Object.assign(h.leads[0],{stage:'proposta',next_contact_on:'2020-01-01',next_contact_action:'Ligar'});
+  await settle();
+  await h.elements.get('leads').children[0].onclick();
+  const status=h.elements.get('contact-return-status');
+  assert.match(status.textContent,/Retorno atrasado/);
+  h.leads[0].next_contact_on=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());
+  h.intervals[0].cb();await settle();
+  assert.match(status.textContent,/Retorno hoje/);
+  h.leads[0].stage='ganho';
+  h.intervals[0].cb();await settle();
+  assert.equal(status.hidden,true);
 });
