@@ -22,6 +22,7 @@ function harness(userId,view='summary',leadId){
     else if(u.pathname==='/rest/v1/profiles')data=[{id:THIAGO,full_name:'Thiago Gomes',store:'Sierra',role:'consultant'}];
     else if(u.pathname==='/rest/v1/crm_pilot_leads'&&u.searchParams.get('id'))data=leadId===LEAD?[{id:LEAD,owner_consultant_id:THIAGO}]:[];
     else if(u.pathname==='/rest/v1/crm_pilot_leads')data=[{id:LEAD,owner_consultant_id:THIAGO,display_name:'Cliente real',stage:'novo'}];
+    else if(u.pathname==='/rest/v1/rpc/crm_thiago_builder_prospecting')data=[{lead_id:LEAD,display_name:'Construtora exemplo'}];
     else if(u.pathname==='/rest/v1/crm_pilot_messages')data=[{id:'m1',lead_id:LEAD,kind:'text',body:'Teste'}];
     return {ok:true,json:async()=>data};
   };
@@ -96,4 +97,17 @@ test('agenda Master agrupa retornos e permite filtrar pela carteira',()=>{
   const ids=result=>Object.values(result).map(items=>items.map(lead=>lead.id));
   assert.deepEqual(ids(group(contacts,'2026-11-25')),[['late'],['today'],['future'],['undated']]);
   assert.deepEqual(ids(group(contacts,'2026-11-25','thiago')),[['late'],[],['future'],[]]);
+});
+
+test('somente o Master consulta a prospecção semanal pela API gerencial',async()=>{
+  for(const [user,status] of [[BRUNO,200],[THIAGO,403]]){
+    const h=harness(user,'builders');
+    try{
+      const res=mockRes();
+      await handler(h.request,res);
+      assert.equal(res.statusCode,status);
+      if(status===200)assert.equal(res.data.contacts[0].lead_id,LEAD);
+      else assert.ok(h.calls.every(call=>!call.url.includes('/rpc/')));
+    }finally{h.restore()}
+  }
 });
