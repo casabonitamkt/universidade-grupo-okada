@@ -41,8 +41,9 @@ module.exports=async function handler(req,res){
   try{authorized=await verifyMaster(cfg,token)}catch{return reply(res,503,{error:'authentication_unavailable'})}
   if(!authorized)return reply(res,403,{error:'forbidden'});
   const view=typeof req.query?.view==='string'?req.query.view:'summary';
-  if(!['summary','messages'].includes(view))return reply(res,400,{error:'invalid_view'});
+  if(!['summary','messages','builders'].includes(view))return reply(res,400,{error:'invalid_view'});
   try{
+    if(view==='builders')return reply(res,200,{contacts:await rest(cfg,'rpc/crm_thiago_builder_prospecting',{})});
     // Somente os 4 consultores comerciais registrados, nunca usuários administrativos.
     const consultants=(await rest(cfg,'profiles',{
       select:'id,full_name,store,role',role:'eq.consultant',order:'full_name.asc',limit:'4'
@@ -65,7 +66,7 @@ module.exports=async function handler(req,res){
     if(!ids.length)return reply(res,200,{consultants:[],leads:[],slots:4,partial:false});
     // Máximo de 400 leads na visão; quando atingir o limite, sinalizar relatório parcial.
     const rows=await rest(cfg,'crm_pilot_leads',{
-      select:'id,display_name,phone,store,source,owner_consultant_id,stage,last_message_at,last_read_at,created_at,next_contact_on,next_contact_action',
+      select:'id,display_name,phone,store,source,owner_consultant_id,stage,last_message_at,last_read_at,created_at,next_contact_on,next_contact_action,is_builder',
       owner_consultant_id:'in.('+ids.join(',')+')',order:'last_message_at.desc.nullslast',limit:'401'
     });
     return reply(res,200,{consultants,leads:rows.slice(0,400),slots:4,partial:rows.length>400});

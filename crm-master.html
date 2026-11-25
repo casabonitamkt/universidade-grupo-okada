@@ -89,6 +89,11 @@ video.media-preview{width:min(100%,580px)}
 <div class="conversation-layout"><article class="panel"><h2>Conversas <span class="badge" id="conversation-count">0</span></h2><div class="conversation-list" id="conversation-list"></div></article>
 <article class="panel"><h2 id="conversation-title">Histórico do cliente</h2><p class="sub" id="conversation-meta">Selecione uma conversa para acompanhar o atendimento.</p><p id="conversation-next-contact" class="note" hidden></p><div id="messages" class="messages"></div><details id="crm-checklist-panel" hidden><summary>Revisão do atendimento</summary><p id="crm-review-summary"></p><p class="note">Menções nas mensagens de texto do consultor no histórico exibido.</p><ul id="crm-checklist"></ul></details><p class="note">Acesso de supervisão somente leitura. O envio continua exclusivo do consultor responsável. Mídias compatíveis podem ser abertas neste histórico.</p></article></div></section>
 <section id="followup" class="section" hidden><h2>Follow-up e oportunidades</h2>
+<article class="panel">
+<h3>Prospecção do Thiago · Construtoras</h3>
+<p id="master-builder-progress" role="status">Aguardando consulta.</p>
+<div id="master-builder-list" class="follow-list"></div>
+</article>
 <h3>Agenda da equipe</h3>
 <div class="toolbar"><label for="team-return-filter">Consultor da agenda</label><select id="team-return-filter"><option value="">Todos os consultores</option></select></div>
 <div class="follow-grid">
@@ -221,6 +226,22 @@ function setView(next){
   const titles={overview:'CRM Master',consultants:'Equipe de vendas',conversations:'Conversas dos consultores',followup:'Follow-up da equipe',results:'Resultados comerciais'};
   $('page-title').textContent=titles[next];
   if(next==='conversations')renderConversations();
+  if(next==='followup')loadBuilderProspecting();
+}
+async function loadBuilderProspecting(){
+  const status=$('master-builder-progress');
+  status.textContent='Carregando…';
+  try{
+    const result=await api('/api/crm-master?view=builders');
+    const contacts=result.contacts||[];
+    status.textContent=contacts.length+' de 5 construtoras distintas · Semana de segunda a domingo, horário de Umuarama.';
+    $('master-builder-list').replaceChildren(...contacts.map(row=>{
+      const lead=leads.find(item=>item.id===row.lead_id);
+      const entry=node(lead?'button':'p',row.display_name||'Construtora','follow-button');
+      if(lead){entry.type='button';entry.onclick=()=>selectLead(lead);}
+      return entry;
+    }));
+  }catch(error){status.textContent=error.message;}
 }
 function fillTable(id,rows){$(''+id).replaceChildren(...rows)}
 function td(text){return node('td',text)}
@@ -300,7 +321,7 @@ async function selectLead(lead){
   for(const url of mediaUrls.values())URL.revokeObjectURL(url);mediaUrls.clear();
   selectedLead=lead.id;setView('conversations');renderConversations();
   $('conversation-title').textContent=lead.display_name||'Cliente';
-  $('conversation-meta').textContent=consultantName(lead.owner_consultant_id)+' · '+(lead.phone||'Sem telefone')+' · '+(labels[lead.stage]||'Novo contato');
+  $('conversation-meta').textContent=consultantName(lead.owner_consultant_id)+' · '+(lead.phone||'Sem telefone')+' · '+(labels[lead.stage]||'Novo contato')+(lead.is_builder?' · Construtora':'');
   renderCrmReturnStatus($('conversation-next-contact'),lead);
   $('messages').replaceChildren(node('p','Carregando histórico...','empty'));
   $('crm-checklist-panel').hidden=true;

@@ -9,7 +9,7 @@ const inlineScripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/
 const js=inlineScripts.at(-1)?.[1];
 assert.ok(js && js.includes('REFRESH_MS=15000'),'CRM deve conter script de atualização automática');
 
-function harness({send,generate,clipboard}={}){
+function harness({send,generate,clipboard,userId='thiago-test',builders=[]}={}){
   const leads=[{id:'lead-1',display_name:'Cliente Um',phone:'5544999991111',stage:'novo'}];
   const messages={'lead-1':[{id:'msg-1',direction:'entrada',kind:'text',body:'Mensagem original',event_at:'2026-10-30T12:00:00Z'}]};
   const requests=[];
@@ -46,12 +46,16 @@ function harness({send,generate,clipboard}={}){
   const localStorage={getItem:()=>null,removeItem:()=>{}};
   const sessionStorage={getItem:()=>null,removeItem:()=>{}};
   const supabase={createClient:()=>({
-    auth:{getUser:async()=>({data:{user:{id:'thiago-test'}},error:null}),getSession:async()=>({data:{session:{access_token:'unit-token'}},error:null})},
+    auth:{getUser:async()=>({data:{user:{id:userId}},error:null}),getSession:async()=>({data:{session:{access_token:'unit-token'}},error:null})},
     functions:{invoke:async(name,options)=>{
       aiCalls.push({name,options});
       if(generate)return generate();
       return {data:{analysis:'Situação:\nCliente pediu uma referência.\nObjetivo comercial:\nIdentificar modelo.\nMensagem para WhatsApp:\nVocê consegue enviar a referência do sofá?\nCuidado:\nNão presumir modelo.'},error:null};
     }},
+    rpc:async name=>{
+      assert.equal(name,'crm_thiago_builder_prospecting');
+      return {data:builders,error:null};
+    },
     from:table=>{
       const q={filter:null,
         updated:null,
@@ -583,4 +587,15 @@ test('conversa informa o retorno atrasado, de hoje e fechado',async()=>{
   h.leads[0].stage='ganho';
   h.intervals[0].cb();await settle();
   assert.equal(status.hidden,true);
+});
+
+test('Thiago marca a conversa e vê a meta de cinco no follow-up',async()=>{
+  const h=harness({userId:'c6e732c0-30d8-4d70-85b1-573a853f71e8',builders:[{lead_id:'lead-1',display_name:'Construtora exemplo'}]});
+  await settle();
+  assert.equal(h.elements.get('builder-prospecting').hidden,false);
+  assert.match(h.elements.get('builder-progress').textContent,/1 de 5 construtoras distintas/);
+  await h.elements.get('leads').children[0].onclick();
+  await h.elements.get('toggle-builder').listeners.click();
+  assert.equal(h.leads[0].is_builder,true);
+  assert.equal(h.elements.get('toggle-builder').attrs['aria-pressed'],'true');
 });

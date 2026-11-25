@@ -381,6 +381,9 @@
             <button id="save-next-contact" type="button" class="panel-button">Salvar retorno</button>
             <small>Para remover o compromisso, limpe os dois campos e salve.</small>
           </div>
+          <div class="field">
+            <button id="toggle-builder" type="button" class="panel-button" aria-pressed="false">Marcar como construtora</button>
+          </div>
           <p class="small-note" id="action-status" role="status"></p>
           <p class="small-note">Use o campo “Enviar mensagem” para registrar o envio no histórico. A sincronização de envios pelo aplicativo está em validação.</p>
         </section>
@@ -451,6 +454,11 @@
 
     <section id="followup-panel" class="crm-workspace" hidden aria-label="Acompanhamento de follow-ups">
       <div class="workspace-heading"><div><span class="eyebrow">GESTÃO DE CARTEIRA</span><h2>Follow-up e recuperação</h2><p>Contatos sem movimentação recente. Confirme no histórico se o próximo contato é necessário.</p></div><button type="button" class="workspace-button" data-open-conversations>Ir às conversas ↗</button></div>
+      <section id="builder-prospecting" aria-label="Prospecção de construtoras" hidden>
+        <h3>Construtoras contatadas nesta semana</h3>
+        <p id="builder-progress" role="status"></p>
+        <div id="builder-list" class="followup-list"></div>
+      </section>
       <section aria-label="Agenda de retornos">
         <h3>Retornos combinados</h3>
         <div class="followup-grid">
@@ -1228,6 +1236,9 @@ async function sendMessage(){
   }
 }
 function clearInbox(){
+  builderReportRequest++;
+  el('builder-prospecting').hidden=true;
+  el('builder-list').replaceChildren();
   el('crm-checklist-panel').hidden=true;
   el('crm-checklist').replaceChildren();
   disposeMedia();
@@ -1362,6 +1373,32 @@ async function refreshMessages(lead,manual=false){
     return false;
   }
 }
+const THIAGO_PROSPECTING_ID='c6e732c0-30d8-4d70-85b1-573a853f71e8';
+let builderReportRequest=0;
+function showBuilderLabel(lead){
+  const toggle=el('toggle-builder');
+  toggle.textContent=lead.is_builder?'Remover marcação de construtora':'Marcar como construtora';
+  toggle.setAttribute('aria-pressed',String(Boolean(lead.is_builder)));
+}
+async function refreshBuilderReport(){
+  const request=++builderReportRequest;
+  try{
+    const {data,error}=await sb.rpc('crm_thiago_builder_prospecting');
+    if(request!==builderReportRequest)return;
+    if(error)throw error;
+    const rows=data||[];
+    el('builder-progress').textContent=rows.length+' de 5 construtoras distintas · Semana de segunda a domingo, horário de Umuarama.';
+    const links=rows.map(row=>{
+      const lead=leads.find(item=>item.id===row.lead_id);
+      const entry=node(lead?'button':'p',row.display_name||'Construtora');
+      if(lead){entry.type='button';entry.className='followup-item';entry.onclick=()=>{navigateCRM('conversas');openLead(lead);};}
+      return entry;
+    });
+    el('builder-list').replaceChildren(...links);
+  }catch{
+    if(request===builderReportRequest)el('builder-progress').textContent='Não foi possível carregar a prospecção agora.';
+  }
+}
 function showLeadTools(lead){
   selectedLeadId=lead.id;
   el('contact-tools').hidden=false;
@@ -1377,6 +1414,7 @@ function showLeadTools(lead){
       summary.append(whatsapp);
     }
   }
+  showBuilderLabel(lead);
   prepareComposer(lead);
   el('lead-stage').value=lead.stage||'novo';
   el('lead-notes').value=lead.notes||'';
@@ -1389,22 +1427,24 @@ function showLeadTools(lead){
 async function updateLeadFields(changes){
   if(!selected)return;
   const id=selected;
-  const buttons=[el('save-notes'),el('lead-stage'),el('save-next-contact')];
+  const buttons=[el('save-notes'),el('lead-stage'),el('save-next-contact'),el('toggle-builder')];
   buttons.forEach(b=>b.disabled=true);
   el('action-status').textContent='Salvando...';
   try{
     const {data,error}=await sb.from('crm_pilot_leads').update(changes)
-      .eq('id',id).select('id,stage,notes,next_contact_on,next_contact_action').single();
+      .eq('id',id).select('id,stage,notes,next_contact_on,next_contact_action,is_builder').single();
     if(error)throw error;
     if(!data || selected!==id)return;
     const current=leads.find(l=>l.id===id);
     if(current){
       Object.assign(current,data);
+      showBuilderLabel(current);
       renderCrmReturnStatus(el('contact-return-status'),current);
     }
     leadSignature='';
     renderLeads(leads.slice());
     el('action-status').textContent='Alteração salva.';
+    if(Object.hasOwn(changes,'is_builder')&&!el('builder-prospecting').hidden)await refreshBuilderReport();
     if(Object.hasOwn(changes,'stage')&&current)await refreshMessages(current);
   }catch(error){
     el('action-status').textContent='Não foi possível salvar: '+error.message;
@@ -1437,10 +1477,12 @@ async function load(){
       return;
     }
     const {data,error}=await sb.from('crm_pilot_leads')
-      .select('id,display_name,phone,stage,notes,last_message_at,last_read_at,next_contact_on,next_contact_action').eq('owner_consultant_id',user.id)
+      .select('id,display_name,phone,stage,notes,last_message_at,last_read_at,next_contact_on,next_contact_action,is_builder').eq('owner_consultant_id',user.id)
       .order('last_message_at',{ascending:false,nullsFirst:false}).limit(100);
     if(error)throw error;
     renderLeads(data||[]);
+    el('builder-prospecting').hidden=user.id!==THIAGO_PROSPECTING_ID;
+    if(!el('builder-prospecting').hidden)await refreshBuilderReport();
     renderBusinessPanels();
     el('status').textContent=leads.length+' contato(s) atribuído(s) à sua conta.';
     if(selected){
@@ -1480,6 +1522,10 @@ el('search').addEventListener('input',applyContactFilter);
 el('filter-stage').addEventListener('change',applyContactFilter);
 el('lead-stage').addEventListener('change',()=>updateLeadFields({stage:el('lead-stage').value}));
 el('save-notes').addEventListener('click',()=>updateLeadFields({notes:el('lead-notes').value.trim()}));
+el('toggle-builder').addEventListener('click',()=>{
+  const lead=leads.find(item=>item.id===selected);
+  if(lead)return updateLeadFields({is_builder:!lead.is_builder});
+});
 el('save-next-contact').addEventListener('click',()=>{
   const date=el('next-contact-on').value;
   const action=el('next-contact-action').value.trim();
