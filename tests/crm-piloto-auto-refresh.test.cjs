@@ -542,3 +542,18 @@ test('salva data e ação do retorno no contato e mostra o compromisso na agenda
   assert.equal(h.leads[0].next_contact_on,'2099-12-01');
   assert.match(h.elements.get('returns-upcoming').textContent,/Revisar a proposta/);
 });
+
+test('início alerta sobre atrasos, hoje e oportunidades sem data e exclui vendas encerradas',async()=>{
+  const h=harness();
+  const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());
+  h.leads.push(
+    {id:'late',display_name:'Retorno atrasado',stage:'proposta',next_contact_on:'2020-01-01',next_contact_action:'Revisar proposta'},
+    {id:'today',display_name:'Retorno de hoje',stage:'negociacao',next_contact_on:today,next_contact_action:'Confirmar tecido'},
+    {id:'undated',display_name:'Retorno sem data',stage:'em_atendimento'},
+    {id:'closed',display_name:'Venda encerrada',stage:'ganho',next_contact_on:'2020-01-01'}
+  );
+  await settle();
+  assert.match(h.elements.get('return-alert-summary').textContent,/1 atrasado.*1 hoje.*1 sem data/);
+  assert.match(h.elements.get('returns-unscheduled').textContent,/Retorno sem data/);
+  assert.doesNotMatch(h.elements.get('returns-overdue').textContent,/Venda encerrada/);
+});
