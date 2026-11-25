@@ -97,3 +97,37 @@ test('agenda Master agrupa retornos e permite filtrar pela carteira',()=>{
   assert.deepEqual(ids(group(contacts,'2026-11-25')),[['late'],['today'],['future'],['undated']]);
   assert.deepEqual(ids(group(contacts,'2026-11-25','thiago')),[['late'],[],['future'],[]]);
 });
+
+test('conversões Meta exige diretoria, valida e guarda apenas o ID da fonte',async()=>{
+  const settings=require('../api/crm-meta-settings.js');
+  const admin=harness(BRUNO);
+  const upstream=global.fetch;
+  let saved=null;
+  global.fetch=async(url,opts)=>{
+    if(!String(url).includes('/crm_meta_settings?'))return upstream(url,opts);
+    if(opts.method==='POST')saved=JSON.parse(opts.body);
+    return {ok:true,json:async()=>saved?[saved]:[]};
+  };
+  try{
+    let out=mockRes();
+    await settings({method:'PUT',headers:{},body:{dataset_id:'123456'}},out);
+    assert.equal(out.statusCode,401);
+    out=mockRes();
+    await settings({...admin.request,method:'PUT',body:{dataset_id:'abc'}},out);
+    assert.equal(out.statusCode,400);
+    out=mockRes();
+    await settings({...admin.request,method:'PUT',body:{dataset_id:'123456',access_token:'never-store'}},out);
+    assert.equal(out.statusCode,200);
+    assert.deepEqual(saved,{id:1,dataset_id:'123456'});
+    out=mockRes();
+    await settings(admin.request,out);
+    assert.deepEqual(out.data,{dataset_id:'123456'});
+  }finally{admin.restore()}
+  const consultant=harness(THIAGO);
+  try{
+    const out=mockRes();
+    await settings(consultant.request,out);
+    assert.equal(out.statusCode,403);
+    assert.ok(consultant.calls.every(call=>!call.url.includes('crm_meta_settings')));
+  }finally{consultant.restore()}
+});
