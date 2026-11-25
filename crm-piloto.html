@@ -371,7 +371,7 @@
           <p class="small-note">Use o campo “Enviar mensagem” para registrar o envio no histórico. A sincronização de envios pelo aplicativo está em validação.</p>
         </section>
           <details id="crm-checklist-panel" hidden>
-            <summary>Checklist do atendimento</summary>
+            <summary>Revisão do atendimento</summary><p id="crm-review-summary"></p>
             <p class="small-note">Menções nas mensagens de texto do consultor no histórico exibido.</p>
             <ul id="crm-checklist"></ul>
           </details>
@@ -1242,7 +1242,7 @@ async function refreshMessages(lead,manual=false){
     // Consulta as 200 mensagens mais recentes e exibe em ordem cronológica.
     const MEDIA_NAMES={image:'📷 Imagem recebida',audio:'🎤 Áudio recebido',video:'🎬 Vídeo recebido',document:'📄 Documento recebido',sticker:'Figurinha recebida',location:'📍 Localização recebida',unknown:'Mensagem com formato não identificado'};
     const history=(data||[]).slice().reverse();
-    renderCrmChecklist(el('crm-checklist'),history);
+    renderCrmChecklist(el('crm-checklist'),history,el('crm-review-summary'),lead.stage);
     el('crm-checklist-panel').hidden=false;
     const rows=history.map(m=>{
       const content=m.kind==='text'?(m.body||'Mensagem sem texto'):
@@ -1335,6 +1335,7 @@ async function updateLeadField(field,value){
     leadSignature='';
     renderLeads(leads.slice());
     el('action-status').textContent='Alteração salva.';
+    if(field==='stage'&&current)await refreshMessages(current);
   }catch(error){
     el('action-status').textContent='Não foi possível salvar: '+error.message;
   }finally{buttons.forEach(b=>b.disabled=false)}

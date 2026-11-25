@@ -451,6 +451,8 @@ test('checklist registra menções do consultor e mantém fala do cliente fora d
   assert.match(checklist,/Medidas · mencionadoPode enviar as medidas/);
   assert.match(checklist,/Prazo · sem menção/);
   assert.doesNotMatch(checklist,/Quero saber o prazo/);
+  assert.match(h.elements.get('crm-review-summary').textContent,/1 de 10 temas mencionados/);
+  assert.match(h.elements.get('crm-review-summary').textContent,/data de retorno/);
 });
 
 test('pergunta avulsa usa o contexto sem preencher o campo de envio',async()=>{

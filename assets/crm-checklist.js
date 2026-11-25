@@ -13,21 +13,44 @@ const CRM_CHECKLIST = [
   ['Próximo passo', /\b(?:proximo passo|posso retornar|vamos agendar|combinamos)\b/],
 ];
 
-function renderCrmChecklist(container, messages) {
-  const outgoing = messages.filter(message => message.direction === 'saida' && message.kind === 'text' && message.body);
-  const rows = CRM_CHECKLIST.map(([topic, pattern]) => {
-    const match = outgoing.find(message => pattern.test(message.body.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()));
+function renderCrmChecklist(container, messages, summary, stage) {
+  const outgoing = messages
+    .filter(message => message.direction === 'saida' && message.kind === 'text' && typeof message.body === 'string')
+    .map(message => ({
+      body: message.body.trim(),
+      normalized: message.body.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase(),
+    }));
+  const evidenceByTopic = CRM_CHECKLIST.map(([topic, pattern]) => ({
+    topic,
+    evidence: outgoing.find(message => pattern.test(message.normalized))?.body,
+  }));
+  const rows = evidenceByTopic.map(({topic, evidence}) => {
     const item = document.createElement('li');
     const status = document.createElement('strong');
-    status.textContent = topic + (match ? ' · mencionado' : ' · sem menção no histórico exibido');
+    status.textContent = topic + (evidence ? ' · mencionado' : ' · sem menção no histórico exibido');
     item.append(status);
-    if (match) {
-      const evidence = document.createElement('blockquote');
-      const body = match.body.trim();
-      evidence.textContent = body.length > 240 ? body.slice(0, 240) + '…' : body;
-      item.append(evidence);
+    if (evidence) {
+      const quote = document.createElement('blockquote');
+      quote.textContent = evidence.length > 240 ? evidence.slice(0, 240) + '…' : evidence;
+      item.append(quote);
     }
     return item;
   });
   container.replaceChildren(...rows);
+
+  if (!summary) return;
+  const covered = evidenceByTopic.filter(item => item.evidence).length;
+  const next = evidenceByTopic.at(-1);
+  const missing = evidenceByTopic.find(item => !item.evidence);
+  const closed = stage === 'ganho' || stage === 'perdido';
+  const result = {ganho: 'Venda registrada como concluída.', perdido: 'Venda registrada como perdida.'}[stage]
+    || 'Atendimento em aberto.';
+  const coaching = !outgoing.length
+    ? 'Ainda não há mensagens de texto do consultor no histórico exibido.'
+    : !closed && !next.evidence
+      ? 'Para revisar: confirme se ficou combinado um próximo passo e uma data de retorno.'
+      : missing
+        ? 'Para revisar: verifique se faz sentido abordar ' + missing.topic.toLocaleLowerCase('pt-BR') + '.'
+        : 'Confira nos trechos se as informações registradas ficaram claras para o cliente.';
+  summary.textContent = result + ' ' + covered + ' de ' + evidenceByTopic.length + ' temas mencionados. ' + coaching;
 }
