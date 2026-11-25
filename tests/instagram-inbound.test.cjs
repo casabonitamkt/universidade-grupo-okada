@@ -10,6 +10,8 @@ const vars = {
   INSTAGRAM_WEBHOOK_VERIFY_TOKEN:'test-token',
   INSTAGRAM_PILOT_ACCOUNT_ID:'100',
   INSTAGRAM_PILOT_TEST_SENDER_ID:'200',
+  INSTAGRAM_PILOT_SIERRA_ACCOUNT_ID:'300',
+  INSTAGRAM_PILOT_SIERRA_TEST_SENDER_ID:'400',
   INSTAGRAM_APP_SECRET:'test-secret',
 };
 async function request(options) {
@@ -36,9 +38,9 @@ async function request(options) {
     }
   }
 }
-const payload = (sender, extra={}) => ({
+const payload = (sender, extra={}, recipient='100') => ({
   object:'instagram',
-  entry:[{id:'100',messaging:[{sender:{id:sender},recipient:{id:'100'},message:{mid:'internal-1',text:'Private content',...extra}}]}],
+  entry:[{id:recipient,messaging:[{sender:{id:sender},recipient:{id:recipient},message:{mid:'internal-1',text:'Private content',...extra}}]}],
 });
 test('requires explicit enablement and validates the Meta challenge',async()=>{
   const query={'hub.mode':'subscribe','hub.verify_token':'test-token','hub.challenge':'123456'};
@@ -52,7 +54,13 @@ test('rejects unsigned, oversized and invalid events',async()=>{
   assert.equal((await request({raw:' '.repeat(256*1024+1)})).code,413);
 });
 test('acknowledges signed events and logs only a test receipt without identifiers or text',async()=>{
-  assert.deepEqual((await request({body:payload('200')})).logs,[['instagram_internal_direct_received']]);
+  assert.deepEqual((await request({body:payload('200')})).logs,[['instagram_internal_direct_received','casa_bonita']]);
   assert.deepEqual((await request({body:payload('201')})).logs,[]);
   assert.deepEqual((await request({body:payload('200',{is_echo:true})})).logs,[]);
+});
+
+test('confirms Sierra independently and ignores swapped senders and Outlet as a receiver',async()=>{
+  assert.deepEqual((await request({body:payload('400',{},'300')})).logs,[['instagram_internal_direct_received','sierra']]);
+  assert.deepEqual((await request({body:payload('200',{},'300')})).logs,[]);
+  assert.deepEqual((await request({body:payload('400',{},'500')})).logs,[]);
 });

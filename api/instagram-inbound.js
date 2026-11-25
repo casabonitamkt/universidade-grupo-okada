@@ -45,10 +45,14 @@ module.exports = async function handler(req, res) {
     return res.status(405).end();
   }
 
-  const account = env.INSTAGRAM_PILOT_ACCOUNT_ID;
-  const tester = env.INSTAGRAM_PILOT_TEST_SENDER_ID;
+  const pairs = [
+    { account:env.INSTAGRAM_PILOT_ACCOUNT_ID, tester:env.INSTAGRAM_PILOT_TEST_SENDER_ID, label:'casa_bonita' },
+    { account:env.INSTAGRAM_PILOT_SIERRA_ACCOUNT_ID, tester:env.INSTAGRAM_PILOT_SIERRA_TEST_SENDER_ID, label:'sierra' },
+  ].filter(({account,tester})=>account||tester);
   const secret = env.INSTAGRAM_APP_SECRET;
-  if (!secret || !ACCOUNT_ID.test(account || '') || !ACCOUNT_ID.test(tester || '') || account === tester)
+  if(!secret||!pairs.length||pairs.some(({account,tester})=>
+    !ACCOUNT_ID.test(account||'')||!ACCOUNT_ID.test(tester||'')||account===tester)||
+    new Set(pairs.map(({account})=>account)).size!==pairs.length)
     return res.status(503).end();
 
   let raw;
@@ -69,9 +73,11 @@ module.exports = async function handler(req, res) {
     return res.status(400).end();
   }
   const entries = event?.object === 'instagram' && Array.isArray(event.entry) ? event.entry : [];
-  const received = entries.some(entry => entry?.id === account && Array.isArray(entry.messaging) &&
-    entry.messaging.some(item => item?.sender?.id === tester && item?.recipient?.id === account &&
-      typeof item.message?.mid === 'string' && !item.message.is_echo));
-  if (received) console.info('instagram_internal_direct_received');
+  for(const {account,tester,label} of pairs){
+    const received=entries.some(entry=>entry?.id===account&&Array.isArray(entry.messaging)&&
+      entry.messaging.some(item=>item?.sender?.id===tester&&item?.recipient?.id===account&&
+        typeof item.message?.mid==='string'&&!item.message.is_echo));
+    if(received)console.info('instagram_internal_direct_received',label);
+  }
   return res.status(204).end();
 };
