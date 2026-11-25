@@ -599,6 +599,12 @@ const FOLLOWUP_ACTIONS={
   followup:'Retome um ponto concreto da conversa e combine quando voltar a falar.',
   negociacao:'Confirme o que falta para a decisão e combine uma data de retorno.',
 };
+function openFollowupLead(lead){
+  navigateCRM('conversas');
+  openLead(lead);
+  el('ai-purpose').value=['proposta','negociacao'].includes(lead.stage)?'followup':'retomada';
+  checkCopilotContext();
+}
 function renderReturnAgenda(){
   const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());
   const active=leads.filter(lead=>!['novo','ganho','perdido'].includes(lead.stage)||(
@@ -626,7 +632,7 @@ function renderReturnAgenda(){
       const date=lead.next_contact_on?.split('-').reverse().join('/')||STAGE_LABELS[lead.stage];
       const action=lead.next_contact_action||'Combine um próximo passo e uma data com o cliente.';
       button.append(node('strong',lead.display_name||'Cliente'),node('small',date),node('span',action));
-      button.addEventListener('click',()=>{navigateCRM('conversas');openLead(lead);});
+      button.addEventListener('click',()=>openFollowupLead(lead));
       return button;
     });
     el(id).replaceChildren(...(items.length?items:[node('p','Sem retornos.')]));
@@ -660,12 +666,7 @@ function renderBusinessPanels(){
       const stage=node('small',(STAGE_LABELS[l.stage]||'Novo contato')+' · '+(l.last_message_at?new Date(l.last_message_at).toLocaleDateString('pt-BR'):'Sem mensagem registrada'));
       const action=node('span',FOLLOWUP_ACTIONS[l.stage]||FOLLOWUP_ACTIONS.em_atendimento);
       b.append(name,stage,action);
-      b.addEventListener('click',()=>{
-        navigateCRM('conversas');
-        openLead(l);
-        el('ai-purpose').value='followup';
-        checkCopilotContext();
-      });
+      b.addEventListener('click',()=>openFollowupLead(l));
       return b;
     });
     if(!nodes.length){const empty=node('p','Nenhum contato nesta faixa.');empty.className='empty-state';nodes.push(empty)}
@@ -728,6 +729,9 @@ function buildCopilotBriefing(lead){
     'Se houver objeção, reconheça a preocupação e sugira uma ação adequada ao contexto. Em retomadas, use um detalhe real do atendimento. Recomende uma próxima ação concreta e informe se um dado depender da leitura de um anexo.',
     'Etapa atual: '+(STAGE_LABELS[lead.stage]||'Novo contato'),
     'Observações registradas: '+redactCrmContext(lead.notes||'Nenhuma').slice(0,450),
+    (lead.next_contact_on&&lead.next_contact_action&&!['ganho','perdido'].includes(lead.stage))
+      ? 'Retorno registrado no CRM: '+lead.next_contact_on+' · '+redactCrmContext(lead.next_contact_action).slice(0,300)+'. Use a data e a ação como referência e confira se mensagens mais recentes mudaram o combinado.'
+      : 'Agenda do CRM: sem compromisso ativo registrado.',
     'Últimas mensagens em ordem cronológica. Para mídias, conhecemos somente o tipo, não seu conteúdo:'];
   const messages=[];
   for(const row of renderedMessages.slice(-12)){

@@ -557,3 +557,14 @@ test('início alerta sobre atrasos, hoje e oportunidades sem data e exclui venda
   assert.match(h.elements.get('returns-unscheduled').textContent,/Retorno sem data/);
   assert.doesNotMatch(h.elements.get('returns-overdue').textContent,/Venda encerrada/);
 });
+
+test('agenda abre a retomada e usa a data e ação salvas na consulta à IA',async()=>{
+  const h=harness();
+  Object.assign(h.leads[0],{stage:'em_atendimento',next_contact_on:'2099-12-01',next_contact_action:'Confirmar tecido escolhido'});
+  await settle();
+  h.elements.get('returns-upcoming').children[0].listeners.click();
+  await settle();
+  assert.equal(h.elements.get('ai-purpose').value,'retomada');
+  await h.elements.get('ai-generate').listeners.click();
+  assert.match(h.aiCalls[0].options.body.briefing,/2099-12-01.*Confirmar tecido escolhido/);
+});
