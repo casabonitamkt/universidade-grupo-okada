@@ -70,7 +70,7 @@ function redact(value){
 
 function loadContacts({accessToken,userId}){
   const query=new URLSearchParams({
-    select:'id,display_name,stage,next_contact_on,next_contact_action',
+    select:'id,display_name,phone,stage,next_contact_on,next_contact_action',
     owner_consultant_id:'eq.'+userId,order:'last_message_at.desc.nullslast',limit:'100',
   });
   return request('/rest/v1/crm_pilot_leads?'+query,{accessToken});
@@ -140,6 +140,38 @@ async function checkLive(){
 $('live-enabled').addEventListener('change',resetLive);
 setInterval(checkLive,30000);
 
+let followRequest=0;
+async function followWhatsApp(){
+  const active=session;
+  if(!active||!$('follow-whatsapp').checked)return;
+  const requestId=++followRequest;
+  const [tab]=await chrome.tabs.query({active:true,currentWindow:true}).catch(()=>[]);
+  const chat=tab?.id!=null?await chrome.tabs.sendMessage(tab.id,{type:'okada-active-chat'}).catch(()=>null):null;
+  if(requestId!==followRequest||session!==active||!$('follow-whatsapp').checked)return;
+  const matches=chat?.phone?contacts.filter(item=>String(item.phone||'').replace(/\D/g,'')===chat.phone):[];
+  const contact=matches.length===1?matches[0]:null;
+  $('follow-status').textContent=contact?'Conversa localizada na carteira do CRM.':
+    'Conversa sem correspondência por telefone. Desmarque esta opção para selecionar manualmente.';
+  if($('contact').value!==(contact?.id||'')){
+    $('search').value='';
+    filterContacts();
+    $('contact').value=contact?.id||'';
+    $('question').value='';
+    clearResult();
+    resetLive();
+  }
+}
+
+$('follow-whatsapp').addEventListener('change',()=>{
+  followRequest++;
+  const enabled=$('follow-whatsapp').checked;
+  $('contact').disabled=enabled;
+  $('search').disabled=enabled;
+  $('follow-status').textContent='';
+  if(enabled)void followWhatsApp();
+});
+setInterval(followWhatsApp,900);
+
 $('theme').addEventListener('click',()=>{
   const dark=document.documentElement.dataset.theme!=='dark';
   document.documentElement.dataset.theme=dark?'dark':'light';
@@ -162,6 +194,9 @@ $('login').addEventListener('submit',async event=>{
     $('login').hidden=true;
     $('workspace').hidden=false;
     filterContacts();
+    $('contact').disabled=$('follow-whatsapp').checked;
+    $('search').disabled=$('follow-whatsapp').checked;
+    void followWhatsApp();
     $('status').textContent=contacts.length?'Selecione o mesmo contato aberto no WhatsApp.':'Sua conta não tem contatos atribuídos no CRM.';
   }catch{
     endSession();
