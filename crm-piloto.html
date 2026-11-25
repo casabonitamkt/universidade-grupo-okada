@@ -321,6 +321,10 @@
         </div>
         <div class="followup-alert-footer"><span id="followup-alert-summary" role="status">Verificando sua carteira...</span><div id="followup-alert-quicklist" class="followup-alert-quicklist"></div></div>
       </section>
+      <div class="overview-actions" id="return-alert" hidden>
+        <strong>Agenda de retornos</strong><span id="return-alert-summary" role="status"></span>
+        <button id="open-return-agenda" type="button">Ver agenda ↗</button>
+      </div>
       <div class="overview-actions"><strong>Central de conversas</strong><span>WhatsApp conectado · atualizações automáticas</span><button id="view-all-conversations" type="button">Ver todas as conversas ↗</button></div>
     </section>
     <div class="layout">
@@ -452,6 +456,7 @@
           <article class="followup-column"><h3>Atrasados</h3><div id="returns-overdue" class="followup-list"></div></article>
           <article class="followup-column"><h3>Hoje</h3><div id="returns-today" class="followup-list"></div></article>
           <article class="followup-column"><h3>Próximos dias</h3><div id="returns-upcoming" class="followup-list"></div></article>
+          <article class="followup-column"><h3>Sem data combinada</h3><div id="returns-unscheduled" class="followup-list"></div></article>
         </div>
       </section>
       <h3>Conversas sem movimentação</h3>
@@ -583,6 +588,7 @@ function renderFollowupAlerts(groups){
 }
 document.querySelectorAll('[data-followup-alert]').forEach(button=>button.addEventListener('click',()=>navigateCRM('followup')));
 el('open-followup-alerts').addEventListener('click',()=>navigateCRM('followup'));
+el('open-return-agenda').addEventListener('click',()=>navigateCRM('followup'));
 
 const FOLLOWUP_ACTIONS={
   novo:'Se ainda não se apresentou, diga seu nome. Confirme se o cliente está iniciando um projeto ou renovando um ambiente.',
@@ -595,20 +601,31 @@ const FOLLOWUP_ACTIONS={
 };
 function renderReturnAgenda(){
   const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());
-  const scheduled=leads.filter(lead=>lead.next_contact_on&&!['ganho','perdido'].includes(lead.stage))
+  const active=leads.filter(lead=>!['novo','ganho','perdido'].includes(lead.stage)||(
+    lead.stage==='novo'&&lead.next_contact_on));
+  const scheduled=active.filter(lead=>lead.next_contact_on)
     .sort((a,b)=>a.next_contact_on.localeCompare(b.next_contact_on));
+  const overdue=scheduled.filter(lead=>lead.next_contact_on<today);
+  const dueToday=scheduled.filter(lead=>lead.next_contact_on===today);
+  const unscheduled=active.filter(lead=>!lead.next_contact_on);
+  const alert=el('return-alert');
+  alert.hidden=!(overdue.length||dueToday.length||unscheduled.length);
+  const alertText=overdue.length+' atrasado(s) · '+dueToday.length+' hoje · '+unscheduled.length+' sem data combinada';
+  if(el('return-alert-summary').textContent!==alertText)el('return-alert-summary').textContent=alertText;
   const groups=[
-    ['returns-overdue',lead=>lead.next_contact_on<today],
-    ['returns-today',lead=>lead.next_contact_on===today],
-    ['returns-upcoming',lead=>lead.next_contact_on>today],
+    ['returns-overdue',overdue],
+    ['returns-today',dueToday],
+    ['returns-upcoming',scheduled.filter(lead=>lead.next_contact_on>today)],
+    ['returns-unscheduled',unscheduled],
   ];
-  for(const [id,match] of groups){
-    const items=scheduled.filter(match).map(lead=>{
+  for(const [id,contacts] of groups){
+    const items=contacts.map(lead=>{
       const button=node('button','');
       button.className='followup-item';
       button.type='button';
-      const date=lead.next_contact_on.split('-').reverse().join('/');
-      button.append(node('strong',lead.display_name||'Cliente'),node('small',date),node('span',lead.next_contact_action));
+      const date=lead.next_contact_on?.split('-').reverse().join('/')||STAGE_LABELS[lead.stage];
+      const action=lead.next_contact_action||'Combine um próximo passo e uma data com o cliente.';
+      button.append(node('strong',lead.display_name||'Cliente'),node('small',date),node('span',action));
       button.addEventListener('click',()=>{navigateCRM('conversas');openLead(lead);});
       return button;
     });
