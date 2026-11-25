@@ -85,7 +85,7 @@ video.media-preview{width:min(100%,580px)}
 <article class="panel"><h2>Acompanhamento da operação</h2><div id="overview-activity" class="empty">Aguardando dados reais.</div><p class="note">Indicadores calculados a partir das etapas e mensagens registradas. Valores financeiros dependem de integração validada.</p></article></div>
 </section>
 <section id="consultants" class="section" hidden><h2>Os quatro consultores</h2><p class="sub">Selecione um consultor para consultar sua carteira e as conversas.</p><div class="toolbar"><select id="consultant-filter" aria-label="Filtrar por consultor"><option value="">Todos os consultores</option></select><button type="button" class="refresh" id="open-filtered">Ver conversas ↗</button></div><div class="panel table-wrap"><table><thead><tr><th>Consultor</th><th>Loja</th><th>Leads</th><th>Ativos</th><th>Propostas</th><th>Vendas</th></tr></thead><tbody id="consultants-table"></tbody></table></div></section>
-<section id="conversations" class="section" hidden><div class="toolbar"><select id="conversation-filter" aria-label="Consultor das conversas"><option value="">Todos os consultores</option></select><input id="search" type="search" placeholder="Buscar cliente ou telefone" aria-label="Buscar cliente"></div>
+<section id="conversations" class="section" hidden><div class="toolbar"><select id="conversation-filter" aria-label="Consultor das conversas"><option value="">Todos os consultores</option></select><select id="conversation-stage" aria-label="Etapa da conversa"><option value="">Todas as etapas</option></select><input id="search" type="search" placeholder="Buscar cliente ou telefone" aria-label="Buscar cliente"></div>
 <div class="conversation-layout"><article class="panel"><h2>Conversas <span class="badge" id="conversation-count">0</span></h2><div class="conversation-list" id="conversation-list"></div></article>
 <article class="panel"><h2 id="conversation-title">Histórico do cliente</h2><p class="sub" id="conversation-meta">Selecione uma conversa para acompanhar o atendimento.</p><div id="messages" class="messages"></div><details id="crm-checklist-panel" hidden><summary>Revisão do atendimento</summary><p id="crm-review-summary"></p><p class="note">Menções nas mensagens de texto do consultor no histórico exibido.</p><ul id="crm-checklist"></ul></details><p class="note">Acesso de supervisão somente leitura. O envio continua exclusivo do consultor responsável. Mídias compatíveis podem ser abertas neste histórico.</p></article></div></section>
 <section id="followup" class="section" hidden><h2>Follow-up e oportunidades</h2><p class="sub">Faixas exclusivas pela última mensagem, sem presumir que o cliente aguarda retorno.</p><div class="follow-grid">
@@ -134,9 +134,10 @@ function phoneSearchDigits(query){
 }
 function filtered(){
   const owner=$('conversation-filter').value;
+  const stage=$('conversation-stage').value;
   const query=normalizeContactSearch($('search').value);
   const phone=phoneSearchDigits(query);
-  return leads.filter(lead=>(!owner||lead.owner_consultant_id===owner)&&
+  return leads.filter(lead=>(!owner||lead.owner_consultant_id===owner)&&(!stage||lead.stage===stage)&&
     (!query||normalizeContactSearch((lead.display_name||'')+' '+(lead.phone||'')).includes(query)||
       (phone&&String(lead.phone||'').replace(/\D/g,'').includes(phone))));
 }
@@ -307,6 +308,12 @@ async function load(){
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
 $('refresh').addEventListener('click',load);
 $('conversation-filter').addEventListener('change',renderConversations);
+for(const [value,label] of Object.entries(labels)){
+  const option=node('option',label);
+  option.value=value;
+  $('conversation-stage').append(option);
+}
+$('conversation-stage').addEventListener('change',renderConversations);
 $('search').addEventListener('input',renderConversations);
 $('open-filtered').addEventListener('click',()=>{$('conversation-filter').value=$('consultant-filter').value;setView('conversations')});
 load();
