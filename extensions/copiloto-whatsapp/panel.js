@@ -51,7 +51,10 @@ function filterContacts(){
   $('contact').replaceChildren(new Option('Selecione um contato',''),
     ...matches.map(contact=>new Option(contact.display_name||'Cliente',contact.id)));
   $('contact').value=matches.some(contact=>contact.id===selected)?selected:'';
-  if($('contact').value!==selected)clearResult();
+  if($('contact').value!==selected){
+    $('question').value='';
+    clearResult();
+  }
 }
 
 function redact(value){
@@ -61,6 +64,14 @@ function redact(value){
     .replace(/\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g,'[CPF omitido]')
     .replace(/(?:\+?55[ .-]?)?(?:\(?\d{2}\)?[ .-]?)?9?\d{4}[ .-]?\d{4}\b/g,'[telefone omitido]')
     .replace(/\b\d{13,19}\b/g,'[sequência numérica omitida]');
+}
+
+function loadContacts({accessToken,userId}){
+  const query=new URLSearchParams({
+    select:'id,display_name,stage,next_contact_on,next_contact_action',
+    owner_consultant_id:'eq.'+userId,order:'last_message_at.desc.nullslast',limit:'100',
+  });
+  return request('/rest/v1/crm_pilot_leads?'+query,{accessToken});
 }
 
 $('theme').addEventListener('click',()=>{
@@ -79,12 +90,9 @@ $('login').addEventListener('submit',async event=>{
   try{
     const data=await request('/auth/v1/token?grant_type=password',{body:{email:$('email').value.trim(),password}});
     if(!data.access_token||!data.user?.id)throw Error('Sessão indisponível.');
-    const query=new URLSearchParams({
-      select:'id,display_name,stage,next_contact_on,next_contact_action',
-      owner_consultant_id:'eq.'+data.user.id,order:'last_message_at.desc.nullslast',limit:'100',
-    });
-    contacts=await request('/rest/v1/crm_pilot_leads?'+query,{accessToken:data.access_token});
-    session={accessToken:data.access_token};
+    const credentials={accessToken:data.access_token,userId:data.user.id};
+    contacts=await loadContacts(credentials);
+    session=credentials;
     $('login').hidden=true;
     $('workspace').hidden=false;
     filterContacts();
@@ -99,6 +107,29 @@ $('login').addEventListener('submit',async event=>{
 $('sign-out').addEventListener('click',()=>{
   endSession();
   $('status').textContent='Sessão encerrada no painel.';
+});
+$('refresh-contacts').addEventListener('click',async()=>{
+  const active=session;
+  if(!active)return;
+  const button=$('refresh-contacts');
+  button.disabled=true;
+  $('status').textContent='Atualizando a carteira do CRM…';
+  try{
+    const updated=await loadContacts(active);
+    if(session!==active)return;
+    contacts=updated;
+    filterContacts();
+    clearResult();
+    $('status').textContent=contacts.length?'Carteira atualizada.':'Sua conta não tem contatos atribuídos no CRM.';
+  }catch(error){
+    if(session!==active)return;
+    if(error.status===401){
+      endSession();
+      $('status').textContent='A sessão expirou. Entre de novo.';
+    }else $('status').textContent='Não foi possível atualizar a carteira. Tente novamente.';
+  }finally{
+    button.disabled=false;
+  }
 });
 $('search').addEventListener('input',filterContacts);
 $('contact').addEventListener('change',()=>{

@@ -11,3 +11,4 @@ O fundo branco é o padrão. Use Fundo preto para alternar.
 O piloto consulta as mensagens já sincronizadas no CRM. Ele não lê a aba do WhatsApp nem envia mensagens.
 Teste primeiro com um contato interno. A lista mostra até 100 contatos próprios e usa até 10 mensagens recentes para orientar a IA.
 O painel mantém a sessão apenas enquanto estiver aberto. Se fechar ou a sessão expirar, entre de novo.
+Use Atualizar contatos para buscar a carteira atual sem entrar novamente.
