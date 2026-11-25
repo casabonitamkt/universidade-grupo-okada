@@ -1,0 +1,13 @@
+COPILOTO CRM | CASA BONITA — PILOTO PARA CHROME
+
+1. Extraia o ZIP para uma pasta permanente no computador do Thiago.
+2. No Chrome, abra chrome://extensions e ligue o Modo do desenvolvedor.
+3. Clique em Carregar sem compactação e selecione a pasta copiloto-whatsapp (onde está manifest.json).
+4. Abra https://web.whatsapp.com e clique no ícone Copiloto CRM | Casa Bonita na barra do Chrome.
+5. No painel, entre com sua conta da Universidade, selecione o contato que está no WhatsApp e gere uma orientação.
+6. Confira a sugestão, copie, cole na conversa e revise antes de enviar.
+
+O fundo branco é o padrão. Use Fundo preto para alternar.
+O piloto consulta as mensagens já sincronizadas no CRM. Ele não lê a aba do WhatsApp nem envia mensagens.
+Teste primeiro com um contato interno. A lista mostra até 100 contatos próprios e usa até 10 mensagens recentes para orientar a IA.
+O painel mantém a sessão apenas enquanto estiver aberto. Se fechar ou a sessão expirar, entre de novo.
