@@ -75,3 +75,4 @@ module.exports=async function handler(req,res){
   }
 };
 module.exports.MASTER_IDS=MASTER_IDS;
+module.exports.verifyMaster=verifyMaster;

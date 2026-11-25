@@ -67,6 +67,7 @@ video.media-preview{width:min(100%,580px)}
 <button type="button" data-view="conversations">◉ Conversas</button>
 <button type="button" data-view="followup">◷ Follow-up</button>
 <button type="button" data-view="results">▥ Resultados</button>
+<button type="button" data-view="meta">Conversões Meta</button>
 </nav>
 <div class="sidebar-bottom"><a href="/">↗ Voltar à Universidade</a><small>Leitura gerencial · sem envio de mensagens</small></div>
 </aside>
@@ -109,6 +110,18 @@ video.media-preview{width:min(100%,580px)}
 <article class="card"><span>Ticket médio</span><strong>—</strong><small>Aguardando valores de vendas</small></article>
 <article class="card"><span>Orçamentos em R$</span><strong>—</strong><small>Aguardando integração de PDFs</small></article>
 </div><article class="panel"><h2>Funil comercial</h2><div id="pipeline"></div></article><p class="note">Dados financeiros não são estimados. A integração de orçamentos em PDF e valores efetivos ainda será necessária.</p></section>
+<section id="meta" class="section" hidden>
+  <article class="panel">
+    <h2>Configuração de conversões</h2>
+    <p class="sub">Cadastre o ID do Pixel ou do conjunto de dados do Gerenciador de Eventos. O envio de conversões ainda está desativado.</p>
+    <form id="meta-settings-form">
+      <div class="toolbar"><label for="meta-dataset-id">ID da fonte de dados</label>
+      <input id="meta-dataset-id" type="text" inputmode="numeric" maxlength="30" pattern="[0-9]{5,30}" required disabled>
+      <button id="meta-settings-save" type="submit" class="refresh" disabled>Salvar ID</button></div>
+    </form>
+    <p id="meta-settings-status" class="status" role="status"></p>
+  </article>
+</section>
 </main>
 <script src="/assets/crm-checklist.js?v=retornos"></script>
 <script>
@@ -218,10 +231,43 @@ async function openMasterMedia(messageId,kind,button,card,leadId,requestId){
 function setView(next){
   view=next;for(const b of document.querySelectorAll('[data-view]')){const active=b.dataset.view===next;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')}
   for(const section of document.querySelectorAll('.section'))section.hidden=section.id!==next;
-  const titles={overview:'CRM Master',consultants:'Equipe de vendas',conversations:'Conversas dos consultores',followup:'Follow-up da equipe',results:'Resultados comerciais'};
+  const titles={overview:'CRM Master',consultants:'Equipe de vendas',conversations:'Conversas dos consultores',followup:'Follow-up da equipe',results:'Resultados comerciais',meta:'Conversões Meta'};
   $('page-title').textContent=titles[next];
   if(next==='conversations')renderConversations();
+  if(next==='meta')loadMetaSettings();
 }
+let metaSettingsBusy=false;
+async function loadMetaSettings(datasetId){
+  if(metaSettingsBusy)return;
+  const field=$('meta-dataset-id'), save=$('meta-settings-save'), status=$('meta-settings-status');
+  metaSettingsBusy=true;
+  field.disabled=true;save.disabled=true;
+  status.textContent=datasetId?'Salvando…':'Carregando…';
+  try{
+    const token=await sessionToken();
+    const headers={Authorization:'Bearer '+token};
+    const response=await fetch('/api/crm-meta-settings',{
+      method:datasetId?'PUT':'GET',cache:'no-store',
+      headers:datasetId?{...headers,'Content-Type':'application/json'}:headers,
+      body:datasetId?JSON.stringify({dataset_id:datasetId}):undefined,
+    });
+    if(!response.ok)throw Error('Não foi possível acessar a configuração.');
+    const result=await response.json();
+    field.value=result.dataset_id||'';
+    status.textContent=result.dataset_id?'ID cadastrado. Envio de eventos desativado.':'Nenhum ID cadastrado.';
+    field.disabled=false;save.disabled=false;
+  }catch(error){
+    status.textContent=error.message;
+    if(datasetId){field.disabled=false;save.disabled=false;}
+  }finally{
+    metaSettingsBusy=false;
+  }
+}
+$('meta-settings-form').addEventListener('submit',event=>{
+  event.preventDefault();
+  const id=$('meta-dataset-id').value.trim();
+  if(/^\d{5,30}$/.test(id))loadMetaSettings(id);
+});
 function fillTable(id,rows){$(''+id).replaceChildren(...rows)}
 function td(text){return node('td',text)}
 function groupTeamReturns(contacts,today,owner){
