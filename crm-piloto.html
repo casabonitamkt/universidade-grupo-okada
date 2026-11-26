@@ -48,7 +48,10 @@
     .panel-button:disabled{opacity:.5;cursor:wait}
     .action-link{display:inline-flex;align-items:center;margin-top:9px}
     .contact-tools{border-top:1px solid var(--line);margin:0 0 16px;padding-top:12px}
-    .contact-tools[hidden]{display:none}
+    .contact-tools[hidden],.conversation-return[hidden]{display:none}
+    .conversation-return{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;padding:10px 14px;border-top:1px solid #454038;background:#222324}
+    .conversation-return p{margin:3px 0;color:#eee4d5;overflow-wrap:anywhere}
+    .conversation-return button{min-height:44px}
     .media-label{font-size:12px;font-weight:700;color:#ffadb1;letter-spacing:.025em}
     .stage-count{font-size:12px;color:var(--muted);margin-left:4px}
     .message:not(:empty){max-width:830px}
@@ -374,6 +377,10 @@
           <span class="read-only">Atendimento WhatsApp</span>
         </div>
         <div id="messages" aria-live="polite">Selecione um contato para ler as mensagens.</div>
+        <section id="conversation-return" class="conversation-return" aria-label="Próximo passo" hidden>
+          <div><strong>Próximo passo</strong><p id="conversation-return-summary" role="status"></p></div>
+          <button id="edit-conversation-return" class="workspace-button" type="button">Agendar retorno</button>
+        </section>
         <section id="send-panel" class="composer" hidden aria-label="Enviar resposta pelo CRM">
           <label for="send-content" class="small-note" style="display:block;margin-bottom:6px">Responder ao contato selecionado</label>
           <textarea id="send-content" maxlength="4000" placeholder="Digite a resposta ao cliente..."></textarea>
@@ -1312,6 +1319,7 @@ function clearInbox(){
   leads=[];selected=null;leadSignature='';renderedMessages=[];messageRequest++;
   el('leads').replaceChildren();
   el('contact-tools').hidden=true;
+  el('conversation-return').hidden=true;
   el('send-panel').hidden=true;
   selectedLeadId=null;
   el('empty-search').hidden=true;
@@ -1385,6 +1393,7 @@ async function refreshMessages(lead,manual=false){
     const history=(data||[]).slice().reverse();
     renderCrmChecklist(el('crm-checklist'),history,el('crm-review-summary'),lead.stage);
     renderCrmReturnStatus(el('contact-return-status'),lead);
+  renderConversationReturn(lead);
     el('crm-checklist-panel').hidden=false;
     const rows=history.map(m=>{
       const content=m.kind==='text'?(m.body||'Mensagem sem texto'):
@@ -1466,6 +1475,16 @@ async function refreshBuilderReport(){
     if(request===builderReportRequest)el('builder-progress').textContent='Não foi possível carregar a prospecção agora.';
   }
 }
+function renderConversationReturn(lead){
+  const panel=el('conversation-return');
+  panel.hidden=['ganho','perdido'].includes(lead.stage);
+  const date=lead.next_contact_on?.split('-').reverse().join('/');
+  el('conversation-return-summary').textContent=[date,lead.next_contact_action].filter(Boolean).join(' · ')||
+    'Combine uma data e uma ação para retomar a conversa.';
+  el('edit-conversation-return').textContent=date?'Editar retorno':'Agendar retorno';
+}
+el('edit-conversation-return').addEventListener('click',()=>el('next-contact-on').focus());
+
 function showLeadTools(lead){
   selectedLeadId=lead.id;
   el('contact-tools').hidden=false;
@@ -1507,6 +1526,7 @@ async function updateLeadFields(changes){
       Object.assign(current,data);
       showBuilderLabel(current);
       renderCrmReturnStatus(el('contact-return-status'),current);
+      renderConversationReturn(current);
     }
     leadSignature='';
     renderLeads(leads.slice());
@@ -1564,6 +1584,7 @@ async function load(){
         el('crm-checklist-panel').hidden=true;
         el('crm-checklist').replaceChildren();
         el('contact-tools').hidden=true;
+        el('conversation-return').hidden=true;
         el('send-panel').hidden=true;
         el('title').textContent='Conversa';
         el('messages').textContent='Selecione um contato.';

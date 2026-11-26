@@ -623,3 +623,17 @@ test('fila de hoje combina motivos sem repetir contatos ou incluir vendas encerr
   assert.match(queue.textContent,/Orçamento de teste/);
 
 });
+
+test('a conversa mostra o retorno salvo e abre o campo de data pelo atalho',async()=>{
+  const h=harness();
+  Object.assign(h.leads[0],{next_contact_on:'2026-12-01',next_contact_action:'Revisar a proposta'});
+  await settle();
+  await h.elements.get('leads').children[0].onclick();
+  assert.equal(h.elements.get('conversation-return').hidden,false);
+  assert.equal(h.elements.get('conversation-return-summary').textContent,'01/12/2026 · Revisar a proposta');
+  assert.equal(h.elements.get('edit-conversation-return').textContent,'Editar retorno');
+  let focused=false;
+  h.elements.get('next-contact-on').focus=()=>{focused=true};
+  h.elements.get('edit-conversation-return').listeners.click();
+  assert.equal(focused,true);
+});
