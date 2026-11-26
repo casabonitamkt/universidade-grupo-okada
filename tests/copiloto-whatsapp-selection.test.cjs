@@ -55,6 +55,7 @@ test('remembers an explicitly linked chat and keeps live advice when switching',
       local: {
         get: async key => ({ [key]: linked[key] }),
         set: async values => Object.assign(linked, values),
+        remove: async key => { delete linked[key]; },
       },
     },
   };
@@ -109,4 +110,10 @@ test('remembers an explicitly linked chat and keeps live advice when switching',
   await flush();
   assert.equal(element('contact').value, 'bruno');
   assert.match(element('live-advice').textContent, /combinar retorno/);
+  assert.equal(element('unlink-chat').hidden, false);
+  await element('unlink-chat').events.click();
+  assert.equal(linked['okadaChatLink:pilot:123456789@lid'], undefined);
+  assert.equal(element('contact').value, '');
+  assert.equal(element('live-advice').hidden, true);
+  assert.equal(element('unlink-chat').hidden, true);
 });

@@ -166,6 +166,7 @@ async function followWhatsApp(){
   if(requestId!==followRequest||session!==active||!$('follow-whatsapp').checked)return;
   const matches=chat?.phone?contacts.filter(item=>String(item.phone||'').replace(/\D/g,'')===chat.phone):contacts.filter(item=>item.id===linkedId);
   const contact=matches.length===1?matches[0]:null;
+  $('unlink-chat').hidden=!linkedId;
   $('contact').disabled=Boolean(contact);
   $('search').disabled=Boolean(contact);
   const issue={
@@ -212,9 +213,27 @@ $('link-chat').addEventListener('click',async()=>{
   }
 });
 
+$('unlink-chat').addEventListener('click',async()=>{
+  const active=session;
+  const chat=await readWhatsApp();
+  if(!active||session!==active||!chat?.privateId)return;
+  const key=linkKey(active.userId,chat.privateId);
+  try{
+    const linked=(await chrome.storage.local.get(key))[key];
+    if(!linked||session!==active||!confirm('Remover o vínculo da conversa “'+chat.label+'”?'))return;
+    const current=await readWhatsApp();
+    if(session!==active||current?.privateId!==chat.privateId)return;
+    await chrome.storage.local.remove(key);
+    await followWhatsApp();
+  }catch{
+    $('follow-status').textContent='Não foi possível remover o vínculo.';
+  }
+});
+
 $('follow-whatsapp').addEventListener('change',()=>{
   followRequest++;
   const enabled=$('follow-whatsapp').checked;
+  $('unlink-chat').hidden=true;
   $('contact').disabled=false;
   $('search').disabled=false;
   $('follow-status').textContent='';
