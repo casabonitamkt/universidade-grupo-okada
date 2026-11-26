@@ -1,0 +1,28 @@
+name: CRM confirmed return tests
+on:
+  pull_request:
+    paths:
+      - 'migrations/2026-11-26-crm-retorno-confirmado.sql'
+      - 'tests/crm-confirmed-return.sql'
+      - '.github/workflows/crm-confirmed-return-tests.yml'
+permissions:
+  contents: read
+jobs:
+  confirmed-return:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: fixture
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply migration and run fixtures
+        run: psql "postgresql://postgres:fixture@127.0.0.1:5432/postgres" -f tests/crm-confirmed-return.sql
