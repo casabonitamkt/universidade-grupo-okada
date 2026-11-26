@@ -215,6 +215,17 @@
     .followup-column h3{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin:0 0 13px}
     .followup-column h3 span{background:#3b3225;color:#ebca91;border-radius:99px;padding:2px 9px}
     .followup-list{display:grid;gap:8px}
+    .today-queue-panel{padding:16px;border:1px solid #454038;border-radius:12px;background:#222324}
+    .today-queue-header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+    .today-queue-header h2{margin:0;font-size:1.15rem}
+    .today-queue-filter{display:grid;gap:4px;color:#eee4d5;font-size:.85rem}
+    .today-queue-filter select{min-height:44px;border:1px solid #8d7b60;border-radius:8px;background:#292a2b;color:#f0e9dd;padding:0 10px}
+    #today-queue{grid-template-columns:repeat(auto-fit,minmax(min(100%, 16rem),1fr))}
+    #today-queue .followup-item{min-height:88px;padding:12px}
+    #today-queue .followup-item strong{font-size:.95rem}
+    #today-queue .followup-item small{font-size:.8rem;color:#e4c792}
+    #today-queue .followup-item:hover,#today-queue .followup-item:focus-visible{border-color:#e4c792}
+    #today-queue-status{color:#c9c3b8;margin:0 0 10px;font-size:.85rem}
     .followup-item{background:#292a2b;border:1px solid #454038;border-radius:9px;padding:11px;color:#f0e9dd;text-align:left;cursor:pointer;display:grid;gap:3px}
     .followup-item strong{font-size:12px;overflow-wrap:anywhere}
     .followup-item small{color:#b2aca2;font-size:10px}
@@ -304,8 +315,19 @@
     </section>
 
     <section id="overview" class="crm-overview" aria-label="Indicadores comerciais">
-      <section aria-labelledby="today-queue-heading">
-        <h2 id="today-queue-heading">Minha fila de hoje</h2>
+      <section class="today-queue-panel" aria-labelledby="today-queue-heading">
+        <div class="today-queue-header">
+          <h2 id="today-queue-heading">Minha fila de hoje</h2>
+          <label class="today-queue-filter" for="today-queue-filter">Filtrar pendências
+            <select id="today-queue-filter">
+              <option value="">Todas</option>
+              <option value="retorno">Retornos de hoje e atrasados</option>
+              <option value="orcamento">Orçamentos a elaborar</option>
+              <option value="nao-lida">Conversas não lidas</option>
+            </select>
+          </label>
+        </div>
+        <p id="today-queue-status" role="status"></p>
         <div id="today-queue" class="followup-list"></div>
       </section>
       <div class="overview-title"><div><span class="eyebrow">VISÃO GERAL</span><h2>Seu dia em um só lugar</h2></div><span class="period-chip">Dados dos contatos atribuídos à sua conta</span></div>
@@ -618,6 +640,8 @@ function openFollowupLead(lead){
   el('ai-purpose').value=['proposta','negociacao'].includes(lead.stage)?'followup':'retomada';
   checkCopilotContext();
 }
+let todayQueueSignature;
+el('today-queue-filter').addEventListener('change',renderReturnAgenda);
 function renderTodayQueue(today){
   const active=leads.filter(lead=>!['ganho','perdido'].includes(lead.stage));
   const due=active.filter(lead=>lead.next_contact_on&&lead.next_contact_on<=today)
@@ -625,26 +649,36 @@ function renderTodayQueue(today){
   const items=new Map();
   for(const lead of due){
     const date=lead.next_contact_on.split('-').reverse().join('/');
-    items.set(lead.id,{lead,reasons:[(lead.next_contact_on<today?'Retorno atrasado':'Retorno hoje')+' · '+date]});
+    items.set(lead.id,{lead,reasons:[['retorno',(lead.next_contact_on<today?'Retorno atrasado':'Retorno hoje')+' · '+date]]});
   }
   for(const lead of active){
     const reasons=[];
-    if(lead.stage==='orcamento_a_elaborar')reasons.push('Orçamento a elaborar');
-    if(isUnread(lead))reasons.push('Conversa não lida');
+    if(lead.stage==='orcamento_a_elaborar')reasons.push(['orcamento','Orçamento a elaborar']);
+    if(isUnread(lead))reasons.push(['nao-lida','Conversa não lida']);
     if(!reasons.length)continue;
     if(items.has(lead.id))items.get(lead.id).reasons.push(...reasons);
     else items.set(lead.id,{lead,reasons});
   }
-  const rows=[...items.values()].map(({lead,reasons})=>{
+  const filter=el('today-queue-filter').value;
+  const visible=[...items.values()].filter(({reasons})=>!filter||reasons.some(([category])=>category===filter));
+  const signature=JSON.stringify([filter,items.size,visible.map(({lead,reasons})=>
+    [lead.id,lead.display_name,lead.stage,lead.next_contact_action,reasons])]);
+  if(signature===todayQueueSignature)return;
+  todayQueueSignature=signature;
+  el('today-queue-status').textContent=filter?visible.length+' de '+items.size+' contatos':items.size+' '+(items.size===1?'contato':'contatos');
+  const rows=visible.map(({lead,reasons})=>{
     const button=node('button','');
     button.className='followup-item';
     button.type='button';
     const action=lead.next_contact_action||FOLLOWUP_ACTIONS[lead.stage]||FOLLOWUP_ACTIONS.em_atendimento;
-    button.append(node('strong',lead.display_name||'Cliente'),node('small',reasons.join(' · ')),node('span',action));
-    button.addEventListener('click',()=>openFollowupLead(lead));
+    button.append(node('strong',lead.display_name||'Cliente'),node('small',reasons.map(([,label])=>label).join(' · ')),node('span',action));
+    button.addEventListener('click',()=>{
+      const current=leads.find(item=>item.id===lead.id);
+      if(current)openFollowupLead(current);
+    });
     return button;
   });
-  el('today-queue').replaceChildren(...(rows.length?rows:[node('p','Nenhum retorno vencido, orçamento a elaborar ou conversa não lida.')]));
+  el('today-queue').replaceChildren(...(rows.length?rows:[node('p',filter?'Nenhuma pendência neste filtro.':'Nenhum retorno vencido, orçamento a elaborar ou conversa não lida.')]));
 }
 function renderReturnAgenda(){
   const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());

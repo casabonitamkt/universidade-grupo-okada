@@ -612,4 +612,14 @@ test('fila de hoje combina motivos sem repetir contatos ou incluir vendas encerr
   assert.equal(queue.children.length,1);
   assert.match(queue.textContent,/Orçamento de teste.*Retorno atrasado.*Orçamento a elaborar.*Conversa não lida.*Confirmar medidas/);
   assert.doesNotMatch(queue.textContent,/Venda encerrada na fila|Retorno distante/);
+  assert.equal(h.elements.get('today-queue-status').textContent,'1 contato');
+  const filter=h.elements.get('today-queue-filter');
+  filter.value='orcamento';
+  filter.listeners.change();
+  assert.equal(queue.children.length,1);
+  assert.equal(h.elements.get('today-queue-status').textContent,'1 de 1 contatos');
+  filter.value='nao-lida';
+  filter.listeners.change();
+  assert.match(queue.textContent,/Orçamento de teste/);
+
 });
