@@ -82,6 +82,9 @@ test('remembers an explicitly linked chat and keeps live advice when switching',
         assert.match(briefing, /Para um item, peça uma foto do espaço/);
         assert.match(briefing, /investimento, prazo e local de entrega/);
         assert.match(briefing, /Não sugira enviar várias fotos/);
+        assert.match(briefing, /receio de comprar de outra cidade/);
+        assert.match(briefing, /12 anos de mercado, família há 70 anos/);
+        assert.match(briefing, /showroom de 2.000 m²/);
         assert.ok(briefing.length <= 4500);
         return { analysis: 'Próximo passo: combinar retorno.' };
       },
