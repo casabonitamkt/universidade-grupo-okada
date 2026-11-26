@@ -386,6 +386,22 @@
           <textarea id="send-content" maxlength="4000" placeholder="Digite a resposta ao cliente..."></textarea>
           <button type="button" id="send-button">Enviar mensagem ↗</button>
           <p id="send-status" role="status">Envio direto pelo CRM — somente para o contato selecionado.</p>
+          <details id="return-message-template">
+            <summary>Propor retorno ao cliente</summary>
+            <div class="field">
+              <label for="return-template-date">Data sugerida</label>
+              <input id="return-template-date" type="date">
+              <label for="return-template-action">Ação sugerida</label>
+              <select id="return-template-action">
+                <option value="ligar">Ligar para o cliente</option>
+                <option value="whatsapp">Retomar pelo WhatsApp</option>
+                <option value="orcamento">Enviar o orçamento</option>
+                <option value="proposta">Enviar a proposta</option>
+              </select>
+              <button id="use-return-template" type="button" class="panel-button">Preencher resposta</button>
+              <p id="return-template-status" role="status"></p>
+            </div>
+          </details>
         </section>
       </section>
       <aside class="box details-box" aria-label="Dados do atendimento">
@@ -1248,10 +1264,39 @@ function prepareComposer(lead){
   composerLeadId=lead.id;
   if(changed){
     el('send-content').value='';
+    el('return-message-template').open=false;
+    el('return-template-date').value='';
+    el('return-template-action').value='ligar';
+    el('return-template-status').textContent='';
     el('send-status').textContent='Envio direto pelo CRM — somente para o contato selecionado.';
   }
   el('send-panel').hidden=!sendingEnabled;
 }
+const RETURN_TEMPLATE_ACTIONS={
+  ligar:'te ligar',
+  whatsapp:'te chamar no WhatsApp',
+  orcamento:'te enviar o orçamento',
+  proposta:'te enviar a proposta',
+};
+el('use-return-template').addEventListener('click',()=>{
+  if(!selected||composerLeadId!==selected||!sendingEnabled)return;
+  const status=el('return-template-status');
+  const date=el('return-template-date').value;
+  const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());
+  const lastDay=new Date(today+'T00:00:00Z');
+  lastDay.setUTCDate(lastDay.getUTCDate()+90);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date<today||date>lastDay.toISOString().slice(0,10)){
+    status.textContent='Escolha uma data de hoje até 90 dias.';
+    return;
+  }
+  const action=RETURN_TEMPLATE_ACTIONS[el('return-template-action').value];
+  if(!action)return;
+  const draft=el('send-content');
+  if(draft.value.trim()&&!window.confirm('Substituir o rascunho pela proposta de retorno?'))return;
+  draft.value='Posso '+action+' dia '+date.split('-').reverse().join('/')+'?';
+  draft.focus();
+  status.textContent='Proposta no campo de resposta. Revise antes de enviar.';
+});
 async function sendMessage(){
   if(sending||!sendingEnabled||!selected)return;
   const leadId=selected;

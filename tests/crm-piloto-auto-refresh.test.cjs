@@ -637,3 +637,21 @@ test('a conversa mostra o retorno salvo e abre o campo de data pelo atalho',asyn
   h.elements.get('edit-conversation-return').listeners.click();
   assert.equal(focused,true);
 });
+
+test('a proposta de retorno preenche o rascunho no formato reconhecido sem enviar',async()=>{
+  let sends=0;
+  const h=harness({send:async()=>{sends++;return {ok:true,json:async()=>({status:'sent'})};}});
+  await settle();
+  await h.elements.get('leads').children[0].onclick();
+  const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());
+  const date=h.elements.get('return-template-date');
+  date.value='2020-01-01';
+  h.elements.get('use-return-template').listeners.click();
+  assert.match(h.elements.get('return-template-status').textContent,/Escolha uma data/);
+  date.value=today;
+  h.elements.get('return-template-action').value='orcamento';
+  h.elements.get('send-content').focus=()=>{};
+  h.elements.get('use-return-template').listeners.click();
+  assert.equal(h.elements.get('send-content').value,'Posso te enviar o orçamento dia '+today.split('-').reverse().join('/')+'?');
+  assert.equal(sends,0);
+});
