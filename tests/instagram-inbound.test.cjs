@@ -64,3 +64,14 @@ test('confirms Sierra independently and ignores swapped senders and Outlet as a 
   assert.deepEqual((await request({body:payload('200',{},'300')})).logs,[]);
   assert.deepEqual((await request({body:payload('400',{},'500')})).logs,[]);
 });
+
+test('callback refuses to verify when signed delivery cannot be processed',async()=>{
+  const query={'hub.mode':'subscribe','hub.verify_token':'test-token','hub.challenge':'123456'};
+  for (const env of [
+    {INSTAGRAM_APP_SECRET:''},
+    {INSTAGRAM_PILOT_SIERRA_TEST_SENDER_ID:''},
+    {INSTAGRAM_PILOT_SIERRA_ACCOUNT_ID:'100'},
+  ]) {
+    assert.equal((await request({method:'GET',query,env})).code,503);
+  }
+});

@@ -29,9 +29,18 @@ module.exports = async function handler(req, res) {
   const env = process.env;
   if (env.INSTAGRAM_WEBHOOK_ENABLED !== 'true') return res.status(503).end();
 
+  const pairs = [
+    { account:env.INSTAGRAM_PILOT_ACCOUNT_ID, tester:env.INSTAGRAM_PILOT_TEST_SENDER_ID, label:'casa_bonita' },
+    { account:env.INSTAGRAM_PILOT_SIERRA_ACCOUNT_ID, tester:env.INSTAGRAM_PILOT_SIERRA_TEST_SENDER_ID, label:'sierra' },
+  ].filter(({account,tester})=>account||tester);
+  const secret = env.INSTAGRAM_APP_SECRET;
+  if(!secret||!env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN||!pairs.length||pairs.some(({account,tester})=>
+    !ACCOUNT_ID.test(account||'')||!ACCOUNT_ID.test(tester||'')||account===tester)||
+    new Set(pairs.map(({account})=>account)).size!==pairs.length)
+    return res.status(503).end();
+
   if (req.method === 'GET') {
     const query = req.query || {};
-    if (!env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN) return res.status(503).end();
     if (query['hub.mode'] !== 'subscribe' ||
       !sameToken(query['hub.verify_token'], env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN)) return res.status(403).end();
     const challenge = query['hub.challenge'];
@@ -45,15 +54,6 @@ module.exports = async function handler(req, res) {
     return res.status(405).end();
   }
 
-  const pairs = [
-    { account:env.INSTAGRAM_PILOT_ACCOUNT_ID, tester:env.INSTAGRAM_PILOT_TEST_SENDER_ID, label:'casa_bonita' },
-    { account:env.INSTAGRAM_PILOT_SIERRA_ACCOUNT_ID, tester:env.INSTAGRAM_PILOT_SIERRA_TEST_SENDER_ID, label:'sierra' },
-  ].filter(({account,tester})=>account||tester);
-  const secret = env.INSTAGRAM_APP_SECRET;
-  if(!secret||!pairs.length||pairs.some(({account,tester})=>
-    !ACCOUNT_ID.test(account||'')||!ACCOUNT_ID.test(tester||'')||account===tester)||
-    new Set(pairs.map(({account})=>account)).size!==pairs.length)
-    return res.status(503).end();
 
   let raw;
   try {
