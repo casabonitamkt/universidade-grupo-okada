@@ -599,3 +599,17 @@ test('Thiago marca a conversa e vê a meta de cinco no follow-up',async()=>{
   assert.equal(h.leads[0].is_builder,true);
   assert.equal(h.elements.get('toggle-builder').attrs['aria-pressed'],'true');
 });
+
+test('fila de hoje combina motivos sem repetir contatos ou incluir vendas encerradas',async()=>{
+  const h=harness();
+  h.leads.push(
+    {id:'quote',display_name:'Orçamento de teste',stage:'orcamento_a_elaborar',next_contact_on:'2020-01-01',next_contact_action:'Confirmar medidas',last_message_at:'2026-10-30T12:00:00Z'},
+    {id:'closed',display_name:'Venda encerrada na fila',stage:'ganho',next_contact_on:'2020-01-01'},
+    {id:'future',display_name:'Retorno distante',stage:'negociacao',next_contact_on:'2099-01-01'},
+  );
+  await settle();
+  const queue=h.elements.get('today-queue');
+  assert.equal(queue.children.length,1);
+  assert.match(queue.textContent,/Orçamento de teste.*Retorno atrasado.*Orçamento a elaborar.*Conversa não lida.*Confirmar medidas/);
+  assert.doesNotMatch(queue.textContent,/Venda encerrada na fila|Retorno distante/);
+});

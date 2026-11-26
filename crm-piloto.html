@@ -304,6 +304,10 @@
     </section>
 
     <section id="overview" class="crm-overview" aria-label="Indicadores comerciais">
+      <section aria-labelledby="today-queue-heading">
+        <h2 id="today-queue-heading">Minha fila de hoje</h2>
+        <div id="today-queue" class="followup-list"></div>
+      </section>
       <div class="overview-title"><div><span class="eyebrow">VISÃO GERAL</span><h2>Seu dia em um só lugar</h2></div><span class="period-chip">Dados dos contatos atribuídos à sua conta</span></div>
       <div class="crm-kpis">
         <article class="kpi-card"><span>Leads ativos</span><strong id="kpi-active">—</strong><small>Em acompanhamento</small></article>
@@ -614,8 +618,37 @@ function openFollowupLead(lead){
   el('ai-purpose').value=['proposta','negociacao'].includes(lead.stage)?'followup':'retomada';
   checkCopilotContext();
 }
+function renderTodayQueue(today){
+  const active=leads.filter(lead=>!['ganho','perdido'].includes(lead.stage));
+  const due=active.filter(lead=>lead.next_contact_on&&lead.next_contact_on<=today)
+    .sort((a,b)=>a.next_contact_on.localeCompare(b.next_contact_on));
+  const items=new Map();
+  for(const lead of due){
+    const date=lead.next_contact_on.split('-').reverse().join('/');
+    items.set(lead.id,{lead,reasons:[(lead.next_contact_on<today?'Retorno atrasado':'Retorno hoje')+' · '+date]});
+  }
+  for(const lead of active){
+    const reasons=[];
+    if(lead.stage==='orcamento_a_elaborar')reasons.push('Orçamento a elaborar');
+    if(isUnread(lead))reasons.push('Conversa não lida');
+    if(!reasons.length)continue;
+    if(items.has(lead.id))items.get(lead.id).reasons.push(...reasons);
+    else items.set(lead.id,{lead,reasons});
+  }
+  const rows=[...items.values()].map(({lead,reasons})=>{
+    const button=node('button','');
+    button.className='followup-item';
+    button.type='button';
+    const action=lead.next_contact_action||FOLLOWUP_ACTIONS[lead.stage]||FOLLOWUP_ACTIONS.em_atendimento;
+    button.append(node('strong',lead.display_name||'Cliente'),node('small',reasons.join(' · ')),node('span',action));
+    button.addEventListener('click',()=>openFollowupLead(lead));
+    return button;
+  });
+  el('today-queue').replaceChildren(...(rows.length?rows:[node('p','Nenhum retorno vencido, orçamento a elaborar ou conversa não lida.')]));
+}
 function renderReturnAgenda(){
   const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());
+  renderTodayQueue(today);
   const active=leads.filter(lead=>!['novo','ganho','perdido'].includes(lead.stage)||(
     lead.stage==='novo'&&lead.next_contact_on));
   const scheduled=active.filter(lead=>lead.next_contact_on)
