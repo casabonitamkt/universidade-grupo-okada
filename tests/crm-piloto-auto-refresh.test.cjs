@@ -697,3 +697,25 @@ test('uma resposta pendente de outra conversa não bloqueia nem sobrescreve o Co
   assert.equal(button.disabled,false);
   assert.match(h.elements.get('suggestion-text').textContent,/conversar sobre a mesa/);
 });
+
+test('retira orientação já exibida quando a conversa muda e preserva a pergunta',async()=>{
+  const h=harness();
+  await settle();
+  await h.elements.get('leads').children[0].onclick();
+  const field=h.elements.get('ai-question');
+  field.value='Como responder sobre o sofá?';
+  await h.elements.get('ai-question-form').listeners.submit({preventDefault(){}});
+  const answer=h.elements.get('ai-answer');
+  assert.equal(answer.hidden,false);
+  h.intervals[0].cb();
+  await settle();
+  assert.equal(answer.hidden,false);
+  h.messages['lead-1'].push({id:'changed',direction:'entrada',kind:'text',body:'Agora procuro uma mesa.',event_at:'2026-10-30T12:05:00Z'});
+  h.intervals[0].cb();
+  await settle();
+  assert.equal(answer.hidden,true);
+  assert.equal(answer.textContent,'');
+  assert.equal(field.value,'Como responder sobre o sofá?');
+  assert.match(h.elements.get('ai-question-status').textContent,/Reenvie a pergunta/);
+  assert.equal(h.aiCalls.length,1);
+});
