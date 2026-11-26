@@ -861,6 +861,14 @@ function discardOutdatedSuggestion(){
 function checkCopilotContext(){
   if(copilotLastMessage&&(copilotLastContext!==getCopilotContext()||copilotLastHistory!==getCopilotHistory()))
     discardOutdatedSuggestion();
+  if(lastQuestionContext&&(lastQuestionContext.history!==getCopilotHistory()||
+    lastQuestionContext.briefing!==getCopilotContext())){
+    lastQuestionContext=null;
+    const answer=el('ai-answer');
+    answer.hidden=true;
+    answer.textContent='';
+    el('ai-question-status').textContent='O contexto mudou. Reenvie a pergunta para considerar as informações atuais.';
+  }
 }
 const COPILOT_PURPOSE={
   pre_atendimento:'Prepare a abertura conforme o roteiro da Casa Bonita. Faça a pergunta mais útil ainda sem resposta. Se o consultor já se apresentou, continue a conversa.',
@@ -875,7 +883,7 @@ function getCopilotContext(){
   const context=redactCrmContext(el('ai-briefing').value.trim());
   return (purpose?purpose+'\n\n'+context:context).slice(0,4500);
 }
-let questionInFlight=false, questionView=0;
+let questionInFlight=false, questionView=0, lastQuestionContext=null;
 function updateLiveTip(lead){
   const tip=el('ai-live-tip');
   const latest=renderedMessages.at(-1);
@@ -916,6 +924,7 @@ async function askCopilot(event){
   const instruction='Pergunta do consultor: '+question+
     '\nResponda à pergunta diretamente na análise comercial para orientar o consultor. Use o histórico abaixo.';
   questionInFlight=true;
+  lastQuestionContext=null;
   el('ai-ask').disabled=true;
   answer.hidden=true;
   status.textContent='Consultando a IA…';
@@ -930,6 +939,7 @@ async function askCopilot(event){
     }
     if(error||data?.error||typeof data?.analysis!=='string'||!data.analysis.trim())
       throw new Error('Não foi possível obter a orientação. Tente novamente.');
+    lastQuestionContext={history,briefing:context};
     answer.textContent=data.analysis.trim();
     answer.hidden=false;
     status.textContent='Orientação para o consultor.';
@@ -951,6 +961,7 @@ function updateSuggestion(){
     el('ai-generate').textContent='✧ Gerar com IA';
     el('ai-purpose').value='resposta';
     questionView++;
+    lastQuestionContext=null;
     el('ai-question').value='';
     el('ai-question-status').textContent='';
     el('ai-answer').textContent='';
