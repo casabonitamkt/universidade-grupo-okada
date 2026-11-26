@@ -671,3 +671,29 @@ test('dica ao vivo e roteiro rápido apoiam objeção de confiança por distânc
   assert.match(h.elements.get('quick-script-text').value,/70 anos.*2.000 m².*vídeo/);
   assert.equal(h.aiCalls.length,0);
 });
+
+test('uma resposta pendente de outra conversa não bloqueia nem sobrescreve o Copiloto atual',async()=>{
+  const pending=[];
+  const h=harness({generate:()=>new Promise(resolve=>pending.push(resolve))});
+  h.leads.push({id:'lead-2',display_name:'Cliente Dois',phone:'5544999992222',stage:'novo'});
+  h.messages['lead-2']=[{id:'msg-2',direction:'entrada',kind:'text',body:'Quero uma mesa.',event_at:'2026-10-30T12:01:00Z'}];
+  await settle();
+  await h.elements.get('leads').children[0].onclick();
+  const button=h.elements.get('ai-generate');
+  const first=button.listeners.click();
+  await settle();
+  assert.equal(button.disabled,true);
+  await h.elements.get('leads').children[1].onclick();
+  assert.equal(button.disabled,false);
+  const second=button.listeners.click();
+  await settle();
+  assert.equal(pending.length,2);
+  pending[0]({data:{analysis:'Mensagem para WhatsApp: Resposta antiga.'}});
+  await first;
+  assert.equal(button.disabled,true);
+  assert.doesNotMatch(h.elements.get('suggestion-text').textContent,/Resposta antiga/);
+  pending[1]({data:{analysis:'Mensagem para WhatsApp: Vamos conversar sobre a mesa.'}});
+  await second;
+  assert.equal(button.disabled,false);
+  assert.match(h.elements.get('suggestion-text').textContent,/conversar sobre a mesa/);
+});
