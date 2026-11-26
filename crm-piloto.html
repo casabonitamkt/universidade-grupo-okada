@@ -475,6 +475,7 @@
                 <select id="quick-script">
                   <option value="abertura">Início do atendimento</option>
                   <option value="historia">História da Casa Bonita</option>
+                  <option value="confianca_distancia">Confiança ao comprar de outra cidade</option>
                   <option value="proposta">Follow-up de proposta</option>
                   <option value="retomada">Retomada de conversa</option>
                   <option value="prospeccao">Prospecção</option>
@@ -863,7 +864,7 @@ function checkCopilotContext(){
 }
 const COPILOT_PURPOSE={
   pre_atendimento:'Prepare a abertura conforme o roteiro da Casa Bonita. Faça a pergunta mais útil ainda sem resposta. Se o consultor já se apresentou, continue a conversa.',
-  objecao:'Identifique a objeção real e proponha uma resposta consultiva. Se a objeção estiver incerta, pergunte com naturalidade.',
+  objecao:'Identifique a objeção real e proponha uma resposta consultiva. Se houver receio de comprar de outra cidade, acolha a preocupação, use os fatos da Casa Bonita quando forem pertinentes e ofereça vídeo da peça ou confirmação da entrega. Só mencione frete, prazo ou pós-venda quando confirmados. Se a objeção estiver incerta, pergunte com naturalidade.',
   followup:'Retome com um detalhe real da conversa. Se houve proposta, confirme se o cliente conseguiu avaliá-la, ofereça ajuda para revisar a composição e sugira combinar a próxima data de retorno. Se não houver proposta no histórico, não presuma que foi enviada.',
   retomada:'Retome o último interesse registrado com uma pergunta leve sobre se o projeto ainda está nos planos. Evite cobrança, urgência artificial e motivos presumidos para o silêncio.',
   prospeccao:'Prepare um primeiro contato individual para um contato autorizado. Apresente a Casa Bonita, use somente um motivo real de contato quando houver e faça uma pergunta curta sobre peça, projeto novo ou renovação. Não invente indicação, visita ou relação prévia.',
@@ -882,8 +883,10 @@ function updateLiveTip(lead){
     ? latest.content.normalize('NFD').replace(/\p{M}/gu,'').toLowerCase()
     : '';
   const price=/(?:achei caro|mais barato|fora do (?:meu )?orcamento|preco alto)/.test(incoming);
+  const distanceConcern=/\b(?:receio|medo|insegur\w*|confi\w*)\b/.test(incoming)&&
+    /\b(?:outra cidade|de longe|distancia|longe)\b/.test(incoming);
   const text=lead&&latest
-    ? (price?'A última mensagem indica uma objeção de preço. Confirme o que está sendo comparado antes de propor condições.':FOLLOWUP_ACTIONS[lead.stage])||'Confira se ficou algum compromisso combinado com o cliente.'
+    ? (distanceConcern?'A última mensagem indica receio de comprar à distância. Acolha a preocupação e ofereça mostrar a peça por vídeo ou explicar a entrega. Confira o roteiro de confiança da Casa Bonita.':price?'A última mensagem indica uma objeção de preço. Confirme o que está sendo comparado antes de propor condições.':FOLLOWUP_ACTIONS[lead.stage])||'Confira se ficou algum compromisso combinado com o cliente.'
     : 'Selecione uma conversa com histórico para acompanhar o atendimento.';
   if(tip.textContent!==text)tip.textContent=text;
   const reminder=el('ai-return-tip');
@@ -966,6 +969,7 @@ function updateSuggestion(){
 const QUICK_SCRIPTS={
   abertura:'Olá! Sou [seu nome], da Casa Bonita. Antes de te mandar fotos e valores, quero entender um pouco do seu espaço e de como você pretende usá-lo. Assim consigo selecionar opções que façam sentido para você. É um projeto novo ou você está renovando um ambiente?',
   historia:'A Casa Bonita tem 12 anos de mercado e vem de uma família que trabalha com móveis de alto padrão há 70 anos. Nosso showroom tem 2.000 m² e contamos com arquiteta e decorador na loja para apoiar clientes e profissionais. Nosso atendimento começa entendendo seu espaço e o que você precisa, para então apresentar as melhores opções.',
+  confianca_distancia:'Entendo sua preocupação, [nome do cliente]. A Casa Bonita está no mercado há 12 anos e vem de uma família que trabalha com móveis de alto padrão há 70 anos. Nosso showroom tem 2.000 m², com arquiteta e decorador para apoiar na escolha. Posso te mostrar a peça por vídeo ou confirmar como funciona a entrega em [cidade]. O que te deixaria mais à vontade para seguir?',
   proposta:'Olá, [nome do cliente]! Conseguiu olhar a proposta de [peça ou ambiente]? Se ficou alguma dúvida sobre a composição, o acabamento ou o que está incluído, posso revisar as opções com você. Qual seria um bom momento para conversarmos?',
   retomada:'Olá, [nome do cliente]! Quando falamos, você estava avaliando [peça ou ambiente]. Esse projeto ainda está nos seus planos? Se fizer sentido, posso retomar de onde paramos e revisar as opções com você.',
   arquiteto:'Olá, [nome]! Aqui é [seu nome], da Casa Bonita. Você tem algum projeto novo em que possamos apoiar na especificação ou preparar uma proposta? Se tiver um ambiente em andamento, posso avaliar com você quais peças e acabamentos fazem sentido.',
