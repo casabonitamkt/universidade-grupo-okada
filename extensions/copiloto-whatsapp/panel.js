@@ -158,9 +158,9 @@ $('live-enabled').addEventListener('change',resetLive);
 setInterval(checkLive,30000);
 
 let followRequest=0;
-async function readWhatsApp(){
+async function readWhatsApp(type='okada-active-chat'){
   const [tab]=await chrome.tabs.query({active:true,currentWindow:true}).catch(()=>[]);
-  return tab?.id!=null?chrome.tabs.sendMessage(tab.id,{type:'okada-active-chat'}).catch(()=>null):null;
+  return tab?.id!=null?chrome.tabs.sendMessage(tab.id,{type}).catch(()=>null):null;
 }
 function linkKey(userId,privateId){
   return 'okadaChatLink:'+userId+':'+privateId;
@@ -199,6 +199,22 @@ async function followWhatsApp(){
   }
 }
 
+$('copy-chat-diagnostic').addEventListener('click',async()=>{
+  const result=await readWhatsApp('okada-chat-diagnostic');
+  const status=$('chat-diagnostic-status');
+  if(!result){
+    status.textContent='Atualize a aba do WhatsApp Web e tente novamente.';
+    return;
+  }
+  const version=chrome.runtime.getManifest().version;
+  const code='Copiloto '+version+' · '+JSON.stringify(result);
+  try{
+    await navigator.clipboard.writeText(code);
+    status.textContent='Diagnóstico copiado para enviar à equipe do CRM.';
+  }catch{
+    status.textContent=code;
+  }
+});
 $('link-chat').addEventListener('click',async()=>{
   const active=session;
   const contact=contacts.find(item=>item.id===$('contact').value);

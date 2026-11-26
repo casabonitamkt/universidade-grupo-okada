@@ -25,6 +25,22 @@ function readActiveChat(){
   return {phone:[...phones][0]};
 }
 
+function readChatDiagnostic(){
+  const main=document.querySelector('#main');
+  const header=main?.querySelector('header');
+  const signals=(root,selector)=>root?.querySelectorAll(selector).length||0;
+  return {
+    status:readActiveChat().reason||'phone',
+    header:Boolean(header),
+    titleCandidates:signals(header,'[title], [dir="auto"]'),
+    headerLinks:signals(header,'a[href^="tel:"], a[href*="wa.me/"]'),
+    messageIds:signals(main,'[data-id]'),
+    envelopeIds:signals(main,'[data-id^="true_"], [data-id^="false_"]'),
+    selectedRows:signals(document,'#pane-side [aria-selected="true"]'),
+  };
+}
 chrome.runtime.onMessage.addListener((message,sender,reply)=>{
-  if(message?.type==='okada-active-chat'&&sender.id===chrome.runtime.id)reply(readActiveChat());
+  if(sender.id!==chrome.runtime.id)return;
+  if(message?.type==='okada-active-chat')reply(readActiveChat());
+  if(message?.type==='okada-chat-diagnostic')reply(readChatDiagnostic());
 });

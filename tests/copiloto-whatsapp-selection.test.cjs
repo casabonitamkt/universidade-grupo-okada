@@ -10,7 +10,7 @@ test('reads a single private chat ID without treating it as a phone', () => {
   let ids = ['true_123456789@lid_A'];
   const title = { getAttribute: () => 'Bruno' };
   const main = {
-    querySelector: () => ({ querySelector: () => title }),
+    querySelector: () => ({ querySelector: () => title, querySelectorAll: () => [] }),
     querySelectorAll: () => ids.map(id => ({ getAttribute: () => id })),
   };
   const context = vm.createContext({
@@ -20,6 +20,9 @@ test('reads a single private chat ID without treating it as a phone', () => {
   vm.runInContext(fs.readFileSync(path.join(folder, 'active-chat.js'), 'utf8'), context);
   const read = () => vm.runInContext('readActiveChat()', context);
   assert.equal(read().privateId, '123456789@lid');
+  const diagnostic = JSON.stringify(vm.runInContext('readChatDiagnostic()', context));
+  assert.match(diagnostic, /private-id/);
+  assert.doesNotMatch(diagnostic, /Bruno|123456789|@lid/);
   assert.equal(read().phone, undefined);
 
   ids.push('false_987654321@lid_B');
