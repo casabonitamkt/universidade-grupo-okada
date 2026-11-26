@@ -937,14 +937,18 @@ async function askCopilot(event){
     if(selected===leadId&&generation===questionView)
       status.textContent='Não foi possível obter a orientação. Tente novamente.';
   }finally{
-    questionInFlight=false;
-    el('ai-ask').disabled=!selected;
+    if(generation===questionView){
+      questionInFlight=false;
+      el('ai-ask').disabled=!selected;
+    }
   }
 }
 function updateSuggestion(){
   const lead=leads.find(l=>l.id===selected);
   if(copilotForLead!==selected){
     copilotForLead=selected;copilotGeneration++;copilotDirty=false;
+    copilotBusy=false;questionInFlight=false;
+    el('ai-generate').textContent='✧ Gerar com IA';
     el('ai-purpose').value='resposta';
     questionView++;
     el('ai-question').value='';
@@ -1046,9 +1050,11 @@ el('ai-generate').addEventListener('click',async()=>{
       el('ai-status').textContent=error.message||'Falha na geração. Tente novamente.';
     }
   }finally{
-    copilotBusy=false;
-    el('ai-generate').disabled=!selected;
-    el('ai-generate').textContent='✧ Gerar novamente com IA';
+    if(request===copilotGeneration){
+      copilotBusy=false;
+      el('ai-generate').disabled=!selected;
+      el('ai-generate').textContent='✧ Gerar novamente com IA';
+    }
   }
 });
 document.querySelectorAll('[data-crm-view]').forEach(button=>button.addEventListener('click',()=>navigateCRM(button.dataset.crmView)));
