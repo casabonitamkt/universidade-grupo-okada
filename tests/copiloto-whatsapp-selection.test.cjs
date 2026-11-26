@@ -69,7 +69,7 @@ test('remembers an explicitly linked chat and keeps live advice when switching',
     supabaseUrl: 'https://example.test',
     publicKey: 'fake',
     setInterval: (handler, interval) => { timers[interval] = handler; },
-    fetch: async url => ({
+    fetch: async (url, options) => ({
       ok: true,
       json: async () => {
         if (url.includes('_leads')) return [
@@ -77,6 +77,12 @@ test('remembers an explicitly linked chat and keeps live advice when switching',
           { id: 'lucas', display_name: 'Lucas', phone: '5544999992222' },
         ];
         if (url.includes('_messages')) return [{ id: url, kind: 'text', body: 'Teste interno' }];
+        const { briefing } = JSON.parse(options.body);
+        assert.match(briefing, /Para projeto completo, peça o projeto/);
+        assert.match(briefing, /Para um item, peça uma foto do espaço/);
+        assert.match(briefing, /investimento, prazo e local de entrega/);
+        assert.match(briefing, /Não sugira enviar várias fotos/);
+        assert.ok(briefing.length <= 4500);
         return { analysis: 'Próximo passo: combinar retorno.' };
       },
     }),
