@@ -655,3 +655,19 @@ test('a proposta de retorno preenche o rascunho no formato reconhecido sem envia
   assert.equal(h.elements.get('send-content').value,'Posso te enviar o orçamento dia '+today.split('-').reverse().join('/')+'?');
   assert.equal(sends,0);
 });
+
+
+test('dica ao vivo e roteiro rápido apoiam objeção de confiança por distância',async()=>{
+  const h=harness();
+  await settle();
+  await h.elements.get('leads').children[0].onclick();
+  h.messages['lead-1'].push({id:'distance',direction:'entrada',kind:'text',body:'Tenho receio de comprar de outra cidade.',event_at:'2026-10-30T12:04:00Z'});
+  h.intervals[0].cb();
+  await settle();
+  assert.match(h.elements.get('ai-live-tip').textContent,/receio de comprar à distância/);
+  const picker=h.elements.get('quick-script');
+  picker.value='confianca_distancia';
+  picker.listeners.change();
+  assert.match(h.elements.get('quick-script-text').value,/70 anos.*2.000 m².*vídeo/);
+  assert.equal(h.aiCalls.length,0);
+});
