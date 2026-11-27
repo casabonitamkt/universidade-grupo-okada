@@ -929,8 +929,6 @@ async function saveTipFeedback(decision){
     buttons.forEach(button=>{button.disabled=false;});
   }
 }
-el('live-tip-followed').addEventListener('click',()=>saveTipFeedback('seguida'));
-el('live-tip-not-relevant').addEventListener('click',()=>saveTipFeedback('nao_aplicavel'));
 
 function updateLiveTip(lead){
   const tip=el('ai-live-tip');
@@ -1071,6 +1069,8 @@ el('quick-script-copy').addEventListener('click',async()=>{
 });
 showQuickScript();
 
+el('live-tip-followed').addEventListener('click',()=>saveTipFeedback('seguida'));
+el('live-tip-not-relevant').addEventListener('click',()=>saveTipFeedback('nao_aplicavel'));
 el('ai-question-form').addEventListener('submit',askCopilot);
 el('ai-briefing').addEventListener('input',()=>{
   copilotDirty=true;
