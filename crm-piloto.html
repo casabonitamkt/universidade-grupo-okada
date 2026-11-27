@@ -225,6 +225,7 @@
     .today-queue-filter select{min-height:44px;border:1px solid #8d7b60;border-radius:8px;background:#292a2b;color:#f0e9dd;padding:0 10px}
     #today-queue{grid-template-columns:repeat(auto-fit,minmax(min(100%, 16rem),1fr))}
     #today-queue .followup-item{min-height:88px;padding:12px}
+    #today-queue .response-priority{border-left:3px solid #f3ad68;background:#302820}
     #today-queue .followup-item strong{font-size:.95rem}
     #today-queue .followup-item small{font-size:.8rem;color:#e4c792}
     #today-queue .followup-item:hover,#today-queue .followup-item:focus-visible{border-color:#e4c792}
@@ -328,6 +329,7 @@
               <option value="amanha">Retornos de amanhã</option>
               <option value="orcamento">Orçamentos a elaborar</option>
               <option value="resposta">Possível resposta pendente</option>
+              <option value="prioridade-resposta">Resposta prioritária · 15 min ou mais</option>
               <option value="nao-lida">Conversas não lidas</option>
             </select>
           </label>
@@ -671,10 +673,12 @@ function openFollowupLead(lead){
   el('ai-purpose').value=['proposta','negociacao'].includes(lead.stage)?'followup':'retomada';
   checkCopilotContext();
 }
+const RESPONSE_PRIORITY_MS=15*60*1000;
 let todayQueueSignature;
 el('today-queue-filter').addEventListener('change',renderReturnAgenda);
 function renderTodayQueue(today){
   const active=leads.filter(lead=>!['ganho','perdido'].includes(lead.stage));
+  const now=Date.now();
   const filter=el('today-queue-filter').value;
   const nextDay=new Date(today+'T00:00:00Z');
   nextDay.setUTCDate(nextDay.getUTCDate()+1);
@@ -691,21 +695,29 @@ function renderTodayQueue(today){
   for(const lead of filter==='amanha'?[]:active){
     const reasons=[];
     if(lead.stage==='orcamento_a_elaborar')reasons.push(['orcamento','Orçamento a elaborar']);
-    if(lead.crm_last_message_direction==='entrada')reasons.push(['resposta','Possível resposta pendente']);
+    if(lead.crm_last_message_direction==='entrada'){
+      if(now-Date.parse(lead.last_message_at)>=RESPONSE_PRIORITY_MS)
+        reasons.push(['prioridade-resposta','Prioridade · mensagem do cliente há 15 min ou mais']);
+      reasons.push(['resposta','Possível resposta pendente']);
+    }
     if(isUnread(lead))reasons.push(['nao-lida','Conversa não lida']);
     if(!reasons.length)continue;
     if(items.has(lead.id))items.get(lead.id).reasons.push(...reasons);
     else items.set(lead.id,{lead,reasons});
   }
-  const visible=[...items.values()].filter(({reasons})=>!filter||reasons.some(([category])=>category===filter));
+  const isPriority=({reasons})=>reasons.some(([category])=>category==='prioridade-resposta');
+  const visible=[...items.values()].filter(({reasons})=>!filter||reasons.some(([category])=>category===filter))
+    .sort((a,b)=>Number(isPriority(b))-Number(isPriority(a))||
+      (isPriority(a)?Date.parse(a.lead.last_message_at)-Date.parse(b.lead.last_message_at):0));
   const signature=JSON.stringify([filter,items.size,visible.map(({lead,reasons})=>
     [lead.id,lead.display_name,lead.stage,lead.next_contact_action,reasons])]);
   if(signature===todayQueueSignature)return;
   todayQueueSignature=signature;
   el('today-queue-status').textContent=filter&&filter!=='amanha'?visible.length+' de '+items.size+' contatos':items.size+' '+(items.size===1?'contato':'contatos');
-  const rows=visible.map(({lead,reasons})=>{
+  const rows=visible.map(item=>{
+    const {lead,reasons}=item;
     const button=node('button','');
-    button.className='followup-item';
+    button.className=isPriority(item)?'followup-item response-priority':'followup-item';
     button.type='button';
     const action=lead.next_contact_action||(lead.crm_last_message_direction==='entrada'
       ?'Confira o último pedido no histórico e se houve resposta no WhatsApp.'
