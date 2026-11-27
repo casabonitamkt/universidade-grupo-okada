@@ -732,3 +732,20 @@ test('dica de qualificação considera a peça e as medidas informadas pelo clie
   assert.doesNotMatch(h.elements.get('ai-live-tip').textContent,/quanto espaço/);
   assert.equal(h.aiCalls.length,0);
 });
+
+
+test('fila de resposta inclui conversa lida com última mensagem do cliente',async()=>{
+  const h=harness();
+  h.leads.push(
+    {id:'lida',display_name:'Lida ainda pendente',stage:'negociacao',last_message_at:'2026-10-30T12:00:00Z',last_read_at:'2026-10-30T12:10:00Z',crm_last_message_direction:'entrada'},
+    {id:'respondida',display_name:'Consultor já respondeu',stage:'negociacao',last_message_at:'2026-10-30T12:15:00Z',last_read_at:'2026-10-30T12:10:00Z',crm_last_message_direction:'saida'},
+  );
+  await settle();
+  const filter=h.elements.get('today-queue-filter');
+  filter.value='resposta';
+  filter.listeners.change();
+  const queue=h.elements.get('today-queue');
+  assert.equal(queue.children.length,1);
+  assert.match(queue.textContent,/Lida ainda pendente.*Possível resposta pendente/);
+  assert.doesNotMatch(queue.textContent,/Consultor já respondeu|Conversa não lida/);
+});
