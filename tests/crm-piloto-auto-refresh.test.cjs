@@ -749,3 +749,26 @@ test('fila de resposta inclui conversa lida com última mensagem do cliente',asy
   assert.match(queue.textContent,/Lida ainda pendente.*Possível resposta pendente/);
   assert.doesNotMatch(queue.textContent,/Consultor já respondeu|Conversa não lida/);
 });
+
+test('fila de amanhã mostra somente os retornos do próximo dia em Umuarama',async()=>{
+  const h=harness();
+  const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());
+  const date=new Date(today+'T00:00:00Z');
+  date.setUTCDate(date.getUTCDate()+1);
+  const tomorrow=date.toISOString().slice(0,10);
+  date.setUTCDate(date.getUTCDate()+1);
+  h.leads.push(
+    {id:'tomorrow',display_name:'Compromisso de amanhã',stage:'proposta',next_contact_on:tomorrow,next_contact_action:'Passar o orçamento'},
+    {id:'today',display_name:'Compromisso de hoje',stage:'proposta',next_contact_on:today},
+    {id:'later',display_name:'Compromisso posterior',stage:'proposta',next_contact_on:date.toISOString().slice(0,10)},
+    {id:'closed-tomorrow',display_name:'Venda encerrada',stage:'ganho',next_contact_on:tomorrow},
+  );
+  await settle();
+  const filter=h.elements.get('today-queue-filter');
+  filter.value='amanha';
+  filter.listeners.change();
+  const queue=h.elements.get('today-queue');
+  assert.equal(queue.children.length,1);
+  assert.match(queue.textContent,/Compromisso de amanhã.*Retorno amanhã.*Passar o orçamento/);
+  assert.doesNotMatch(queue.textContent,/Compromisso de hoje|Compromisso posterior|Venda encerrada/);
+});

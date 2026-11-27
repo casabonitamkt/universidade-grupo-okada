@@ -325,6 +325,7 @@
             <select id="today-queue-filter">
               <option value="">Todas</option>
               <option value="retorno">Retornos de hoje e atrasados</option>
+              <option value="amanha">Retornos de amanhã</option>
               <option value="orcamento">Orçamentos a elaborar</option>
               <option value="resposta">Possível resposta pendente</option>
               <option value="nao-lida">Conversas não lidas</option>
@@ -669,14 +670,20 @@ let todayQueueSignature;
 el('today-queue-filter').addEventListener('change',renderReturnAgenda);
 function renderTodayQueue(today){
   const active=leads.filter(lead=>!['ganho','perdido'].includes(lead.stage));
-  const due=active.filter(lead=>lead.next_contact_on&&lead.next_contact_on<=today)
+  const filter=el('today-queue-filter').value;
+  const nextDay=new Date(today+'T00:00:00Z');
+  nextDay.setUTCDate(nextDay.getUTCDate()+1);
+  const tomorrow=nextDay.toISOString().slice(0,10);
+  const due=active.filter(lead=>lead.next_contact_on&&(
+    filter==='amanha'?lead.next_contact_on===tomorrow:lead.next_contact_on<=today))
     .sort((a,b)=>a.next_contact_on.localeCompare(b.next_contact_on));
   const items=new Map();
   for(const lead of due){
     const date=lead.next_contact_on.split('-').reverse().join('/');
-    items.set(lead.id,{lead,reasons:[['retorno',(lead.next_contact_on<today?'Retorno atrasado':'Retorno hoje')+' · '+date]]});
+    const label=filter==='amanha'?'Retorno amanhã':lead.next_contact_on<today?'Retorno atrasado':'Retorno hoje';
+    items.set(lead.id,{lead,reasons:[[filter==='amanha'?'amanha':'retorno',label+' · '+date]]});
   }
-  for(const lead of active){
+  for(const lead of filter==='amanha'?[]:active){
     const reasons=[];
     if(lead.stage==='orcamento_a_elaborar')reasons.push(['orcamento','Orçamento a elaborar']);
     if(lead.crm_last_message_direction==='entrada')reasons.push(['resposta','Possível resposta pendente']);
@@ -685,13 +692,12 @@ function renderTodayQueue(today){
     if(items.has(lead.id))items.get(lead.id).reasons.push(...reasons);
     else items.set(lead.id,{lead,reasons});
   }
-  const filter=el('today-queue-filter').value;
   const visible=[...items.values()].filter(({reasons})=>!filter||reasons.some(([category])=>category===filter));
   const signature=JSON.stringify([filter,items.size,visible.map(({lead,reasons})=>
     [lead.id,lead.display_name,lead.stage,lead.next_contact_action,reasons])]);
   if(signature===todayQueueSignature)return;
   todayQueueSignature=signature;
-  el('today-queue-status').textContent=filter?visible.length+' de '+items.size+' contatos':items.size+' '+(items.size===1?'contato':'contatos');
+  el('today-queue-status').textContent=filter&&filter!=='amanha'?visible.length+' de '+items.size+' contatos':items.size+' '+(items.size===1?'contato':'contatos');
   const rows=visible.map(({lead,reasons})=>{
     const button=node('button','');
     button.className='followup-item';
@@ -706,7 +712,7 @@ function renderTodayQueue(today){
     });
     return button;
   });
-  el('today-queue').replaceChildren(...(rows.length?rows:[node('p',filter?'Nenhuma pendência neste filtro.':'Nenhum retorno vencido, orçamento a elaborar ou conversa não lida.')]));
+  el('today-queue').replaceChildren(...(rows.length?rows:[node('p',filter==='amanha'?'Nenhum retorno agendado para amanhã.':filter?'Nenhuma pendência neste filtro.':'Nenhum retorno vencido, orçamento a elaborar ou conversa não lida.')]));
 }
 function renderReturnAgenda(){
   const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());
