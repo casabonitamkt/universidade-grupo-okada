@@ -466,6 +466,11 @@
             <div class="field">
               <strong>Dica ao vivo</strong> <small>Regras do CRM</small>
               <p id="ai-live-tip" class="small-note" aria-live="polite">Selecione uma conversa.</p>
+              <div id="live-tip-feedback" hidden>
+                <button id="live-tip-followed" class="suggestion-copy" type="button">Segui a dica</button>
+                <button id="live-tip-not-relevant" class="suggestion-copy" type="button">Não se aplica</button>
+                <p id="live-tip-feedback-status" class="small-note" role="status"></p>
+              </div>
               <p id="ai-return-tip" class="small-note" aria-live="polite" hidden></p>
             </div>
             <details id="quick-scripts">
@@ -884,6 +889,39 @@ function getCopilotContext(){
   return (purpose?purpose+'\n\n'+context:context).slice(0,4500);
 }
 let questionInFlight=false, questionView=0, lastQuestionContext=null;
+let currentTipFeedback=null;
+function setTipFeedback(lead, latest, kind){
+  const key=kind&&lead?.id&&latest?.id?lead.id+':'+latest.id+':'+kind:null;
+  if(key===currentTipFeedback?.key)return;
+  currentTipFeedback=key?{key,leadId:lead.id,messageId:latest.id,kind}:null;
+  el('live-tip-feedback').hidden=!key;
+  el('live-tip-followed').disabled=false;
+  el('live-tip-not-relevant').disabled=false;
+  el('live-tip-feedback-status').textContent='';
+}
+async function saveTipFeedback(decision){
+  const tip=currentTipFeedback;
+  if(!tip||tip.leadId!==selected)return;
+  const buttons=[el('live-tip-followed'),el('live-tip-not-relevant')];
+  buttons.forEach(button=>{button.disabled=true;});
+  const status=el('live-tip-feedback-status');
+  status.textContent='Registrando…';
+  try{
+    const {error}=await sb.from('crm_copilot_tip_feedback').insert({
+      lead_id:tip.leadId,message_id:tip.messageId,tip_kind:tip.kind,decision,
+    });
+    if(currentTipFeedback!==tip)return;
+    if(error&&error.code!=='23505')throw error;
+    status.textContent=error?'Já existe um retorno registrado para esta dica.':'Feedback registrado.';
+  }catch{
+    if(currentTipFeedback!==tip)return;
+    status.textContent='Não foi possível registrar. Tente novamente.';
+    buttons.forEach(button=>{button.disabled=false;});
+  }
+}
+el('live-tip-followed').addEventListener('click',()=>saveTipFeedback('seguida'));
+el('live-tip-not-relevant').addEventListener('click',()=>saveTipFeedback('nao_aplicavel'));
+
 function updateLiveTip(lead){
   const tip=el('ai-live-tip');
   const latest=renderedMessages.at(-1);
@@ -905,6 +943,7 @@ function updateLiveTip(lead){
     ? (distanceConcern?'A última mensagem indica receio de comprar à distância. Acolha a preocupação e ofereça mostrar a peça por vídeo ou explicar a entrega. Confira o roteiro de confiança da Casa Bonita.':price?'A última mensagem indica uma objeção de preço. Confirme o que está sendo comparado antes de propor condições.':qualification||FOLLOWUP_ACTIONS[lead.stage])||'Confira se ficou algum compromisso combinado com o cliente.'
     : 'Selecione uma conversa com histórico para acompanhar o atendimento.';
   if(tip.textContent!==text)tip.textContent=text;
+  setTipFeedback(lead,latest,distanceConcern?'distancia':price?'preco':qualification?'medidas':null);
   const reminder=el('ai-return-tip');
   const active=lead&&latest&&!['ganho','perdido'].includes(lead.stage);
   reminder.hidden=!active;
