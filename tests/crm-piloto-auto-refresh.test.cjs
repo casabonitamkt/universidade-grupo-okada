@@ -786,3 +786,25 @@ test('registra a decisão da dica sem gravar conteúdo de mensagens',async()=>{
   assert.match(h.elements.get('live-tip-feedback-status').textContent,/registrado/);
   assert.equal(h.aiCalls.length,0);
 });
+
+test('alerta prioriza a última mensagem do cliente após 15 minutos e sai após resposta',async()=>{
+  const h=harness();
+  const pending={id:'priority',display_name:'Espera longa',stage:'em_atendimento',crm_last_message_direction:'entrada',last_message_at:new Date(Date.now()-16*60000).toISOString()};
+  h.leads.push(
+    {id:'fresh',display_name:'Espera recente',stage:'em_atendimento',crm_last_message_direction:'entrada',last_message_at:new Date(Date.now()-9*60000).toISOString()},
+    pending,
+    {id:'answered',display_name:'Respondido',stage:'em_atendimento',crm_last_message_direction:'saida',last_message_at:new Date(Date.now()-30*60000).toISOString()},
+  );
+  await settle();
+  const queue=h.elements.get('today-queue');
+  assert.match(queue.children[0].textContent,/Espera longa.*Prioridade/);
+  const filter=h.elements.get('today-queue-filter');
+  filter.value='prioridade-resposta';
+  filter.listeners.change();
+  assert.equal(queue.children.length,1);
+  assert.doesNotMatch(queue.textContent,/Espera recente|Respondido/);
+  pending.crm_last_message_direction='saida';
+  h.intervals[0].cb();
+  await settle();
+  assert.match(queue.textContent,/Nenhuma pendência neste filtro/);
+});
