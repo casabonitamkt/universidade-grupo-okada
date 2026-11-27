@@ -32,6 +32,7 @@ module.exports = async function handler(req, res) {
   const pairs = [
     { account:env.INSTAGRAM_PILOT_ACCOUNT_ID, tester:env.INSTAGRAM_PILOT_TEST_SENDER_ID, label:'casa_bonita' },
     { account:env.INSTAGRAM_PILOT_SIERRA_ACCOUNT_ID, tester:env.INSTAGRAM_PILOT_SIERRA_TEST_SENDER_ID, label:'sierra' },
+    { account:env.INSTAGRAM_PILOT_OUTLET_ACCOUNT_ID, tester:env.INSTAGRAM_PILOT_OUTLET_TEST_SENDER_ID, label:'outlet' },
   ].filter(({account,tester})=>account||tester);
   const secret = env.INSTAGRAM_APP_SECRET;
   if(!secret||!env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN||!pairs.length||pairs.some(({account,tester})=>

@@ -12,6 +12,8 @@ const vars = {
   INSTAGRAM_PILOT_TEST_SENDER_ID:'200',
   INSTAGRAM_PILOT_SIERRA_ACCOUNT_ID:'300',
   INSTAGRAM_PILOT_SIERRA_TEST_SENDER_ID:'400',
+  INSTAGRAM_PILOT_OUTLET_ACCOUNT_ID:'',
+  INSTAGRAM_PILOT_OUTLET_TEST_SENDER_ID:'',
   INSTAGRAM_APP_SECRET:'test-secret',
 };
 async function request(options) {
@@ -74,4 +76,13 @@ test('callback refuses to verify when signed delivery cannot be processed',async
   ]) {
     assert.equal((await request({method:'GET',query,env})).code,503);
   }
+});
+
+test('confirms the configured Outlet test only',async()=>{
+  const env={INSTAGRAM_PILOT_OUTLET_ACCOUNT_ID:'500',INSTAGRAM_PILOT_OUTLET_TEST_SENDER_ID:'600'};
+  assert.deepEqual(await request({body:payload('600',{},'500'),env}),{code:204,body:undefined,logs:[['instagram_internal_direct_received','outlet']]});
+  assert.deepEqual((await request({body:payload('200',{},'500'),env})).logs,[]);
+  assert.deepEqual((await request({body:payload('600',{is_echo:true},'500'),env})).logs,[]);
+  assert.equal((await request({body:payload('600',{},'500'),env,signature:'invalid'})).code,401);
+  assert.equal((await request({body:payload('600',{},'500'),env:{...env,INSTAGRAM_PILOT_OUTLET_TEST_SENDER_ID:''}})).code,503);
 });
