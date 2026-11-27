@@ -61,6 +61,7 @@ function harness({send,generate,clipboard,userId='thiago-test',builders=[]}={}){
         updated:null,
         select(){return this},
         eq(column,value){this.filter={column,value};return this},
+        async insert(data){requests.push({table,data});return {error:null}},
         update(data){this.updated=data;return this},
         async single(){
           if(table!=='crm_pilot_leads'||!this.updated)throw Error('Unexpected single()');
@@ -771,4 +772,17 @@ test('fila de amanhã mostra somente os retornos do próximo dia em Umuarama',as
   assert.equal(queue.children.length,1);
   assert.match(queue.textContent,/Compromisso de amanhã.*Retorno amanhã.*Passar o orçamento/);
   assert.doesNotMatch(queue.textContent,/Compromisso de hoje|Compromisso posterior|Venda encerrada/);
+});
+
+test('registra a decisão da dica sem gravar conteúdo de mensagens',async()=>{
+  const h=harness();
+  h.messages['lead-1'][0].body='Estou procurando um sofá.';
+  await settle();
+  await h.elements.get('leads').children[0].onclick();
+  assert.equal(h.elements.get('live-tip-feedback').hidden,false);
+  await h.elements.get('live-tip-followed').listeners.click();
+  const event=h.requests.find(request=>request.table==='crm_copilot_tip_feedback');
+  assert.equal(JSON.stringify(event.data),JSON.stringify({lead_id:'lead-1',message_id:'msg-1',tip_kind:'medidas',decision:'seguida'}));
+  assert.match(h.elements.get('live-tip-feedback-status').textContent,/registrado/);
+  assert.equal(h.aiCalls.length,0);
 });
