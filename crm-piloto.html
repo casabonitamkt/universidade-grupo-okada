@@ -326,6 +326,7 @@
               <option value="">Todas</option>
               <option value="retorno">Retornos de hoje e atrasados</option>
               <option value="orcamento">Orçamentos a elaborar</option>
+              <option value="resposta">Possível resposta pendente</option>
               <option value="nao-lida">Conversas não lidas</option>
             </select>
           </label>
@@ -678,6 +679,7 @@ function renderTodayQueue(today){
   for(const lead of active){
     const reasons=[];
     if(lead.stage==='orcamento_a_elaborar')reasons.push(['orcamento','Orçamento a elaborar']);
+    if(lead.crm_last_message_direction==='entrada')reasons.push(['resposta','Possível resposta pendente']);
     if(isUnread(lead))reasons.push(['nao-lida','Conversa não lida']);
     if(!reasons.length)continue;
     if(items.has(lead.id))items.get(lead.id).reasons.push(...reasons);
@@ -694,7 +696,9 @@ function renderTodayQueue(today){
     const button=node('button','');
     button.className='followup-item';
     button.type='button';
-    const action=lead.next_contact_action||FOLLOWUP_ACTIONS[lead.stage]||FOLLOWUP_ACTIONS.em_atendimento;
+    const action=lead.next_contact_action||(lead.crm_last_message_direction==='entrada'
+      ?'Confira o último pedido no histórico e se houve resposta no WhatsApp.'
+      :FOLLOWUP_ACTIONS[lead.stage]||FOLLOWUP_ACTIONS.em_atendimento);
     button.append(node('strong',lead.display_name||'Cliente'),node('small',reasons.map(([,label])=>label).join(' · ')),node('span',action));
     button.addEventListener('click',()=>{
       const current=leads.find(item=>item.id===lead.id);
@@ -1638,7 +1642,7 @@ async function load(){
       return;
     }
     const {data,error}=await sb.from('crm_pilot_leads')
-      .select('id,display_name,phone,stage,notes,last_message_at,last_read_at,next_contact_on,next_contact_action,is_builder').eq('owner_consultant_id',user.id)
+      .select('id,display_name,phone,stage,notes,last_message_at,last_read_at,next_contact_on,next_contact_action,is_builder,crm_last_message_direction').eq('owner_consultant_id',user.id)
       .order('last_message_at',{ascending:false,nullsFirst:false}).limit(100);
     if(error)throw error;
     renderLeads(data||[]);
