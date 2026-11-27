@@ -719,3 +719,16 @@ test('retira orientação já exibida quando a conversa muda e preserva a pergun
   assert.match(h.elements.get('ai-question-status').textContent,/Reenvie a pergunta/);
   assert.equal(h.aiCalls.length,1);
 });
+
+test('dica de qualificação considera a peça e as medidas informadas pelo cliente',async()=>{
+  const h=harness();
+  h.messages['lead-1']=[{id:'piece',direction:'entrada',kind:'text',body:'Estou procurando um sofá.',event_at:'2026-10-30T12:01:00Z'}];
+  await settle();
+  await h.elements.get('leads').children[0].onclick();
+  assert.match(h.elements.get('ai-live-tip').textContent,/quanto espaço/);
+  h.messages['lead-1'].push({id:'dimensions',direction:'entrada',kind:'text',body:'Tenho 2,70 m disponíveis.',event_at:'2026-10-30T12:02:00Z'});
+  h.intervals[0].cb();
+  await settle();
+  assert.doesNotMatch(h.elements.get('ai-live-tip').textContent,/quanto espaço/);
+  assert.equal(h.aiCalls.length,0);
+});

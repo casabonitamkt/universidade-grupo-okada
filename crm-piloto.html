@@ -893,8 +893,16 @@ function updateLiveTip(lead){
   const price=/(?:achei caro|mais barato|fora do (?:meu )?orcamento|preco alto)/.test(incoming);
   const distanceConcern=/\b(?:receio|medo|insegur\w*|confi\w*)\b/.test(incoming)&&
     /\b(?:outra cidade|de longe|distancia|longe)\b/.test(incoming);
+  const customerHistory=renderedMessages.filter(row=>row.direction==='entrada'&&!row.mediaKind)
+    .map(row=>row.content.normalize('NFD').replace(/\p{M}/gu,'').toLowerCase()).join('\n');
+  const earlyStage=['novo','em_atendimento','levantamento'].includes(lead?.stage);
+  const specificPiece=/\b(?:sofa|mesa|poltrona|cadeira|estofado|aparador)\b/.test(customerHistory);
+  const hasDimensions=/\b\d+(?:[.,]\d+)?\s*(?:m|cm|metros?|centimetros?)\b/.test(customerHistory);
+  const qualification=earlyStage&&incoming&&specificPiece&&!hasDimensions
+    ? 'Antes de indicar a peça, se fizer sentido, pergunte quanto espaço o cliente tem disponível. Se ele ainda não tiver as medidas, sugira uma foto do ambiente.'
+    : '';
   const text=lead&&latest
-    ? (distanceConcern?'A última mensagem indica receio de comprar à distância. Acolha a preocupação e ofereça mostrar a peça por vídeo ou explicar a entrega. Confira o roteiro de confiança da Casa Bonita.':price?'A última mensagem indica uma objeção de preço. Confirme o que está sendo comparado antes de propor condições.':FOLLOWUP_ACTIONS[lead.stage])||'Confira se ficou algum compromisso combinado com o cliente.'
+    ? (distanceConcern?'A última mensagem indica receio de comprar à distância. Acolha a preocupação e ofereça mostrar a peça por vídeo ou explicar a entrega. Confira o roteiro de confiança da Casa Bonita.':price?'A última mensagem indica uma objeção de preço. Confirme o que está sendo comparado antes de propor condições.':qualification||FOLLOWUP_ACTIONS[lead.stage])||'Confira se ficou algum compromisso combinado com o cliente.'
     : 'Selecione uma conversa com histórico para acompanhar o atendimento.';
   if(tip.textContent!==text)tip.textContent=text;
   const reminder=el('ai-return-tip');
