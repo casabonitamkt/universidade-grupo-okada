@@ -330,6 +330,7 @@
               <option value="orcamento">Orçamentos a elaborar</option>
               <option value="resposta">Possível resposta pendente</option>
               <option value="prioridade-resposta">Resposta prioritária · 15 min ou mais</option>
+              <option value="proposta">Propostas sem retorno definido</option>
               <option value="nao-lida">Conversas não lidas</option>
             </select>
           </label>
@@ -698,8 +699,16 @@ function renderTodayQueue(today){
     if(lead.crm_last_message_direction==='entrada'){
       if(now-Date.parse(lead.last_message_at)>=RESPONSE_PRIORITY_MS)
         reasons.push(['prioridade-resposta','Prioridade · mensagem do cliente há 15 min ou mais']);
-      reasons.push(['resposta','Possível resposta pendente']);
+      const minutes=Math.floor((now-Date.parse(lead.last_message_at))/60000);
+      let elapsed='';
+      if(Number.isFinite(minutes)&&minutes>=0){
+        const age=minutes<1?'menos de 1 min':minutes<60?minutes+' min':minutes<1440?Math.floor(minutes/60)+' h':Math.floor(minutes/1440)+' d';
+        elapsed=' · última mensagem há '+age;
+      }
+      reasons.push(['resposta','Possível resposta pendente'+elapsed]);
     }
+    if(lead.stage==='proposta'&&(!lead.next_contact_on||!lead.next_contact_action?.trim()))
+      reasons.push(['proposta','Proposta sem retorno definido']);
     if(isUnread(lead))reasons.push(['nao-lida','Conversa não lida']);
     if(!reasons.length)continue;
     if(items.has(lead.id))items.get(lead.id).reasons.push(...reasons);
@@ -729,7 +738,7 @@ function renderTodayQueue(today){
     });
     return button;
   });
-  el('today-queue').replaceChildren(...(rows.length?rows:[node('p',filter==='amanha'?'Nenhum retorno agendado para amanhã.':filter?'Nenhuma pendência neste filtro.':'Nenhum retorno vencido, orçamento a elaborar ou conversa não lida.')]));
+  el('today-queue').replaceChildren(...(rows.length?rows:[node('p',filter==='amanha'?'Nenhum retorno agendado para amanhã.':filter?'Nenhuma pendência neste filtro.':'Nenhuma pendência na fila de hoje.')]));
 }
 function renderReturnAgenda(){
   const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());
