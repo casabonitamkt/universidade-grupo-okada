@@ -511,6 +511,8 @@ test('Copiloto lembra de combinar retorno e sinaliza possível data sem declarar
   await settle();
   assert.match(reminder.textContent,/Possível retorno/);
   assert.match(reminder.textContent,/Confira com o cliente/);
+  assert.match(reminder.textContent,/Trecho do consultor: “Te ligo na sexta-feira para revisar a proposta.”/);
+  assert.equal(h.elements.get('ai-review-return').hidden,false);
   assert.equal(h.aiCalls.length,0);
 });
 

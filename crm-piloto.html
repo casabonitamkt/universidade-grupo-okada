@@ -477,6 +477,7 @@
                 <p id="live-tip-feedback-status" class="small-note" role="status"></p>
               </div>
               <p id="ai-return-tip" class="small-note" aria-live="polite" hidden></p>
+              <button id="ai-review-return" class="suggestion-copy" type="button" hidden>Revisar na agenda</button>
             </div>
             <details id="quick-scripts">
               <summary>Roteiros rápidos</summary>
@@ -975,8 +976,14 @@ function updateLiveTip(lead){
   setTipFeedback(lead,latest,distanceConcern?'distancia':price?'preco':qualification?'medidas':null);
   const reminder=el('ai-return-tip');
   const active=lead&&latest&&!['ganho','perdido'].includes(lead.stage);
+  const review=el('ai-review-return');
   reminder.hidden=!active;
+  review.hidden=true;
   if(!active)return;
+  if(lead.next_contact_on&&lead.next_contact_action?.trim()){
+    reminder.textContent='Próximo passo já registrado na agenda.';
+    return;
+  }
   const outgoing=renderedMessages.slice(-12).filter(row=>row.direction==='saida'&&!row.mediaKind);
   const date=/\b(?:0?[1-9]|[12]\d|3[01])[/.-](?:0?[1-9]|1[0-2])(?:[/.-]\d{2,4})?\b|\b(?:amanha|segunda-feira|terca-feira|quarta-feira|quinta-feira|sexta-feira|sabado|domingo)\b/;
   const action=/\b(?:retorno|retornar|volto a falar|te ligo|ligar|te envio|envio a proposta|enviar o orcamento|agendar|revisar a proposta)\b/;
@@ -985,8 +992,9 @@ function updateLiveTip(lead){
     return date.test(body)&&action.test(body);
   });
   const message=proposed
-    ? 'Possível retorno encontrado no texto do consultor. Confira com o cliente se o próximo passo e a data foram combinados.'
+    ? 'Possível retorno encontrado no texto do consultor. Confira com o cliente se o próximo passo e a data foram combinados. Trecho do consultor: “'+proposed.content.trim().slice(0,280)+'”'
     : 'Atendimento em aberto. Combine com o cliente qual será o próximo passo e em que data vocês voltam a conversar.';
+  review.hidden=!proposed;
   if(reminder.textContent!==message)reminder.textContent=message;
 }
 async function askCopilot(event){
@@ -1628,6 +1636,7 @@ function renderConversationReturn(lead){
   el('edit-conversation-return').textContent=date?'Editar retorno':'Agendar retorno';
 }
 el('edit-conversation-return').addEventListener('click',()=>el('next-contact-on').focus());
+el('ai-review-return').addEventListener('click',()=>el('next-contact-on').focus());
 
 function showLeadTools(lead){
   selectedLeadId=lead.id;
