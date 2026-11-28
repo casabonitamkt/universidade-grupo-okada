@@ -513,6 +513,11 @@ test('Copiloto lembra de combinar retorno e sinaliza possível data sem declarar
   assert.match(reminder.textContent,/Confira com o cliente/);
   assert.match(reminder.textContent,/Trecho do consultor: “Te ligo na sexta-feira para revisar a proposta.”/);
   assert.equal(h.elements.get('ai-review-return').hidden,false);
+  h.messages['lead-1'].push({id:'return-2',direction:'entrada',kind:'text',body:'Pode me ligar amanhã?',event_at:'2026-10-30T12:04:00Z'});
+  h.intervals[0].cb();
+  await settle();
+  assert.match(reminder.textContent,/Pedido de retorno do cliente.*Trecho do cliente: “Pode me ligar amanhã\?”/);
+  assert.equal(h.elements.get('ai-review-return').hidden,false);
   assert.equal(h.aiCalls.length,0);
 });
 

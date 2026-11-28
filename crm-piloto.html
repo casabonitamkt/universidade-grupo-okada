@@ -991,10 +991,15 @@ function updateLiveTip(lead){
     const body=row.content.normalize('NFD').replace(/\p{M}/gu,'').toLowerCase();
     return date.test(body)&&action.test(body);
   });
-  const message=proposed
+  const latestText=latest.content.normalize('NFD').replace(/\p{M}/gu,'').toLowerCase();
+  const customerRequest=latest.direction==='entrada'&&!latest.mediaKind&&date.test(latestText)&&
+    /\b(?:pode me ligar|pode me retornar|pode me chamar|pode me mandar (?:o orcamento|a proposta)|pode me enviar (?:o orcamento|a proposta))\b/.test(latestText);
+  const message=customerRequest
+    ? 'Pedido de retorno do cliente. Confirme a data e o próximo passo antes de salvar. Trecho do cliente: “'+latest.content.trim().slice(0,280)+'”'
+    : proposed
     ? 'Possível retorno encontrado no texto do consultor. Confira com o cliente se o próximo passo e a data foram combinados. Trecho do consultor: “'+proposed.content.trim().slice(0,280)+'”'
     : 'Atendimento em aberto. Combine com o cliente qual será o próximo passo e em que data vocês voltam a conversar.';
-  review.hidden=!proposed;
+  review.hidden=!(proposed||customerRequest);
   if(reminder.textContent!==message)reminder.textContent=message;
 }
 async function askCopilot(event){
